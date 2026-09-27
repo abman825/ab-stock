@@ -31,7 +31,7 @@ function Categories() {
   // Fetch categories
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/categories`, getAuthHeaders());
+      const res = await axios.get(`${API_BASE_URL}/categories`, getAuthHeaders());
       setCategories(res.data);
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -45,8 +45,8 @@ function Categories() {
   const handleEditClick = (cat) => {
     setEditingId(cat._id);
     setFormData({
-      categoryId: cat.categoryId,
-      name: cat.name
+      categoryId: cat.categoryId || '',
+      name: cat.name || ''
     });
     setShowModal(true);
   };
@@ -58,9 +58,9 @@ function Categories() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('ይህንን Category ለማጥፋት እርግጠኛ ነዎት?')) {
+    if (window.confirm('ይህንን ካቴጎሪ ለማጥፋት እርግጠኛ ነዎት?')) {
       try {
-        await axios.delete(`${API_URL}/api/categories/${id}`, getAuthHeaders());
+        await axios.delete(`${API_BASE_URL}/categories/${id}`, getAuthHeaders());
         fetchCategories();
       } catch (err) {
         console.error('Error deleting category:', err);
@@ -73,9 +73,9 @@ function Categories() {
     try {
       const config = getAuthHeaders();
       if (editingId) {
-        await axios.put(`${API_URL}/api/categories/${editingId}`, formData, config);
+        await axios.put(`${API_BASE_URL}/categories/${editingId}`, formData, config);
       } else {
-        await axios.post(`${API_URL}/api/categories`, formData, config);
+        await axios.post(`${API_BASE_URL}/categories`, formData, config);
       }
       handleCloseModal();
       fetchCategories();
@@ -102,13 +102,13 @@ function Categories() {
           })).filter(c => c.name);
 
           if (formattedCategories.length === 0) {
-            alert('በCSV ፋይሉ ውስጥ ትክክለኛ Category ዳታ አልተገኘም!');
+            alert('በ CSV ፋይሉ ውስጥ ትክክለኛ የካቴጎሪ መረጃ አልተገኘም!');
             return;
           }
 
           // Send bulk insert request to Backend with Auth Headers
-          await axios.post(`${API_URL}/api/categories/bulk`, formattedCategories, getAuthHeaders());
-          alert(`${formattedCategories.length} Categories በተሳካ ሁኔታ Import ሆነዋል!`);
+          await axios.post(`${API_BASE_URL}/categories/bulk`, formattedCategories, getAuthHeaders());
+          alert(`${formattedCategories.length} ካቴጎሪዎች በጥሩ ሁኔታ Import ሆነዋል!`);
           fetchCategories();
         } catch (err) {
           console.error('CSV Import Error:', err);
