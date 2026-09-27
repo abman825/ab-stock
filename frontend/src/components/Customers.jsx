@@ -13,7 +13,6 @@ function Customers() {
   });
   const [loading, setLoading] = useState(false);
 
- 
   // Helper Function for Auth Headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -30,7 +29,7 @@ function Customers() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/customers`, {
+      const res = await fetch(`${API_BASE_URL}/customers`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -55,7 +54,7 @@ function Customers() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/customers`, {
+      const res = await fetch(`${API_BASE_URL}/customers`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(formData)
