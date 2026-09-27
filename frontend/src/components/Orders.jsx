@@ -6,7 +6,7 @@ function Orders() {
   const [selectedDate, setSelectedDate] = useState('');
 
   // Base API URL ማዘጋጃ
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   // Authorization Header
   const getAuthHeaders = () => {

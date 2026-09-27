@@ -7,7 +7,7 @@ function PurchaseOrders() {
   const [showModal, setShowModal] = useState(false);
 
   // Base API URL ማዘጋጃ
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   const [formData, setFormData] = useState({
     supplierName: '',

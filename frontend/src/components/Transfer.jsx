@@ -10,7 +10,7 @@ function Transfer() {
   });
 
   // Base URL setup (ያለምንም ኤረር በlocal እና በlive እንዲሰራ)
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   // Helper Function for Auth Headers
   const getAuthHeaders = () => {
