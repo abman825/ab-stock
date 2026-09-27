@@ -12,7 +12,6 @@ function Transfer() {
     transferredBy: 'ab'
   });
 
-
   // Helper Function for Auth Headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -29,7 +28,7 @@ function Transfer() {
 
   const fetchTransfers = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/transfers`, {
+      const res = await fetch(`${API_BASE_URL}/transfers`, {
         headers: getAuthHeaders()
       });
       const data = await res.json();
@@ -42,7 +41,7 @@ function Transfer() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_URL}/api/transfers`, {
+      const res = await fetch(`${API_BASE_URL}/transfers`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(formData)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Bongisa kombo ya variable mpe base URL
+// API Base URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
@@ -60,36 +60,36 @@ function ReportsPage() {
         fontSize: '16px',
         fontWeight: '500'
       }}>
-        ⏳ Sango ezali kokota...
+        ⏳ መረጃው እየተጫነ ነው...
       </div>
     );
   }
 
-  // Cards Data Configuration
+  // Cards Data Configuration (በአማርኛ)
   const cardsData = [
     {
-      title: 'Lelo (Daily)',
+      title: 'የዛሬ (Daily)',
       sales: stats.dailySales,
       profit: stats.dailyProfit,
       icon: '📅',
       accentColor: '#2563eb'
     },
     {
-      title: 'Poso oyo',
+      title: 'የዚህ ሳምንት',
       sales: stats.weeklySales,
       profit: stats.weeklyProfit,
       icon: '📊',
       accentColor: '#7c3aed'
     },
     {
-      title: 'Sanza oyo',
+      title: 'የዚህ ወር',
       sales: stats.monthlySales,
       profit: stats.monthlyProfit,
       icon: '🗓️',
       accentColor: '#0891b2'
     },
     {
-      title: 'Mobu oyo',
+      title: 'የዚህ ዓመት',
       sales: stats.yearlySales,
       profit: stats.yearlyProfit,
       icon: '📈',
@@ -117,10 +117,10 @@ function ReportsPage() {
           alignItems: 'center', 
           gap: '10px' 
         }}>
-          📊 Rapport ya Tekisi mpe Litomba
+          📊 የሽያጭ እና የትርፍ ሪፖርት
         </h2>
         <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
-          Kotala misala ya mombongo, tekisi mpe litomba nyonso awa.
+          የንግድ እንቅስቃሴዎን፣ አጠቃላይ ሽያጭዎን እና ትርፍዎን እዚህ ይከታተሉ።
         </p>
       </div>
 
@@ -176,9 +176,9 @@ function ReportsPage() {
 
               {/* Sales Amount */}
               <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tekisi</div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>ሽያጭ</div>
                 <h3 style={{ margin: '2px 0 0 0', color: '#0f172a', fontSize: 'clamp(18px, 3.5vw, 22px)', fontWeight: '700' }}>
-                  {(card.sales || 0).toLocaleString()} <span style={{ fontSize: '12px', fontWeight: '500', color: '#64748b' }}>Birr</span>
+                  {(card.sales || 0).toLocaleString()} <span style={{ fontSize: '12px', fontWeight: '500', color: '#64748b' }}>ብር</span>
                 </h3>
               </div>
 
@@ -193,10 +193,10 @@ function ReportsPage() {
                 border: `1px solid ${isNegative ? '#fecaca' : '#bbf7d0'}`
               }}>
                 <span style={{ fontSize: '12px', color: isNegative ? '#991b1b' : '#166534', fontWeight: '600' }}>
-                  {isNegative ? '📉 Nyongo/Bebisi' : '📈 Litomba'}
+                  {isNegative ? '📉 ኪሳራ' : '📈 ትርፍ'}
                 </span>
                 <span style={{ fontSize: '12px', color: isNegative ? '#dc2626' : '#16a34a', fontWeight: '700' }}>
-                  {(card.profit || 0).toLocaleString()} Birr
+                  {(card.profit || 0).toLocaleString()} ብር
                 </span>
               </div>
             </div>
@@ -234,10 +234,10 @@ function ReportsPage() {
           </div>
           <div>
             <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>
-              Nyonso ya tango nyonso
+              የሁልጊዜ አጠቃላይ ሽያጭ
             </span>
             <h3 style={{ margin: '2px 0 0 0', fontSize: 'clamp(20px, 4vw, 26px)', fontWeight: '700', color: '#f8fafc' }}>
-              {(stats.totalSales || 0).toLocaleString()} <span style={{ fontSize: '14px', color: '#94a3b8' }}>Birr</span>
+              {(stats.totalSales || 0).toLocaleString()} <span style={{ fontSize: '14px', color: '#94a3b8' }}>ብር</span>
             </h3>
           </div>
         </div>
@@ -252,10 +252,10 @@ function ReportsPage() {
           flexGrow: 0
         }}>
           <div style={{ fontSize: '11px', color: stats.totalProfit < 0 ? '#fca5a5' : '#86efac', fontWeight: '500' }}>
-            {stats.totalProfit < 0 ? 'Nyongo nyonso' : 'Litomba nyonso'}
+            {stats.totalProfit < 0 ? 'አጠቃላይ ኪሳራ' : 'አጠቃላይ ትርፍ'}
           </div>
           <div style={{ fontSize: 'clamp(16px, 3.5vw, 20px)', fontWeight: '700', color: stats.totalProfit < 0 ? '#f87171' : '#4ade80' }}>
-            {(stats.totalProfit || 0).toLocaleString()} Birr
+            {(stats.totalProfit || 0).toLocaleString()} ብር
           </div>
         </div>
       </div>

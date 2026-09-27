@@ -8,7 +8,6 @@ function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
 
-
   // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -25,7 +24,7 @@ function Orders() {
   // Fetch Orders from Backend
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/orders`, {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         headers: getAuthHeaders()
       });
       const data = await res.json();
