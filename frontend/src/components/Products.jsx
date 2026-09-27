@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+// Base URL setup
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
 
 function Products() {
   const [products, setProducts] = useState([]);
@@ -10,8 +12,6 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  
-
   // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -45,8 +45,8 @@ function Products() {
     try {
       const config = { headers: getAuthHeaders() };
       const [resProducts, resCategories] = await Promise.all([
-        axios.get(`${API_URL}/api/products`, config),
-        axios.get(`${API_URL}/api/categories`, config)
+        axios.get(`${API_BASE_URL}/products`, config),
+        axios.get(`${API_BASE_URL}/categories`, config)
       ]);
 
       setProducts(resProducts.data);
@@ -108,7 +108,7 @@ function Products() {
         }
 
         if (importedProducts.length > 0) {
-          await axios.post(`${API_URL}/api/products/bulk`, importedProducts, {
+          await axios.post(`${API_BASE_URL}/products/bulk`, importedProducts, {
             headers: getAuthHeaders()
           });
           alert('CSV በጅምላ ገብቷል!');
@@ -187,7 +187,7 @@ function Products() {
   const handleDelete = async (id) => {
     if (window.confirm('ይህንን ምርት ለማጥፋት እርግጠኛ ነዎት?')) {
       try {
-        await axios.delete(`${API_URL}/api/products/${id}`, {
+        await axios.delete(`${API_BASE_URL}/products/${id}`, {
           headers: getAuthHeaders()
         });
         alert('ምርቱ በትክክል ተሰርዟል!');
@@ -245,6 +245,11 @@ function Products() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!formData.name || formData.name.trim() === '') {
+      alert('እባክዎን Product Name ያስገቡ!');
+      return;
+    }
+
     if (!formData.category || formData.category.trim() === '') {
       alert('እባክዎን Category ይምረጡ!');
       return;
@@ -261,11 +266,11 @@ function Products() {
         : 0;
 
       const payload = {
-        name: formData.name,
+        name: formData.name.trim(),
         category: formData.category,
         productType: formData.productType,
-        specificType: formData.specificType,
-        type: formData.specificType,
+        specificType: formData.specificType || 'Other',
+        type: formData.specificType || 'Other',
         isSyrup: Boolean(formData.isSyrup),
         boughtPrice: Number(formData.boughtPrice),
         price: Number(formData.price),
@@ -278,17 +283,19 @@ function Products() {
         invoiceNo: formData.invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
       };
 
+      // Handle Expiration Date properly
       if (formData.expiryDate && formData.expiryDate.trim() !== '') {
-        payload.expiryDate = formData.expiryDate;
+        payload.expiryDate = new Date(formData.expiryDate).toISOString();
+        payload.expirationDate = payload.expiryDate;
       }
 
       const config = { headers: getAuthHeaders() };
 
       if (editingId) {
-        await axios.put(`${API_URL}/api/products/${editingId}`, payload, config);
+        await axios.put(`${API_BASE_URL}/products/${editingId}`, payload, config);
         alert('የምርት መረጃው ተሻሽሏል!');
       } else {
-        await axios.post(`${API_URL}/api/products`, payload, config);
+        await axios.post(`${API_BASE_URL}/products`, payload, config);
         alert('አዲስ ምርት በበጥቃሉ ተመዝግቧል!');
       }
 
@@ -296,7 +303,8 @@ function Products() {
       fetchData();
     } catch (err) {
       console.error('Error saving product:', err.response ? err.response.data : err.message);
-      alert(`ምርቱን መመዝገብ አልተቻለም: ${err.response?.data?.message || err.response?.data?.error || 'Server Validation Error'}`);
+      const serverMsg = err.response?.data?.message || err.response?.data?.error || JSON.stringify(err.response?.data);
+      alert(`ምርቱን መመዝገብ አልተቻለም: ${serverMsg || 'Server Validation Error'}`);
     }
   };
 
