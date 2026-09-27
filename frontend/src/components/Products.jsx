@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function Products() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -8,8 +11,7 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Base API URL ማዘጋጃ
-  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  
 
   // Authorization Header
   const getAuthHeaders = () => {

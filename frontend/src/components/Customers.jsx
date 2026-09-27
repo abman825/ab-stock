@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function Customers() {
   const [customers, setCustomers] = useState([]);
   const [formData, setFormData] = useState({
@@ -10,9 +13,7 @@ function Customers() {
   });
   const [loading, setLoading] = useState(false);
 
-  // Base API URL ማዘጋጃ
-  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
+ 
   // Helper Function for Auth Headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');

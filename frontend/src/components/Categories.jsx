@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Papa from 'papaparse';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function Categories() {
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,9 +17,6 @@ function Categories() {
     categoryId: '',
     name: ''
   });
-
-  // Base API URL ማዘጋጃ
-  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   // Helper Function for Axios Headers with Authorization Token
   const getAuthHeaders = () => {

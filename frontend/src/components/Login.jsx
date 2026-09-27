@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function Login({ onLoginSuccess }) {
   // Mode States: 'login' | 'register' | 'forgot'
   const [mode, setMode] = useState('login');
@@ -17,8 +20,7 @@ function Login({ onLoginSuccess }) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Dynamic Base URL setup
-  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

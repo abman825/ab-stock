@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function PurchaseOrders() {
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [showModal, setShowModal] = useState(false);
-
-  // Base API URL ማዘጋጃ
-  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   const [formData, setFormData] = useState({
     supplierName: '',

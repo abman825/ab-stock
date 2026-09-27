@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function Orders() {
   const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
 
-  // Base API URL ማዘጋጃ
-  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   // Authorization Header
   const getAuthHeaders = () => {

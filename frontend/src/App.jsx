@@ -13,7 +13,9 @@ import ReportsPage from './components/ReportsPage';
 import ResetPassword from './components/ResetPassword';
 
 // 1. API Base URL ቅንብር (የተስተካከለ)
-const API_URL = import.meta.env.VITE_API_BASE_URL|| 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function App() {
   const [user, setUser] = useState(null);
   const [resetToken, setResetToken] = useState(null);

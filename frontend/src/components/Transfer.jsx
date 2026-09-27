@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`;
+
 function Transfer() {
   const [transfers, setTransfers] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -9,8 +12,6 @@ function Transfer() {
     transferredBy: 'ab'
   });
 
-  // Base URL setup (ያለምንም ኤረር በlocal እና በlive እንዲሰራ)
-  const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   // Helper Function for Auth Headers
   const getAuthHeaders = () => {
