@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Base URL setup (ያለምንም syntax error በ dynamic መንገድ እንዲሰራ)
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Base URL setup with correct variable name
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
 function POS({ cart = [], setCart, onCompleteSale, loading }) {
@@ -151,7 +151,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         await onCompleteSale(orderPayload);
       } else {
         await axios.post(`${API_BASE_URL}/orders`, orderPayload, getAuthHeaders());
-        alert('ሽያጩ በስኬት ተጠናቋል!');
+        alert('ሽያጩ በተሳካ ሁኔታ ተጠናቋል!');
         setCart([]);
       }
 
