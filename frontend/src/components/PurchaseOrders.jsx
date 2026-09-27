@@ -18,7 +18,7 @@ function PurchaseOrders() {
     invoiceNumber: ''
   });
 
-  // Authorization Header ማዘጋጃ
+  // Authorization Header ማዘጋጀት
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -33,9 +33,9 @@ function PurchaseOrders() {
       const config = { headers: getAuthHeaders() };
 
       const [poRes, supRes, prodRes] = await Promise.all([
-        fetch(`${API_URL}/api/purchase-orders`, config),
-        fetch(`${API_URL}/api/suppliers`, config),
-        fetch(`${API_URL}/api/products`, config)
+        fetch(`${API_BASE_URL}/purchase-orders`, config),
+        fetch(`${API_BASE_URL}/suppliers`, config),
+        fetch(`${API_BASE_URL}/products`, config)
       ]);
 
       const poData = await poRes.json();
@@ -70,7 +70,7 @@ function PurchaseOrders() {
           const line = lines[i].trim();
           if (!line) continue;
 
-          // Regex በመጠቀም በሴል ውስጥ ያለን ኮማ ጥስስ እንዳያደርገው ይረዳል
+          // Regex በመጠቀም በሴል ውስጥ ያለን ኮማ ቲክስ እንዳያደፈርሰው ይረዳል
           const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || line.split(',');
           const cleanValues = values.map((val) => val.replace(/^"|"$/g, '').trim());
 
@@ -90,14 +90,14 @@ function PurchaseOrders() {
         }
 
         if (importedOrders.length > 0) {
-          const res = await fetch(`${API_URL}/api/purchase-orders/bulk`, {
+          const res = await fetch(`${API_BASE_URL}/purchase-orders/bulk`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(importedOrders)
           });
 
           if (res.ok) {
-            alert('የመረጧቸው የ CSV ግዢዎች በትክክል ተመዝግበዋል!');
+            alert('የመረጧቸው የ CSV ግዢዎች በጥሩ ሁኔታ ተመዝግበዋል!');
             fetchData();
           } else {
             const errorData = await res.json().catch(() => ({}));
@@ -142,7 +142,7 @@ function PurchaseOrders() {
         totalCost: Number(formData.quantity) * Number(formData.unitCost)
       };
 
-      const res = await fetch(`${API_URL}/api/purchase-orders`, {
+      const res = await fetch(`${API_BASE_URL}/purchase-orders`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(payload)
