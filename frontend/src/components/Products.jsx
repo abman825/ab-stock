@@ -8,6 +8,9 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Base API URL ማዘጋጃ
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -41,8 +44,8 @@ function Products() {
     try {
       const config = { headers: getAuthHeaders() };
       const [resProducts, resCategories] = await Promise.all([
-        axios.get('http://localhost:5000/api/products', config),
-        axios.get('http://localhost:5000/api/categories', config)
+        axios.get(`${API_URL}/api/products`, config),
+        axios.get(`${API_URL}/api/categories`, config)
       ]);
 
       setProducts(resProducts.data);
@@ -104,7 +107,7 @@ function Products() {
         }
 
         if (importedProducts.length > 0) {
-          await axios.post('http://localhost:5000/api/products/bulk', importedProducts, {
+          await axios.post(`${API_URL}/api/products/bulk`, importedProducts, {
             headers: getAuthHeaders()
           });
           alert('CSV በጅምላ ገብቷል!');
@@ -114,7 +117,7 @@ function Products() {
         }
       } catch (err) {
         console.error('Error importing CSV:', err.response ? err.response.data : err.message);
-        alert(`CSV በማስገባት ላይ ስህተት ተፈጥሯል: ${err.response?.data?.message || 'Server Error (500)'}`);
+        alert(`CSV በማስገባት ላይ ስህተት ተፈጽሟል: ${err.response?.data?.message || 'Server Error (500)'}`);
       }
       e.target.value = null;
     };
@@ -183,7 +186,7 @@ function Products() {
   const handleDelete = async (id) => {
     if (window.confirm('ይህንን ምርት ለማጥፋት እርግጠኛ ነዎት?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/products/${id}`, {
+        await axios.delete(`${API_URL}/api/products/${id}`, {
           headers: getAuthHeaders()
         });
         alert('ምርቱ በትክክል ተሰርዟል!');
@@ -281,11 +284,11 @@ function Products() {
       const config = { headers: getAuthHeaders() };
 
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/products/${editingId}`, payload, config);
+        await axios.put(`${API_URL}/api/products/${editingId}`, payload, config);
         alert('የምርት መረጃው ተሻሽሏል!');
       } else {
-        await axios.post('http://localhost:5000/api/products', payload, config);
-        alert('አዲስ ምርት በበጥቀሉ ተመዝግቧል!');
+        await axios.post(`${API_URL}/api/products`, payload, config);
+        alert('አዲስ ምርት በበጥቃሉ ተመዝግቧል!');
       }
 
       handleCloseModal();

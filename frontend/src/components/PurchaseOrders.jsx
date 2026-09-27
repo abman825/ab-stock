@@ -6,6 +6,9 @@ function PurchaseOrders() {
   const [products, setProducts] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
+  // Base API URL ማዘጋጃ
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   const [formData, setFormData] = useState({
     supplierName: '',
     productId: '',
@@ -23,16 +26,16 @@ function PurchaseOrders() {
       'Content-Type': 'application/json'
     };
   };
-  
-  // Data Fetching (Headers የተካተተበት)
+
+  // Data Fetching
   const fetchData = async () => {
     try {
       const config = { headers: getAuthHeaders() };
 
       const [poRes, supRes, prodRes] = await Promise.all([
-        fetch('http://localhost:5000/api/purchase-orders', config),
-        fetch('http://localhost:5000/api/suppliers', config),
-        fetch('http://localhost:5000/api/products', config)
+        fetch(`${API_URL}/api/purchase-orders`, config),
+        fetch(`${API_URL}/api/suppliers`, config),
+        fetch(`${API_URL}/api/products`, config)
       ]);
 
       const poData = await poRes.json();
@@ -51,7 +54,7 @@ function PurchaseOrders() {
     fetchData();
   }, []);
 
-  // CSV Import Functionality (በተስተካከለ አሰራር)
+  // CSV Import Functionality
   const handleImportCSV = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -67,7 +70,7 @@ function PurchaseOrders() {
           const line = lines[i].trim();
           if (!line) continue;
 
-          // Regex መጠቀማችን በሴል ውስጥ ያለን ኮማ ጥስስ እንዳያደርገው ይረዳል
+          // Regex በመጠቀም በሴል ውስጥ ያለን ኮማ ጥስስ እንዳያደርገው ይረዳል
           const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || line.split(',');
           const cleanValues = values.map((val) => val.replace(/^"|"$/g, '').trim());
 
@@ -87,18 +90,18 @@ function PurchaseOrders() {
         }
 
         if (importedOrders.length > 0) {
-          const res = await fetch('http://localhost:5000/api/purchase-orders/bulk', {
+          const res = await fetch(`${API_URL}/api/purchase-orders/bulk`, {
             method: 'POST',
-            headers: getAuthHeaders(), // Authorization header ተጨምሯል
+            headers: getAuthHeaders(),
             body: JSON.stringify(importedOrders)
           });
 
           if (res.ok) {
-            alert('የመረጡት የ CSV ግዢዎች በትክክል ተመዝግበዋል!');
+            alert('የመረጧቸው የ CSV ግዢዎች በትክክል ተመዝግበዋል!');
             fetchData();
           } else {
             const errorData = await res.json().catch(() => ({}));
-            alert(`ግዢዎችን ማልመድ አልተቻለም: ${errorData.message || 'Server Error'}`);
+            alert(`ግዢዎችን ማስገባት አልተቻለም: ${errorData.message || 'Server Error'}`);
           }
         } else {
           alert('የመረጡት CSV ፋይል ባዶ ነው ወይም ትክክለኛ መረጃ አልያዘም።');
@@ -121,21 +124,28 @@ function PurchaseOrders() {
         ...formData,
         productId: selectedProd._id,
         productName: selectedProd.name,
-        unitCost: selectedProd.price || 0
+        unitCost: selectedProd.boughtPrice || selectedProd.price || 0
       });
     } else {
       setFormData({ ...formData, productId: '', productName: '', unitCost: 0 });
     }
   };
 
-  // Submit Handler (Headers የተካተተበት)
+  // Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/purchase-orders', {
+      const payload = {
+        ...formData,
+        quantity: Number(formData.quantity),
+        unitCost: Number(formData.unitCost),
+        totalCost: Number(formData.quantity) * Number(formData.unitCost)
+      };
+
+      const res = await fetch(`${API_URL}/api/purchase-orders`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -143,7 +153,8 @@ function PurchaseOrders() {
         setFormData({ supplierName: '', productId: '', productName: '', quantity: 1, unitCost: 0, invoiceNumber: '' });
         fetchData();
       } else {
-        alert('Purchase Order ማስገባት አልተቻለም!');
+        const errData = await res.json().catch(() => ({}));
+        alert(`Purchase Order ማስገባት አልተቻለም: ${errData.message || 'Server Error'}`);
       }
     } catch (err) {
       console.error('Error creating purchase order:', err);
@@ -151,10 +162,10 @@ function PurchaseOrders() {
   };
 
   return (
-    <div style={{ padding: '24px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '24px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       {/* Top Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#1e293b', margin: 0 }}>Purchase</h2>
           <p style={{ fontSize: '13px', color: '#64748b', margin: '6px 0 0 0' }}>
@@ -211,8 +222,8 @@ function PurchaseOrders() {
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+      <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '650px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '11px', textTransform: 'uppercase' }}>
               <th style={{ padding: '12px 20px', fontWeight: '600' }}>DATE</th>
@@ -254,8 +265,8 @@ function PurchaseOrders() {
 
       {/* Modal Form */}
       {showModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '420px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
+          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '100%', maxWidth: '420px', boxSizing: 'border-box' }}>
             <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '16px', color: '#0f172a' }}>
               Create New Purchase
             </h3>
@@ -270,7 +281,7 @@ function PurchaseOrders() {
                 >
                   <option value="">-- Select Supplier --</option>
                   {suppliers.map((s) => (
-                    <option key={s._id} value={s.name}>{s.name}</option>
+                    <option key={s._id || s.id} value={s.name}>{s.name}</option>
                   ))}
                 </select>
               </div>
@@ -285,7 +296,7 @@ function PurchaseOrders() {
                 >
                   <option value="">-- Select Product --</option>
                   {products.map((p) => (
-                    <option key={p._id} value={p._id}>{p.name}</option>
+                    <option key={p._id || p.id} value={p._id || p.id}>{p.name}</option>
                   ))}
                 </select>
               </div>
@@ -315,9 +326,20 @@ function PurchaseOrders() {
                 </div>
               </div>
 
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>Invoice Number (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="INV-XXXXXX"
+                  value={formData.invoiceNumber}
+                  onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
                 <button type="button" onClick={() => setShowModal(false)} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
-                <button type="submit" style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                <button type="submit" style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
                   Save Purchase
                 </button>
               </div>

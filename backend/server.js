@@ -23,4 +23,4 @@ app.use('/api', mainRoutes);
 
 // 4. Server Start
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Maya Stock Server በ Port ${PORT} ላይ እየሰራ ይገኛል`));
+app.listen(PORT, () => console.log(`🚀 ab Stock Server በ Port ${PORT} ላይ እየሰራ ይገኛል`));

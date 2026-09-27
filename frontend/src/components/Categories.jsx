@@ -15,6 +15,9 @@ function Categories() {
     name: ''
   });
 
+  // Base API URL ማዘጋጃ
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   // Helper Function for Axios Headers with Authorization Token
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -28,7 +31,7 @@ function Categories() {
   // Fetch categories
   const fetchCategories = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/categories', getAuthHeaders());
+      const res = await axios.get(`${API_URL}/api/categories`, getAuthHeaders());
       setCategories(res.data);
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -57,7 +60,7 @@ function Categories() {
   const handleDelete = async (id) => {
     if (window.confirm('ይህንን Category ለማጥፋት እርግጠኛ ነዎት?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/categories/${id}`, getAuthHeaders());
+        await axios.delete(`${API_URL}/api/categories/${id}`, getAuthHeaders());
         fetchCategories();
       } catch (err) {
         console.error('Error deleting category:', err);
@@ -70,9 +73,9 @@ function Categories() {
     try {
       const config = getAuthHeaders();
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/categories/${editingId}`, formData, config);
+        await axios.put(`${API_URL}/api/categories/${editingId}`, formData, config);
       } else {
-        await axios.post('http://localhost:5000/api/categories', formData, config);
+        await axios.post(`${API_URL}/api/categories`, formData, config);
       }
       handleCloseModal();
       fetchCategories();
@@ -104,12 +107,12 @@ function Categories() {
           }
 
           // Send bulk insert request to Backend with Auth Headers
-          await axios.post('http://localhost:5000/api/categories/bulk', formattedCategories, getAuthHeaders());
+          await axios.post(`${API_URL}/api/categories/bulk`, formattedCategories, getAuthHeaders());
           alert(`${formattedCategories.length} Categories በተሳካ ሁኔታ Import ሆነዋል!`);
           fetchCategories();
         } catch (err) {
           console.error('CSV Import Error:', err);
-          alert('Import በሚደረግበት ወቅት ስህተት ተፈጥሯል!');
+          alert('Import በሚደረግበት ወቅት ስህተት ተፈጽሟል!');
         }
       }
     });

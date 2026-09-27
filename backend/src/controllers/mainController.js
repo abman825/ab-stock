@@ -123,7 +123,7 @@ exports.changePassword = async (req, res) => {
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክል አይደለም!" });
+      return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
     }
 
     user.password = newPassword; 
@@ -135,7 +135,7 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// 6. FORGOT PASSWORD
+// 6. FORGOT PASSWORD (የተስተካከለ)
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -151,7 +151,9 @@ exports.forgotPassword = async (req, res) => {
 
     await user.save();
 
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    // Dynamically picks the frontend URL from .env (e.g., https://ab-stock.vercel.app)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
@@ -172,7 +174,7 @@ exports.forgotPassword = async (req, res) => {
           ${resetUrl}
         </a>
 
-        <p>ይህ ሊንክ የሚያገለግለው ለ 10 ደቂቃ ብቻ ነው።</p>
+        <p>ይህ ሊንክ የሚያገለግለው ለ 10 ደቂቃ ብቻ ነው፡፡</p>
       `
     };
 
@@ -195,7 +197,7 @@ exports.resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክል አይደለም' });
+      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
     }
 
     user.password = req.body.password;
@@ -260,7 +262,7 @@ exports.deleteProduct = async (req, res) => {
 // FOR PRODUCTS BULK IMPORT
 exports.createProductsBulk = async (req, res) => {
   try {
-    const products = req.body; // Array of products
+    const products = req.body;
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ message: 'አስፈላጊው የዳታ Array አልተላከም!' });
     }
@@ -300,7 +302,7 @@ exports.createCategory = async (req, res) => {
 // FOR CATEGORIES BULK IMPORT
 exports.createCategoriesBulk = async (req, res) => {
   try {
-    const categories = req.body; // Array of categories
+    const categories = req.body;
     if (!Array.isArray(categories) || categories.length === 0) {
       return res.status(400).json({ message: 'አስፈላጊው የዳታ Array አልተላከም!' });
     }

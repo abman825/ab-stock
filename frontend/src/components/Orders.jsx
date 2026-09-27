@@ -5,6 +5,9 @@ function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
 
+  // Base API URL ማዘጋጃ
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -21,7 +24,7 @@ function Orders() {
   // Fetch Orders from Backend
   const fetchOrders = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/orders', {
+      const res = await fetch(`${API_URL}/api/orders`, {
         headers: getAuthHeaders()
       });
       const data = await res.json();
@@ -172,7 +175,7 @@ function Orders() {
                 const totalQty = order.items?.reduce((sum, item) => sum + (item.cartQty || item.quantity || 1), 0) || 1;
                 const productNames = order.items?.map(i => i.name || i.productName).join(', ') || 'N/A';
                 
-                // አንድ እቃ ብቻ ከሆነ ዋጋውን ያሳያል፤ ከአንድ በላይ እቃዎች በአንድ ላይ ከተሸጡ ግን `- -` ያደርጋል
+                // አንድ ዕቃ ብቻ ከሆነ ዋጋውን ያሳያል፤ ከአንድ በላይ ዕቃዎች በአንድ ላይ ከተሸጡ ግን `- -` ያደርጋል
                 const displayPrice = order.items && order.items.length === 1
                   ? `${order.items[0].price || 0} Birr`
                   : '- -';

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// Fixed API Base URL resolution
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 function ResetPassword({ token, onBackToLogin }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -12,7 +15,6 @@ function ResetPassword({ token, onBackToLogin }) {
   const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
-    // ሰዓቱ ካለቀ ቆጣሪው ይቆማል
     if (timeLeft <= 0) {
       setIsExpired(true);
       return;
@@ -20,11 +22,18 @@ function ResetPassword({ token, onBackToLogin }) {
 
     // በየ 1 ሰከንዱ (1000ms) ቆጣሪውን መቀነስ
     const timer = setInterval(() => {
-      setTimeLeft((prevTime) => prevTime - 1);
+      setTimeLeft((prevTime) => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          setIsExpired(true);
+          return 0;
+        }
+        return prevTime - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, []);
 
   // ሰከንድን ወደ "09:59" ፎርማት መቀየሪያ
   const formatTime = (seconds) => {
@@ -45,7 +54,8 @@ function ResetPassword({ token, onBackToLogin }) {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/reset-password/${token}`, {
+      // Fixed template string URL
+      const res = await fetch(`${API_BASE_URL}/reset-password/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPassword })
@@ -99,7 +109,7 @@ function ResetPassword({ token, onBackToLogin }) {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              disabled={isExpired} // 10 ደቂቃ ካለቀ Input-ኡ እንዳይሰራ ያደርጋል
+              disabled={isExpired}
               style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
             />
           </div>
@@ -112,14 +122,14 @@ function ResetPassword({ token, onBackToLogin }) {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              disabled={isExpired} // 10 ደቂቃ ካለቀ Input-ኡ እንዳይሰራ ያደርጋል
+              disabled={isExpired}
               style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading || isExpired} // ጊዜው ካለቀ አዝራሩ አይሰራም
+            disabled={loading || isExpired}
             style={{
               padding: '10px',
               background: (loading || isExpired) ? '#6c757d' : '#0b5ed7',

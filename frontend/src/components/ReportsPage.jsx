@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// Syntax fix: proper dynamic evaluation of Vite environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function ReportsPage() {
   const [stats, setStats] = useState({
@@ -122,7 +123,7 @@ function ReportsPage() {
         </p>
       </div>
 
-      {/* Grid Layout - 100% Mobile Responsive */}
+      {/* Grid Layout - Mobile Responsive */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', 
@@ -202,7 +203,7 @@ function ReportsPage() {
         })}
       </div>
 
-      {/* Total Featured Card - Flexible Container */}
+      {/* Total Featured Card */}
       <div style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         padding: 'clamp(16px, 3vw, 24px)',
@@ -232,7 +233,7 @@ function ReportsPage() {
           </div>
           <div>
             <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>
-              ጠቅላላ የሁሉንም ጊዜ እንቅስቃሴ
+              ጠቅላላ የሁሉም ጊዜ እንቅስቃሴ
             </span>
             <h3 style={{ margin: '2px 0 0 0', fontSize: 'clamp(20px, 4vw, 26px)', fontWeight: '700', color: '#f8fafc' }}>
               {(stats.totalSales || 0).toLocaleString()} <span style={{ fontSize: '14px', color: '#94a3b8' }}>Birr</span>

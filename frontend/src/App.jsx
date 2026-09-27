@@ -12,7 +12,8 @@ import Login from './components/Login';
 import ReportsPage from './components/ReportsPage';
 import ResetPassword from './components/ResetPassword';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// 1. API Base URL ቅንብር (የተስተካከለ)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -147,7 +148,7 @@ function App() {
       });
 
       if (res.ok) {
-        alert('ሽያጩ በተካካ ሁኔታ ተጠናቋል!');
+        alert('ሽያጩ በተካከለ ሁኔታ ተጠናቋል!');
         setCart([]);
         fetchProducts();
         fetchTodaySalesSummary();
@@ -250,7 +251,7 @@ function App() {
         {/* Logo & Mobile Close Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            📦 Maya Stock
+            📦 ab Stock
           </h2>
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
@@ -363,7 +364,7 @@ function App() {
             >
               ☰
             </button>
-            <span style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(14px, 3vw, 16px)' }}>Maya Stock POS</span>
+            <span style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(14px, 3vw, 16px)' }}>AB Stock POS</span>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -458,7 +459,7 @@ function App() {
         </div>
       )}
 
-      {/* Embedded CSS rules for Mobile vs Desktop Responsive behavior */}
+      {/* Responsive Styles */}
       <style>{`
         @media (min-width: 768px) {
           .responsive-sidebar {

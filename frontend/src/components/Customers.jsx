@@ -10,6 +10,9 @@ function Customers() {
   });
   const [loading, setLoading] = useState(false);
 
+  // Base API URL ማዘጋጃ
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   // Helper Function for Auth Headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -26,7 +29,7 @@ function Customers() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/customers', {
+      const res = await fetch(`${API_URL}/api/customers`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -45,13 +48,13 @@ function Customers() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      alert("እባክዎን ስምና ስልክ ቁጥር ያስገቡ።");
+      alert("እባክዎን ስም እና ስልክ ቁጥር ያስገቡ");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/customers', {
+      const res = await fetch(`${API_URL}/api/customers`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(formData)
@@ -62,13 +65,13 @@ function Customers() {
         setCustomers([newCustomer, ...customers]);
         setFormData({ name: '', email: '', phone: '', address: '' });
       } else {
-        // Backend API ካልመለሰ በቋት (locally) ብቻ ጊዜያዊ መረጃ መጨመር
+        // Backend API ካልመለሰ በስተቀር (locally) ጊዜያዊ መረጃ መጨመር
         const newCustomer = { ...formData, _id: Date.now().toString() };
         setCustomers([newCustomer, ...customers]);
         setFormData({ name: '', email: '', phone: '', address: '' });
       }
     } catch (err) {
-      // ኤፒአይ ከሌለ ወይም ስህተት ከተፈጠረ በቋት (locally) መጨመር
+      // ኤፒአይ ከሌለ ወይም ስህተት ከተፈጠረ በስተቀር (locally) መጨመር
       const newCustomer = { ...formData, _id: Date.now().toString() };
       setCustomers([newCustomer, ...customers]);
       setFormData({ name: '', email: '', phone: '', address: '' });
@@ -142,7 +145,7 @@ function Customers() {
         </form>
       </div>
 
-      {/* የደንበኞች ሰንጠረዥ */}
+      {/* የደንበኞች ሠንጠረዥ */}
       <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
         <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '15px', color: '#495057' }}>
           Customer List ({customers.length})

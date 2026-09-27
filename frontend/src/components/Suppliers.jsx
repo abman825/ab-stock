@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// API Base URL ቅንብር
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -11,7 +14,7 @@ function Suppliers() {
     location: ''
   });
 
-  // 1. Authorization Header ማዘጋጃ
+  // 1. Authorization Header ማዘጋጀት
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -20,11 +23,11 @@ function Suppliers() {
     };
   };
   
-  // 2. Suppliers ዳታ ከ Backend ማምጫ (Headers ተጨምሯል)
+  // 2. Suppliers መረጃን ከ Backend መቀበል
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/suppliers', {
-        headers: getAuthHeaders() // 👈 እዚህ ላይ ተጨምሯል
+      const res = await fetch(`${API_BASE_URL}/suppliers`, {
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (Array.isArray(data)) setSuppliers(data);
@@ -53,13 +56,13 @@ function Suppliers() {
     setFormData({ name: '', phone: '', location: '' });
   };
 
-  // 3. Supplier ለማጥፋት (Headers እና ጽሑፉ ተስተካክሏል)
+  // 3. Supplier ለማጥፋት
   const handleDelete = async (id) => {
-    if (window.confirm('ይህንን Supplier ለማጥፋት እርግጠኛ ነዎት?')) {
+    if (window.confirm('ይህንን አቅራቢ (Supplier) ለማጥፋት እርግጠኛ ነዎት?')) {
       try {
-        await fetch(`http://localhost:5000/api/suppliers/${id}`, { 
+        await fetch(`${API_BASE_URL}/suppliers/${id}`, { 
           method: 'DELETE',
-          headers: getAuthHeaders() // 👈 እዚህ ላይ ተጨምሯል
+          headers: getAuthHeaders()
         });
         fetchSuppliers();
       } catch (err) {
@@ -68,18 +71,18 @@ function Suppliers() {
     }
   };
 
-  // 4. Supplier ለመመዝገብ/ለማስተካከል (Headers ተጨምሯል)
+  // 4. Supplier ለመመዝገብ / ለማስተካከል
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const url = editingId
-        ? `http://localhost:5000/api/suppliers/${editingId}`
-        : 'http://localhost:5000/api/suppliers';
+        ? `${API_BASE_URL}/suppliers/${editingId}`
+        : `${API_BASE_URL}/suppliers`;
       const method = editingId ? 'PUT' : 'POST';
 
       await fetch(url, {
         method,
-        headers: getAuthHeaders(), // 👈 እዚህ ላይ ተጨምሯል
+        headers: getAuthHeaders(),
         body: JSON.stringify(formData)
       });
 

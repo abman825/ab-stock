@@ -17,6 +17,9 @@ function Login({ onLoginSuccess }) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Dynamic Base URL setup
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -31,7 +34,7 @@ function Login({ onLoginSuccess }) {
     if (mode === 'forgot') {
       // Handle Forgot Password via Nodemailer Endpoint
       try {
-        const res = await fetch('http://localhost:5000/api/auth/forgot-password', {
+        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email })
@@ -58,7 +61,7 @@ function Login({ onLoginSuccess }) {
       : { username: formData.username, password: formData.password };
 
     try {
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

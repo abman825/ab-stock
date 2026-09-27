@@ -6,8 +6,11 @@ function Transfer() {
   const [formData, setFormData] = useState({
     from: 'stock',
     to: 'pharmacy',
-    transferredBy: 'rose18'
+    transferredBy: 'ab'
   });
+
+  // Base URL setup (ያለምንም ኤረር በlocal እና በlive እንዲሰራ)
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   // Helper Function for Auth Headers
   const getAuthHeaders = () => {
@@ -25,7 +28,7 @@ function Transfer() {
 
   const fetchTransfers = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/transfers', {
+      const res = await fetch(`${API_URL}/api/transfers`, {
         headers: getAuthHeaders()
       });
       const data = await res.json();
@@ -38,7 +41,7 @@ function Transfer() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/transfers', {
+      const res = await fetch(`${API_URL}/api/transfers`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(formData)

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// API Base URL ቅንብር
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
@@ -31,10 +34,11 @@ function Settings() {
     };
   };
 
+  // የፕሮፋይል መረጃን ከባክኤንድ የመቀበል ሥራ
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/auth/profile', {
+        const res = await axios.get(`${API_BASE_URL}/auth/profile`, {
           headers: getAuthHeaders()
         });
         if (res.data) {
@@ -47,13 +51,14 @@ function Settings() {
           });
         }
       } catch (err) {
-        console.error('Failed to load user profile:', err);
+        console.error('የተጠቃሚ መረጃን መጫን አልተቻለም:', err);
       }
     };
 
     fetchUserProfile();
   }, []);
 
+  // የፕሮፋይል መረጃ ማዘመኛ
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
@@ -61,12 +66,12 @@ function Settings() {
 
     try {
       const res = await axios.put(
-        'http://localhost:5000/api/auth/update-profile',
+        `${API_BASE_URL}/auth/update-profile`,
         profileData,
         { headers: getAuthHeaders() }
       );
 
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: 'ፕሮፋይልዎ በተሳካ ሁኔታ ተዘምኗል!' });
       
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...storedUser, ...profileData }));
@@ -75,29 +80,30 @@ function Settings() {
       console.error(err);
       setMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Failed to update profile!'
+        text: err.response?.data?.message || 'ፕሮፋይል ማዘመን አልተቻለም!'
       });
     } finally {
       setLoading(false);
     }
   };
 
+  // የይለፍ ቃል (Password) መቀየሪያ
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'Please fill in all password fields!' });
+      setMessage({ type: 'error', text: 'እባክዎን ሁሉንም የፓስወርድ ቦታዎች ይሙሉ!' });
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'New password and confirm password do not match!' });
+      setMessage({ type: 'error', text: 'አዲሱ ፓስወርድ እና ማረጋገጫው አይመሳሰሉም!' });
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'New password must be at least 6 characters!' });
+      setMessage({ type: 'error', text: 'አዲሱ ፓስወርድ ቢያንስ 6 ቁምፊዎች (Characters) መሆን አለበት!' });
       return;
     }
 
@@ -105,7 +111,7 @@ function Settings() {
 
     try {
       const res = await axios.put(
-        'http://localhost:5000/api/auth/change-password',
+        `${API_BASE_URL}/auth/change-password`,
         {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
@@ -113,13 +119,13 @@ function Settings() {
         { headers: getAuthHeaders() }
       );
 
-      setMessage({ type: 'success', text: 'Password changed successfully!' });
+      setMessage({ type: 'success', text: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       console.error(err);
       setMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Failed to change password! Check your current password.'
+        text: err.response?.data?.message || 'ፓስወርድ መቀየር አልተቻለም! አሁን የሚጠቀሙበትን ፓስወርድ ያረጋግጡ።'
       });
     } finally {
       setLoading(false);
@@ -187,15 +193,16 @@ function Settings() {
 
       <div style={{ maxWidth: '1100px', margin: '0 auto 20px auto' }}>
         <h2 style={{ fontSize: '22px', color: '#212529', margin: '0 0 5px 0', fontWeight: '700' }}>
-          Account Settings
+          የአካውንት ማስተካከያ (Account Settings)
         </h2>
         <p style={{ fontSize: '13px', color: '#6c757d', margin: 0 }}>
-          Manage your account profile and security settings.
+          የግል መረጃዎን እና የደህንነት ቅንብሮችን እዚህ ያስተካክሉ።
         </p>
       </div>
 
       <div className="settings-container">
         
+        {/* የጎን ታብ ማውጫ (Sidebar Tabs) */}
         <div className="settings-sidebar">
           <button
             className="tab-button"
@@ -207,7 +214,7 @@ function Settings() {
               border: activeTab === 'profile' ? 'none' : '1px solid #dee2e6'
             }}
           >
-            👤 Profile Info
+            👤 የፕሮፋይል መረጃ
           </button>
 
           <button
@@ -220,12 +227,14 @@ function Settings() {
               border: activeTab === 'security' ? 'none' : '1px solid #dee2e6'
             }}
           >
-            🔒 Password & Security
+            🔒 ፓስወርድ እና ደህንነት
           </button>
         </div>
 
+        {/* የዋናው ይዘት ቦታ (Main Content Area) */}
         <div className="settings-content">
           
+          {/* የስኬት ወይም የስህተት መልዕክት ማሳያ */}
           {message.text && (
             <div
               style={{
@@ -244,20 +253,21 @@ function Settings() {
             </div>
           )}
 
+          {/* 1. የፕሮፋይል መረጃ ታብ */}
           {activeTab === 'profile' && (
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
-                Profile Information
+                የፕሮፋይል መረጃ (Profile Information)
               </h3>
               <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
-                Update your personal details and contact information.
+                የግል መረጃዎን እና የመገናኛ አድራሻዎን ያዘምኑ።
               </p>
 
               <form onSubmit={handleUpdateProfile}>
                 <div className="form-grid-2" style={{ marginBottom: '15px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
-                      Username
+                      የተጠቃሚ ስም (Username)
                     </label>
                     <input
                       type="text"
@@ -269,11 +279,11 @@ function Settings() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
-                      Full Name
+                      ሙሉ ስም (Full Name)
                     </label>
                     <input
                       type="text"
-                      placeholder="Enter full name"
+                      placeholder="ሙሉ ስም ያስገቡ"
                       value={profileData.fullName}
                       onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
                       style={{ width: '100%', padding: '9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
@@ -284,7 +294,7 @@ function Settings() {
                 <div className="form-grid-2" style={{ marginBottom: '20px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
-                      Email Address
+                      ኢሜይል (Email Address)
                     </label>
                     <input
                       type="email"
@@ -297,7 +307,7 @@ function Settings() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
-                      Phone Number
+                      ስልክ ቁጥር (Phone Number)
                     </label>
                     <input
                       type="text"
@@ -324,30 +334,31 @@ function Settings() {
                     opacity: loading ? 0.7 : 1
                   }}
                 >
-                  {loading ? 'SAVING...' : 'SAVE CHANGES'}
+                  {loading ? 'በማስቀመጥ ላይ...' : 'ለወጦችን አስቀምጥ'}
                 </button>
               </form>
             </div>
           )}
 
+          {/* 2. የፓስወርድ እና ደህንነት ታብ */}
           {activeTab === 'security' && (
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
-                Change Password
+                ፓስወርድ መቀየር (Change Password)
               </h3>
               <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
-                Use a strong password to keep your account safe.
+                አካውንትዎን ደህንነቱ የተጠበቀ ለማድረግ ጠንካራ ፓስወርድ ይጠቀሙ።
               </p>
 
               <form onSubmit={handleUpdatePassword}>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
-                    Current Password
+                    አሁን የሚጠቀሙበት ፓስወርድ
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type={showCurrentPassword ? 'text' : 'password'}
-                      placeholder="Enter current password"
+                      placeholder="የአሁኑን ፓስወርድ ያስገቡ"
                       value={passwordData.currentPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                       style={{ width: '100%', padding: '9px 40px 9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
@@ -365,12 +376,12 @@ function Settings() {
                 <div className="form-grid-2" style={{ marginBottom: '20px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
-                      New Password
+                      አዲስ ፓስወርድ
                     </label>
                     <div style={{ position: 'relative' }}>
                       <input
                         type={showNewPassword ? 'text' : 'password'}
-                        placeholder="Enter new password"
+                        placeholder="አዲስ ፓስወርድ ያስገቡ"
                         value={passwordData.newPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                         style={{ width: '100%', padding: '9px 40px 9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
@@ -387,11 +398,11 @@ function Settings() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
-                      Confirm New Password
+                      አዲሱን ፓስወርድ ያረጋግጡ
                     </label>
                     <input
                       type="password"
-                      placeholder="Re-enter new password"
+                      placeholder="አዲሱን ፓስወርድ ድጋሚ ያስገቡ"
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                       style={{ width: '100%', padding: '9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
@@ -414,7 +425,7 @@ function Settings() {
                     opacity: loading ? 0.7 : 1
                   }}
                 >
-                  {loading ? 'UPDATING...' : 'UPDATE PASSWORD'}
+                  {loading ? 'በመቀየር ላይ...' : 'ፓስወርድ ቀይር'}
                 </button>
               </form>
             </div>
