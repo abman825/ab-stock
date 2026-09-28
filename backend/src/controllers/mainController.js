@@ -13,11 +13,17 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 // Nodemailer Transporter ዝግጅት (ከ .env ፋይልህ መረጃዎችን ይወስዳል)
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Port 587 ሲሆን false መሆን አለበት
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  family: 4, // <-- ይህ Render የ IPv4 አድራሻ ብቻ እንዲጠቀም ያስገድደዋል!
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 // ==================== 1. USER & AUTHENTICATION ====================
