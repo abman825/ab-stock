@@ -153,12 +153,13 @@ exports.forgotPassword = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // IPv4 Force የሚያደርግ Configuration
+    // Render ላይ በ Port 587 የሚሰራ Transporter Config
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      family: 4, // <-- ENETUNREACH IPv6 ኤረርን ይቀርፋል
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      family: 4,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -169,7 +170,7 @@ exports.forgotPassword = async (req, res) => {
     });
 
     const mailOptions = {
-      from: `"AB-Stock" <${process.env.EMAIL_USER}>`,
+      from: `"AB-Stock Support" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: 'Password Reset Request',
       html: `
