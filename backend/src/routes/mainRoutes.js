@@ -105,15 +105,15 @@ router.put('/products/:id', controller.updateProduct);
 router.delete('/products/:id', controller.deleteProduct);
 
 // Categories
-router.get('/categories', auth, controller.getCategories);
-router.post('/categories', auth, controller.createCategory);
-router.put('/categories/:id', auth, controller.updateCategory);     // <-- ይህን ይጨምሩ
-router.delete('/categories/:id', auth, controller.deleteCategory);  // <-- ይህን ይጨምሩ
+router.get('/categories', controller.getCategories);
+router.post('/categories',controller.createCategory);
+router.put('/categories/:id', controller.updateCategory);     // <-- ይህን ይጨምሩ
+router.delete('/categories/:id', controller.deleteCategory);  // <-- ይህን ይጨምሩ
 // Suppliers
 router.get('/suppliers', controller.getSuppliers);
 router.post('/suppliers', controller.createSupplier);
-router.put('/suppliers/:id', auth, controller.updateSupplier);     
-router.delete('/suppliers/:id', auth, controller.deleteSupplier);
+router.put('/suppliers/:id', controller.updateSupplier);     
+router.delete('/suppliers/:id',controller.deleteSupplier);
 
 // Purchase Orders
 router.get('/purchase-orders', controller.getPurchases);
