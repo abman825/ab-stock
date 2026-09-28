@@ -11,8 +11,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Nodemailer Transporter ዝግጅት (ከ .env ፋይልህ መረጃዎችን ይወስዳል)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 // ==================== 1. USER & AUTHENTICATION ====================
 
 exports.forgotPassword = async (req, res) => {
@@ -28,7 +35,7 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // 32-byte Token ማመንጨት እና Hash አድርጎ DB ውስጥ ማስቀምጥ
+    // 32-byte Token ማመንጨት እና Hash አድርጎ DB ውስጥ ማስቀመጥ
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ የሚቆይ
@@ -38,15 +45,15 @@ exports.forgotPassword = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Resend HTTP API ተጠቅሞ ኢሜይል መላክ (Port/IPv6 Blocking ችግር የለበትም)
-    await resend.emails.send({
-      from: 'onboarding@resend.dev', // በራሱ የ Resend ቴስቲንግ ኢሜይል ይልካል
-      to: user.email,
+    // በ Nodemailer አማካኝነት ለማንኛውም ተጠቃሚ ኢሜይል መላክ
+    const mailOptions = {
+      from: `"ab-Stock Support" <${process.env.EMAIL_USER}>`,
+      to: user.email, // ተጠቃሚው ያስገባው ኢሜይል
       subject: 'Password Reset Request',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
           <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.name || ''}፣</p>
+          <p>ሰላም ${user.fullName || user.username || ''}፤</p>
           <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
@@ -54,10 +61,12 @@ exports.forgotPassword = async (req, res) => {
             </a>
           </div>
           <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ችላ ይበሉት።</p>
+          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ቸል ይበሉት።</p>
         </div>
       `
-    });
+    };
+
+    await transporter.sendMail(mailOptions);
 
     res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
 
@@ -187,7 +196,6 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 
 // 7. RESET PASSWORD
