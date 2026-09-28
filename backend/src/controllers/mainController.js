@@ -9,8 +9,8 @@ const Customer = require('../models/Customer');
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const Brevo = require('@getbrevo/brevo');
+const crypto = require('crypto');
 
 exports.forgotPassword = async (req, res) => {
   try {
@@ -25,7 +25,7 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // Reset Token ማመንጨት
+    // 1. Reset Token ማመንጨት
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 ደቂቃ
@@ -35,28 +35,34 @@ exports.forgotPassword = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Brevo HTTP API (Nodemailer ወይም SMTP Port አይጠቀምም)
+    // 2. Brevo API Client ማዘጋጀት (@getbrevo/brevo v6 አጠቃቀም)
     const apiInstance = new Brevo.TransactionalEmailsApi();
-    apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+    apiInstance.setApiKey(
+      Brevo.TransactionalEmailsApiApiKeys.apiKey,
+      process.env.BREVO_API_KEY
+    );
 
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
-    sendSmtpEmail.subject = "Password Reset Request";
-    sendSmtpEmail.htmlContent = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
-        <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-        <p>ሰላም ${user.fullName || user.username || ''}፤</p>
-        <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
-        <div style="text-align: center; margin: 25px 0;">
-          <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-            የይለፍ ቃል ቀይር
-          </a>
+    // 3. የኢሜይል መረጃዎችን ማዘጋጀት
+    const sendSmtpEmail = {
+      subject: "Password Reset Request",
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
+          <p>ሰላም ${user.fullName || user.username || ''}፤</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              የይለፍ ቃል ቀይር
+            </a>
+          </div>
+          <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
         </div>
-        <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-      </div>
-    `;
-    sendSmtpEmail.sender = { name: "ab-Stock Support", email: process.env.EMAIL_USER || "abrhamman825@gmail.com" };
-    sendSmtpEmail.to = [{ email: user.email }];
+      `,
+      sender: { name: "ab-Stock Support", email: process.env.EMAIL_USER || "abrhamman825@gmail.com" },
+      to: [{ email: user.email }]
+    };
 
+    // 4. ኢሜይሉን መላክ
     await apiInstance.sendTransacEmail(sendSmtpEmail);
 
     res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
