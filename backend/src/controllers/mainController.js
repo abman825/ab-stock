@@ -25,7 +25,7 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // Token ማመንጨት
+    // Reset Token ማመንጨት
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 ደቂቃ
@@ -35,14 +35,11 @@ exports.forgotPassword = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Brevo API setup (የተስተካከለ አሰራር)
-    const defaultClient = Brevo.ApiClient.instance;
-    const apiKey = defaultClient.authentications['api-key'];
-    apiKey.apiKey = process.env.BREVO_API_KEY;
-
+    // Brevo HTTP API (Nodemailer ወይም SMTP Port አይጠቀምም)
     const apiInstance = new Brevo.TransactionalEmailsApi();
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
+    const sendSmtpEmail = new Brevo.SendSmtpEmail();
     sendSmtpEmail.subject = "Password Reset Request";
     sendSmtpEmail.htmlContent = `
       <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
