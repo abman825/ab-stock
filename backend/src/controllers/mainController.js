@@ -35,12 +35,14 @@ exports.forgotPassword = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Brevo API setup
-    const apiInstance = new Brevo.TransactionalEmailsApi();
-    const apiKey = apiInstance.authentications['apiKey'];
+    // Brevo API setup (የተስተካከለ አሰራር)
+    const defaultClient = Brevo.ApiClient.instance;
+    const apiKey = defaultClient.authentications['api-key'];
     apiKey.apiKey = process.env.BREVO_API_KEY;
 
+    const apiInstance = new Brevo.TransactionalEmailsApi();
     const sendSmtpEmail = new Brevo.SendSmtpEmail();
+
     sendSmtpEmail.subject = "Password Reset Request";
     sendSmtpEmail.htmlContent = `
       <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
