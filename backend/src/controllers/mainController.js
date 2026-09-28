@@ -135,8 +135,6 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// 6. FORGOT PASSWORD (የተስተካከለ)
-// 6. FORGOT PASSWORD (የተስተካከለ)
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -148,26 +146,30 @@ exports.forgotPassword = async (req, res) => {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 ደቂቃ
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Explicit SMTP Config
+    // IPv4 Force የሚያደርግ Configuration
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
+      family: 4, // <-- ENETUNREACH IPv6 ኤረርን ይቀርፋል
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
       }
     });
 
     const mailOptions = {
-      from: `"AB-Stock Support" <${process.env.EMAIL_USER}>`,
+      from: `"AB-Stock" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: 'Password Reset Request',
       html: `
@@ -184,7 +186,7 @@ exports.forgotPassword = async (req, res) => {
     res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
 
   } catch (err) {
-    console.error('Forgot Password Server Error:', err); // ለ Render Log ማያ
+    console.error('Forgot Password Server Error:', err);
     res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
   }
 };
