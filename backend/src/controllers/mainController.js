@@ -25,54 +25,55 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // 1. Reset Token ማመንጨት
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 ደቂቃ
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // 2. Brevo API Client ማዘጋጀት (@getbrevo/brevo v6 አጠቃቀም)
-    const apiInstance = new Brevo.TransactionalEmailsApi();
-    apiInstance.setApiKey(
-      Brevo.TransactionalEmailsApiApiKeys.apiKey,
-      process.env.BREVO_API_KEY
-    );
-
-    // 3. የኢሜይል መረጃዎችን ማዘጋጀት
-    const sendSmtpEmail = {
-      subject: "Password Reset Request",
-      htmlContent: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
-          <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.fullName || user.username || ''}፤</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
-          <div style="text-align: center; margin: 25px 0;">
-            <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-              የይለፍ ቃል ቀይር
-            </a>
+    // Direct HTTP Request to Brevo API (No SDK required, Works with Gmail)
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: { name: "ab-Stock Support", email: process.env.EMAIL_USER || "abrhamman825@gmail.com" },
+        to: [{ email: user.email }],
+        subject: "Password Reset Request",
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
+            <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
+            <p>ሰላም ${user.fullName || user.username || ''}፤</p>
+            <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                የይለፍ ቃል ቀይር
+              </a>
+            </div>
+            <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
           </div>
-          <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-        </div>
-      `,
-      sender: { name: "ab-Stock Support", email: process.env.EMAIL_USER || "abrhamman825@gmail.com" },
-      to: [{ email: user.email }]
-    };
+        `
+      })
+    });
 
-    // 4. ኢሜይሉን መላክ
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.message || 'Brevo API error');
+    }
 
-    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
+    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልቋል' });
 
   } catch (err) {
     console.error('Forgot Password Server Error:', err);
     res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
   }
 };
-
 // 1. REGISTER
 exports.register = async (req, res) => {
   try {

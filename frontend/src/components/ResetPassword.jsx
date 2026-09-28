@@ -3,10 +3,9 @@ import { useParams } from 'react-router-dom';
 
 // API Base URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-const API_BASE_URL = `${BASE_URL}/api`;
 
 function ResetPassword({ onBackToLogin }) {
-  const { token: urlToken } = useParams(); // URL Params ወይም Prop ከተሰጠው ይወስዳል
+  const { token: urlToken } = useParams();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -37,7 +36,6 @@ function ResetPassword({ onBackToLogin }) {
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  // ሰከንድን ወደ "09:59" ፎርማት መቀየሪያ
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -50,13 +48,13 @@ function ResetPassword({ onBackToLogin }) {
     setMessage('');
 
     if (newPassword !== confirmPassword) {
-      return setError('የስራኸው ፓስወርድ አያመሳስልም!');
+      return setError('የስራቸው ፓስወርድ አይመሳሰልም!');
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/reset-password/${urlToken}`, {
+      const res = await fetch(`${BASE_URL}/api/auth/reset-password/${urlToken}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPassword })
@@ -68,7 +66,7 @@ function ResetPassword({ onBackToLogin }) {
         throw new Error(data.message || 'ስህተት ተፈጥሯል');
       }
 
-      setMessage('ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል! አሁን መግባት ይችላሉ።');
+      setMessage('ፓስወርድዎ በተካሄደ ሁኔታ ተቀይሯል! አሁን መግባት ይችላሉ።');
       setTimeout(() => {
         if (onBackToLogin) onBackToLogin();
       }, 2000);
@@ -85,7 +83,6 @@ function ResetPassword({ onBackToLogin }) {
       <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px' }}>
         <h2 style={{ textAlign: 'center', color: '#0b5ed7', marginBottom: '15px', fontWeight: 'bold' }}>New Password</h2>
 
-        {/* የ 10 ደቂቃ ቆጣሪ ማሳያ */}
         <div style={{ textAlign: 'center', marginBottom: '15px', fontSize: '14px' }}>
           {isExpired ? (
             <p style={{ color: '#dc3545', fontWeight: 'bold', margin: 0 }}>
@@ -93,7 +90,7 @@ function ResetPassword({ onBackToLogin }) {
             </p>
           ) : (
             <p style={{ color: '#555', margin: 0 }}>
-              ⏱️ የሊንኩ ማብቂያ ጊዜ፡ <strong style={{ color: '#0b5ed7' }}>{formatTime(timeLeft)}</strong>
+              ⏱️ የሊንኩ ማብቂያ ጊዜ፤ <strong style={{ color: '#0b5ed7' }}>{formatTime(timeLeft)}</strong>
             </p>
           )}
         </div>
