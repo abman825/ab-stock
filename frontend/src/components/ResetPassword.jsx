@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 
-// Fixed API Base URL resolution
+// API Base URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-function ResetPassword({ token, onBackToLogin }) {
+function ResetPassword({ onBackToLogin }) {
+  const { token: urlToken } = useParams(); // URL Params ወይም Prop ከተሰጠው ይወስዳል
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -21,7 +23,6 @@ function ResetPassword({ token, onBackToLogin }) {
       return;
     }
 
-    // በየ 1 ሰከንዱ (1000ms) ቆጣሪውን መቀነስ
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
@@ -34,7 +35,7 @@ function ResetPassword({ token, onBackToLogin }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [timeLeft]);
 
   // ሰከንድን ወደ "09:59" ፎርማት መቀየሪያ
   const formatTime = (seconds) => {
@@ -49,14 +50,13 @@ function ResetPassword({ token, onBackToLogin }) {
     setMessage('');
 
     if (newPassword !== confirmPassword) {
-      return setError('ፓስወርዶቹ አይመሳሰሉም!');
+      return setError('የስራኸው ፓስወርድ አያመሳስልም!');
     }
 
     setLoading(true);
 
     try {
-      // Fixed template string URL
-      const res = await fetch(`${API_BASE_URL}/reset-password/${token}`, {
+      const res = await fetch(`${API_BASE_URL}/reset-password/${urlToken}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPassword })
