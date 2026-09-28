@@ -16,6 +16,11 @@ import ResetPassword from './components/ResetPassword';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
+function ResetPasswordWrapper({ onBackToLogin }) {
+  const { token } = useParams();
+  return <ResetPassword token={token} onBackToLogin={onBackToLogin} />;
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [resetToken, setResetToken] = useState(null);
