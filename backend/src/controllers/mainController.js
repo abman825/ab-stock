@@ -421,10 +421,16 @@ exports.createOrder = async (req, res) => {
   try {
     const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate } = req.body;
 
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማስገባት ያስፈልጋል' });
+    }
+
+    let totalCostPrice = 0;
+
+    // 1. እቃዎቹን ማዘጋጀት እና የተገዙበትን ዋጋ (Cost Price) መደመር
     const processedItems = await Promise.all(
       items.map(async (item) => {
         const productId = item.productId || item._id || item.id;
-        
         let exactCost = item.costPrice || item.boughtPrice;
 
         if (exactCost === undefined || exactCost === null) {
@@ -436,49 +442,72 @@ exports.createOrder = async (req, res) => {
           }
         }
 
-        const finalCost = Number(exactCost || 0);
+        const unitPrice = Number(Number(item.price || 0).toFixed(2));
+        const finalCost = Number(Number(exactCost || 0).toFixed(2));
+        const quantity = Number(item.cartQty || item.quantity || 1);
+
+        // የዕቃዎቹን አጠቃላይ የተገዙበትን ዋጋ መደመር
+        totalCostPrice += finalCost * quantity;
 
         return {
           productId: productId,
           productName: item.productName || item.name || '',
           name: item.productName || item.name || '',
-          price: Number(item.price || 0),
+          price: unitPrice,
           costPrice: finalCost,
           boughtPrice: finalCost,
-          cartQty: Number(item.cartQty || item.quantity || 1)
+          cartQty: quantity
         };
       })
     );
 
+    const safeSubtotal = Number(Number(subtotal || 0).toFixed(2));
+    const safeDiscount = Number(Number(discountAmount || 0).toFixed(2));
+    const safeGrandTotal = Number(Number(grandTotal || (safeSubtotal - safeDiscount)).toFixed(2));
+
+    // 2. ትክክለኛውን ትርፍ ማስላት (ቅናሹን በመቀነስ)
+    const netProfit = Number((safeGrandTotal - totalCostPrice).toFixed(2));
+
     const order = new Order({
       user: req.user.id,
       items: processedItems,
-      subtotal,
-      discountAmount: discountAmount || 0,
-      grandTotal,
+      subtotal: safeSubtotal,
+      discountAmount: safeDiscount,
+      grandTotal: safeGrandTotal,
+      totalCost: totalCostPrice,
+      profit: netProfit, // ትርፉ በቀጥታ ቅናሹ ተቀንሶ ይመዘገባል
       paymentMethod: paymentMethod || 'Cash',
       soldAtDate: soldAtDate || new Date().toISOString().split('T')[0]
     });
 
     const savedOrder = await order.save();
 
-    if (items && Array.isArray(items)) {
-      for (const item of items) {
-        const productId = item.productId || item._id || item.id;
-        const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
+    // 3. የስቶክ መጠን መቀነስ (Stock Reduction)
+    const bulkStockOperations = items.map((item) => {
+      const productId = item.productId || item._id || item.id;
+      const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
 
-        if (productId) {
-          await Product.findOneAndUpdate(
-            { _id: productId, user: req.user.id },
-            { $inc: { quantity: -qtyToDeduct, stock: -qtyToDeduct } }
-          );
+      return {
+        updateOne: {
+          filter: { _id: productId, user: req.user.id },
+          update: { 
+            $inc: { 
+              quantity: -qtyToDeduct, 
+              stock: -qtyToDeduct 
+            } 
+          }
         }
-      }
+      };
+    }).filter(op => op.updateOne.filter._id);
+
+    if (bulkStockOperations.length > 0) {
+      await Product.bulkWrite(bulkStockOperations);
     }
 
     res.status(201).json(savedOrder);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Create Order Error:', err);
+    res.status(500).json({ error: err.message || 'ሽያጩን ማስመዝገብ አልተቻለም' });
   }
 };
 
@@ -541,7 +570,6 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
   try {
@@ -578,14 +606,16 @@ exports.getAnalytics = async (req, res) => {
       const grandTotal = Number(order.grandTotal || order.subtotal || 0);
 
       let orderProfit = 0;
-      if (order.items && Array.isArray(order.items)) {
+      if (typeof order.profit === 'number') {
+        orderProfit = order.profit;
+      } else if (order.items && Array.isArray(order.items)) {
         orderProfit = order.items.reduce((acc, item) => {
           const sellPrice = Number(item.price || 0);
           const cost = Number(item.costPrice !== undefined ? item.costPrice : (item.boughtPrice || 0));
           const qty = Number(item.cartQty || item.quantity || 1);
 
           return acc + (sellPrice - cost) * qty;
-        }, 0);
+        }, 0) - Number(order.discountAmount || 0);
       }
 
       // Total

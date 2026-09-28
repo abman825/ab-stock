@@ -122,13 +122,15 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     setCart(cart.filter((item) => (item._id || item.id) !== id));
   };
 
-  // Cart Calculations
-  const subtotal = cart.reduce(
-    (sum, item) => sum + (item.customPrice || item.price || 0) * item.cartQty,
+  // Cart Calculations with Decimal Precision
+  const subtotalRaw = cart.reduce(
+    (sum, item) => sum + (Number(item.customPrice || item.price || 0) * item.cartQty),
     0
   );
-  const discountBirr = (subtotal * discountPercent) / 100;
-  const grandTotal = subtotal - discountBirr;
+
+  const subtotal = Number(subtotalRaw.toFixed(2));
+  const discountBirr = Number(((subtotal * Number(discountPercent || 0)) / 100).toFixed(2));
+  const grandTotal = Number((subtotal - discountBirr).toFixed(2));
 
   // Checkout Handler
   const handleCheckout = async () => {
@@ -139,8 +141,12 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
     try {
       const orderPayload = {
-        items: cart,
+        items: cart.map(item => ({
+          ...item,
+          price: Number(Number(item.customPrice || item.price || 0).toFixed(2))
+        })),
         subtotal: subtotal,
+        discountPercent: Number(discountPercent || 0),
         discountAmount: discountBirr,
         grandTotal: grandTotal,
         paymentMethod: paymentMethod,
@@ -221,7 +227,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
             <div>
               <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: 'bold' }}>Today's Sales</div>
               <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#212529' }}>
-                {(todaySales.total || 0).toLocaleString()} Birr
+                {Number(todaySales.total || 0).toFixed(2)} Birr
               </div>
             </div>
             <span style={{ background: '#e8f5e9', color: '#28a745', padding: '6px 10px', borderRadius: '6px', fontSize: '16px' }}>🛒</span>
@@ -296,7 +302,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   </div>
 
                   <div style={{ background: '#e8f5e9', color: '#28a745', fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px', display: 'inline-block', marginBottom: '6px' }}>
-                    {product.price} Birr
+                    {Number(product.price || 0).toFixed(2)} Birr
                   </div>
 
                   <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#333' }}>{product.name}</div>
@@ -347,13 +353,15 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                 {cart.map((item) => {
                   const itemId = item._id || item.id;
                   const itemExpDate = item.expiryDate || item.expirationDate;
+                  const itemUnitPrice = Number(item.customPrice || item.price || 0);
+                  const itemTotal = itemUnitPrice * item.cartQty;
 
                   return (
                     <div key={itemId} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{item.name}</div>
-                          <div style={{ fontSize: '10px', color: '#6c757d' }}>{Number(item.price || 0).toFixed(2)} Birr</div>
+                          <div style={{ fontSize: '10px', color: '#6c757d' }}>{itemUnitPrice.toFixed(2)} Birr</div>
                         </div>
                         <button onClick={() => removeFromCart(itemId)} style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✖</button>
                       </div>
@@ -365,7 +373,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                           <span style={{ fontSize: '12px', padding: '0 5px' }}>{item.cartQty}</span>
                           <button onClick={() => updateQty(itemId, 1)} style={{ border: '1px solid #ccc', background: '#fff', width: '22px', height: '22px', borderRadius: '3px', cursor: 'pointer' }}>+</button>
                         </div>
-                        <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{((item.customPrice || item.price) * item.cartQty).toFixed(0)} Birr</span>
+                        <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{itemTotal.toFixed(2)} Birr</span>
                       </div>
 
                       {/* Dates Section */}
@@ -405,7 +413,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                       onChange={(e) => setDiscountPercent(Number(e.target.value))}
                       style={{ width: '60px', padding: '4px', fontSize: '11px', border: '1px solid #ced4da', borderRadius: '4px' }}
                     />
-                    <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{discountBirr.toFixed(0)} Birr</span>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{discountBirr.toFixed(2)} Birr</span>
                   </div>
                 </div>
 
@@ -413,15 +421,15 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                 <div style={{ marginTop: '10px', fontSize: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
                     <span>Subtotal:</span>
-                    <span>{subtotal.toFixed(0)} Birr</span>
+                    <span>{subtotal.toFixed(2)} Birr</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
                     <span>Discount ({discountPercent}%):</span>
-                    <span>{discountBirr.toFixed(0)} Birr</span>
+                    <span>{discountBirr.toFixed(2)} Birr</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
                     <span>Total:</span>
-                    <span style={{ color: '#28a745' }}>{grandTotal.toFixed(0)} Birr</span>
+                    <span style={{ color: '#28a745' }}>{grandTotal.toFixed(2)} Birr</span>
                   </div>
                 </div>
 
@@ -493,21 +501,21 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
             <div style={{ fontSize: '13px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', margin: '8px 0' }}>
                 <span>💵 Cash</span>
-                <b>{(todaySales.cash || 0).toLocaleString()} Birr</b>
+                <b>{Number(todaySales.cash || 0).toFixed(2)} Birr</b>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', margin: '8px 0' }}>
                 <span>🏦 Bank</span>
-                <b>{(todaySales.bank || 0).toLocaleString()} Birr</b>
+                <b>{Number(todaySales.bank || 0).toFixed(2)} Birr</b>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', margin: '8px 0' }}>
                 <span>📱 Telebirr</span>
-                <b>{(todaySales.telebirr || 0).toLocaleString()} Birr</b>
+                <b>{Number(todaySales.telebirr || 0).toFixed(2)} Birr</b>
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 'bold', marginTop: '12px', color: '#28a745' }}>
               <span>Total</span>
-              <span>{(todaySales.total || 0).toLocaleString()} Birr</span>
+              <span>{Number(todaySales.total || 0).toFixed(2)} Birr</span>
             </div>
 
             <button

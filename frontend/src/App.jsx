@@ -12,7 +12,7 @@ import Login from './components/Login';
 import ReportsPage from './components/ReportsPage';
 import ResetPassword from './components/ResetPassword';
 
-// 1. API Base URL ቅንብር (የተስተካከለ)
+// 1. API Base URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
@@ -120,6 +120,7 @@ function App() {
     }
   };
 
+  // የሽያጭ ማጠናቀቂያ ፋንክሽን (2 Decimal አካታች የተስተካከለ)
   const handleCompleteSale = async (saleDetails) => {
     if (cart.length === 0) {
       alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
@@ -128,19 +129,25 @@ function App() {
 
     setLoading(true);
     try {
-      const subtotalVal = Number(saleDetails.subtotal || saleDetails.grandTotal || 0);
-      const discountVal = Number(saleDetails.discountAmount || saleDetails.discount || 0);
-      const grandTotalVal = Number(saleDetails.grandTotal || (subtotalVal - discountVal));
+      const rawSubtotal = Number(saleDetails.subtotal || saleDetails.grandTotal || 0);
+      const rawDiscountAmount = Number(saleDetails.discountAmount || saleDetails.discount || 0);
+      const rawDiscountPercent = Number(saleDetails.discountPercent || 0);
+
+      // ቁጥሮቹን በትክክል በ 2 ዴሲማል ማጠጋጋት (ለምሳሌ 1.23, 1.24, 2.35)
+      const subtotalVal = Number(rawSubtotal.toFixed(2));
+      const discountVal = Number(rawDiscountAmount.toFixed(2));
+      const grandTotalVal = Number((subtotalVal - discountVal).toFixed(2));
 
       const orderData = {
         items: cart.map(item => ({
           productId: item._id,
           name: item.name,
-          price: item.customPrice || item.price,
-          boughtPrice: item.boughtPrice || 0,
-          cartQty: item.cartQty
+          price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
+          boughtPrice: Number(Number(item.boughtPrice || 0).toFixed(2)),
+          cartQty: Number(item.cartQty || 1)
         })),
         subtotal: subtotalVal,
+        discountPercent: rawDiscountPercent,
         discountAmount: discountVal,
         grandTotal: grandTotalVal,
         paymentMethod: saleDetails.paymentMethod || 'Cash',
@@ -154,7 +161,7 @@ function App() {
       });
 
       if (res.ok) {
-        alert('ሽያጩ በተካከለ ሁኔታ ተጠናቋል!');
+        alert('ሽያጩ በተከከለ ሁኔታ ተጠናቋል!');
         setCart([]);
         fetchProducts();
         fetchTodaySalesSummary();
@@ -443,7 +450,7 @@ function App() {
             position: 'relative'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#333' }}>📹 የሲስተም አጠቃቀም Tutorial</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', color: '#333' }}>📹 የስርዓት አጠቃቀም Tutorial</h3>
               <button 
                 onClick={() => setShowVideoModal(false)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6c757d' }}
