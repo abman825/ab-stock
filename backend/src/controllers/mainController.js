@@ -9,72 +9,67 @@ const Customer = require('../models/Customer');
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Brevo = require('@getbrevo/brevo');
 const crypto = require('crypto');
 
+// ==================== 1. AUTHENTICATION & USER MANAGEMENT ====================
+
+// FORGOT PASSWORD (FOR EMAILJS - Generates token & saves to DB)
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
-    }
-
     const user = await User.findOne({ email });
+
     if (!user) {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
+    // 1. Reset Token ማመንጨት (10 ደቂቃ ጊዜ ያለው)
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
-    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-
-    // Direct HTTP Request to Brevo API (No SDK required, Works with Gmail)
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': process.env.BREVO_API_KEY,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        sender: { name: "ab-Stock Support", email: process.env.EMAIL_USER || "abrhamman825@gmail.com" },
-        to: [{ email: user.email }],
-        subject: "Password Reset Request",
-        htmlContent: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
-            <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-            <p>ሰላም ${user.fullName || user.username || ''}፤</p>
-            <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
-            <div style="text-align: center; margin: 25px 0;">
-              <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-                የይለፍ ቃል ቀይር
-              </a>
-            </div>
-            <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-          </div>
-        `
-      })
-    });
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.message || 'Brevo API error');
-    }
-
-    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልቋል' });
-
+    // 2. Token ለ Frontend መመለስ (EmailJS እንዲልከው)
+    res.json({ success: true, resetToken });
   } catch (err) {
-    console.error('Forgot Password Server Error:', err);
-    res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
-// 1. REGISTER
+
+// RESET PASSWORD (Saves new password to DB)
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // 1. Token እና ጊዜው ያላለፈ መሆኑን ማረጋገጥ
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'የሊንኩ ጊዜ አልቋል ወይም ትክክል አይደለም' });
+    }
+
+    // 2. አዲሱን ፓስወርድ Hash አድርጎ DB ውስጥ ማስቀመጥ
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.json({ message: 'ፓስወርድዎ በተካሄደ ሁኔታ ተቀይሯል! አሁን መግባት ይችላሉ።' });
+  } catch (err) {
+    res.status(500).json({ message: 'ፓስወርድ መቀየር አልተቻለም', error: err.message });
+  }
+};
+
+// REGISTER
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
@@ -101,7 +96,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// 2. LOGIN
+// LOGIN
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -147,7 +142,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// 3. GET CURRENT PROFILE
+// GET CURRENT PROFILE
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -158,7 +153,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// 4. UPDATE PROFILE
+// UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, email, username } = req.body;
@@ -175,7 +170,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// 5. CHANGE PASSWORD
+// CHANGE PASSWORD
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -192,32 +187,6 @@ exports.changePassword = async (req, res) => {
     res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
-  }
-};
-
-
-// 7. RESET PASSWORD
-exports.resetPassword = async (req, res) => {
-  try {
-    const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
-    }
-
-    user.password = req.body.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-
-    await user.save();
-    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል። አሁን መግባት ይችላሉ' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 };
 
@@ -328,6 +297,7 @@ exports.createCategoriesBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // DELETE CATEGORY
 exports.deleteCategory = async (req, res) => {
   try {
@@ -384,6 +354,7 @@ exports.createSupplier = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // DELETE SUPPLIER
 exports.deleteSupplier = async (req, res) => {
   try {
@@ -420,6 +391,7 @@ exports.updateSupplier = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
 // ==================== 5. PURCHASE ORDERS ====================
 exports.getPurchases = async (req, res) => {
   try {
@@ -504,7 +476,6 @@ exports.createOrder = async (req, res) => {
 
     let totalCostPrice = 0;
 
-    // 1. እቃዎቹን ማዘጋጀት እና የተገዙበትን ዋጋ (Cost Price) መደመር
     const processedItems = await Promise.all(
       items.map(async (item) => {
         const productId = item.productId || item._id || item.id;
@@ -523,7 +494,6 @@ exports.createOrder = async (req, res) => {
         const finalCost = Number(Number(exactCost || 0).toFixed(2));
         const quantity = Number(item.cartQty || item.quantity || 1);
 
-        // የዕቃዎቹን አጠቃላይ የተገዙበትን ዋጋ መደመር
         totalCostPrice += finalCost * quantity;
 
         return {
@@ -542,7 +512,6 @@ exports.createOrder = async (req, res) => {
     const safeDiscount = Number(Number(discountAmount || 0).toFixed(2));
     const safeGrandTotal = Number(Number(grandTotal || (safeSubtotal - safeDiscount)).toFixed(2));
 
-    // 2. ትክክለኛውን ትርፍ ማስላት (ቅናሹን በመቀነስ)
     const netProfit = Number((safeGrandTotal - totalCostPrice).toFixed(2));
 
     const order = new Order({
@@ -552,14 +521,13 @@ exports.createOrder = async (req, res) => {
       discountAmount: safeDiscount,
       grandTotal: safeGrandTotal,
       totalCost: totalCostPrice,
-      profit: netProfit, // ትርፉ በቀጥታ ቅናሹ ተቀንሶ ይመዘገባል
+      profit: netProfit,
       paymentMethod: paymentMethod || 'Cash',
       soldAtDate: soldAtDate || new Date().toISOString().split('T')[0]
     });
 
     const savedOrder = await order.save();
 
-    // 3. የስቶክ መጠን መቀነስ (Stock Reduction)
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
@@ -602,7 +570,7 @@ exports.getTodaySalesSummary = async (req, res) => {
       user: req.user.id,
       $or: [
         { soldAtDate: todayStr },
-        { createdAt: { $gte: startOfToday,$lte: endOfToday } }
+        { createdAt: { $gte: startOfToday, $lte: endOfToday } }
       ]
     });
 
@@ -647,6 +615,7 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
   try {
@@ -695,30 +664,25 @@ exports.getAnalytics = async (req, res) => {
         }, 0) - Number(order.discountAmount || 0);
       }
 
-      // Total
       stats.totalSales += grandTotal;
       stats.totalProfit += orderProfit;
 
-      // Daily
       const orderDateStr = order.soldAtDate || orderDate.toISOString().split('T')[0];
       if (orderDateStr === todayStr || orderDate >= startOfToday) {
         stats.dailySales += grandTotal;
         stats.dailyProfit += orderProfit;
       }
 
-      // Weekly
       if (orderDate >= startOfWeek) {
         stats.weeklySales += grandTotal;
         stats.weeklyProfit += orderProfit;
       }
 
-      // Monthly
       if (orderDate >= startOfMonth) {
         stats.monthlySales += grandTotal;
         stats.monthlyProfit += orderProfit;
       }
 
-      // Yearly
       if (orderDate >= startOfYear) {
         stats.yearlySales += grandTotal;
         stats.yearlyProfit += orderProfit;
