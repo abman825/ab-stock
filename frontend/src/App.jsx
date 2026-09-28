@@ -16,11 +16,6 @@ import ResetPassword from './components/ResetPassword';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-function ResetPasswordWrapper({ onBackToLogin }) {
-  const { token } = useParams();
-  return <ResetPassword token={token} onBackToLogin={onBackToLogin} />;
-}
-
 function App() {
   const [user, setUser] = useState(null);
   const [resetToken, setResetToken] = useState(null);
@@ -120,10 +115,10 @@ function App() {
     }
   };
 
-  // የሽያጭ ማጠናቀቂያ ፋንክሽን (2 Decimal አካታች የተስተካከለ)
+  // የሽያጭ ማጠቃለያ ፋንክሽን (2 Decimal አካታች የተስተካከለ)
   const handleCompleteSale = async (saleDetails) => {
     if (cart.length === 0) {
-      alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
+      alert('እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!');
       return;
     }
 
@@ -133,7 +128,7 @@ function App() {
       const rawDiscountAmount = Number(saleDetails.discountAmount || saleDetails.discount || 0);
       const rawDiscountPercent = Number(saleDetails.discountPercent || 0);
 
-      // ቁጥሮቹን በትክክል በ 2 ዴሲማል ማጠጋጋት (ለምሳሌ 1.23, 1.24, 2.35)
+      // ቁጥሮችን በትክክል በ 2 ዴሲማል ማጠጋጋት
       const subtotalVal = Number(rawSubtotal.toFixed(2));
       const discountVal = Number(rawDiscountAmount.toFixed(2));
       const grandTotalVal = Number((subtotalVal - discountVal).toFixed(2));
@@ -222,7 +217,7 @@ function App() {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#eef2f5', fontFamily: 'Segoe UI, sans-serif' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Segoe UI, sans-serif' }}>
       
       {/* Mobile Backdrop Overlay */}
       {isMobileMenuOpen && (
@@ -234,19 +229,19 @@ function App() {
             left: 0,
             width: '100vw',
             height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
             zIndex: 1040,
             display: 'block'
           }}
         />
       )}
 
-      {/* Sidebar Navigation */}
+      {/* Silver/Slate Sidebar Navigation */}
       <div style={{ 
         width: '240px', 
         height: '100vh', 
-        backgroundColor: '#0b5ed7', 
-        color: '#fff', 
+        backgroundColor: '#1e293b', // Dark Silver Slate
+        color: '#f8fafc', 
         padding: '15px 12px', 
         display: 'flex', 
         flexDirection: 'column', 
@@ -258,17 +253,18 @@ function App() {
         bottom: 0,
         zIndex: 1050,
         transition: 'transform 0.3s ease-in-out',
+        borderRight: '1px solid #334155',
         transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)'
       }} className="responsive-sidebar">
         
         {/* Logo & Mobile Close Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0' }}>
             📦 ab Stock
           </h2>
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
-            style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
             className="mobile-close-btn"
           >
             ✖
@@ -279,7 +275,7 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', flex: 1, overflowY: 'auto' }}>
           {menuSections.map((section, idx) => (
             <div key={idx}>
-              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#a8c7fa', marginBottom: '6px', letterSpacing: '0.5px' }}>{section.title}</div>
+              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '6px', letterSpacing: '0.5px' }}>{section.title}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {section.items.map((item) => (
                   <button
@@ -288,14 +284,14 @@ function App() {
                     style={{
                       padding: '10px 12px',
                       border: 'none',
-                      background: activeTab === item.id ? '#084298' : 'transparent',
-                      color: '#fff',
+                      background: activeTab === item.id ? '#334155' : 'transparent',
+                      color: activeTab === item.id ? '#38bdf8' : '#cbd5e1',
                       textAlign: 'left',
                       borderRadius: '6px',
                       cursor: 'pointer',
                       fontSize: '13px',
                       fontWeight: activeTab === item.id ? 'bold' : 'normal',
-                      transition: 'background 0.2s'
+                      transition: 'background 0.2s, color 0.2s'
                     }}
                   >
                     {item.label}
@@ -307,15 +303,15 @@ function App() {
         </div>
 
         {/* Sidebar Bottom (User Info & Settings) */}
-        <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #3d8bfd', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button 
             onClick={() => handleNavClick('settings')} 
             style={{ 
               width: '100%', 
               padding: '8px 10px', 
-              background: activeTab === 'settings' ? '#084298' : 'transparent', 
-              border: '1px solid #a8c7fa', 
-              color: '#fff', 
+              background: activeTab === 'settings' ? '#334155' : 'transparent', 
+              border: '1px solid #475569', 
+              color: '#e2e8f0', 
               borderRadius: '6px', 
               cursor: 'pointer', 
               textAlign: 'left', 
@@ -333,21 +329,22 @@ function App() {
               display: 'flex', 
               alignItems: 'center', 
               justify: 'space-between', 
-              background: '#084298', 
+              background: '#0f172a', 
               padding: '8px 10px', 
-              borderRadius: '6px' 
+              borderRadius: '6px',
+              border: '1px solid #334155'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
               <span style={{ fontSize: '16px' }}>👤</span>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</div>
-                <div style={{ fontSize: '10px', color: '#a8c7fa' }}>User</div>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</div>
+                <div style={{ fontSize: '10px', color: '#94a3b8' }}>User</div>
               </div>
             </div>
             <button 
               onClick={handleLogout}
-              style={{ background: 'transparent', border: 'none', color: '#ffc107', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', padding: '4px' }}
+              style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', padding: '4px' }}
             >
               Logout
             </button>
@@ -359,13 +356,13 @@ function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: '100%' }} className="main-content-panel">
         
         {/* Top Header */}
-        <div style={{ backgroundColor: '#fff', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #dee2e6', flexShrink: 0 }}>
+        <div style={{ backgroundColor: '#ffffff', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               style={{
-                background: '#0b5ed7',
+                background: '#475569',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '5px',
@@ -377,20 +374,20 @@ function App() {
             >
               ☰
             </button>
-            <span style={{ fontWeight: 'bold', color: '#333', fontSize: 'clamp(14px, 3vw, 16px)' }}>AB Stock POS</span>
+            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: 'clamp(14px, 3vw, 16px)' }}>AB Stock POS</span>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button 
               onClick={() => setShowVideoModal(true)}
-              style={{ background: '#0d6efd', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               አጠቃቀም 📹
             </button>
 
             <button 
               onClick={() => handleNavClick('settings')}
-              style={{ background: '#6c757d', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+              style={{ background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
               className="desktop-settings-btn"
             >
               ⚙️ Setting
@@ -432,7 +429,7 @@ function App() {
           left: 0,
           width: '100vw',
           height: '100vh',
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: 'rgba(15, 23, 42, 0.75)',
           display: 'flex',
           alignItems: 'center',
           justify: 'center',
@@ -450,10 +447,10 @@ function App() {
             position: 'relative'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#333' }}>📹 የስርዓት አጠቃቀም Tutorial</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>📹 የስርዓት አጠቃቀም Tutorial</h3>
               <button 
                 onClick={() => setShowVideoModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6c757d' }}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
               >
                 ✖
               </button>

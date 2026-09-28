@@ -10,13 +10,17 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  
+  // New state: Filter low stock items when low stock card is clicked
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   // Today's Sales State
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
-  // Cart Form State
-  const [discountPercent, setDiscountPercent] = useState(0);
+  // Cart Form State - Updated for % and Fixed Birr discount
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountType, setDiscountType] = useState('percent'); // 'percent' or 'fixed'
   const [paymentMethod, setPaymentMethod] = useState('Cash');
 
   // Default Today's Date (YYYY-MM-DD)
@@ -129,8 +133,18 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   );
 
   const subtotal = Number(subtotalRaw.toFixed(2));
-  const discountBirr = Number(((subtotal * Number(discountPercent || 0)) / 100).toFixed(2));
-  const grandTotal = Number((subtotal - discountBirr).toFixed(2));
+
+  // Discount Logic for both Percent and Fixed Birr
+  let calculatedDiscountBirr = 0;
+  if (discountType === 'percent') {
+    calculatedDiscountBirr = (subtotal * Number(discountValue || 0)) / 100;
+  } else {
+    calculatedDiscountBirr = Number(discountValue || 0);
+  }
+
+  // Ensure discount doesn't exceed subtotal
+  const discountBirr = Number(Math.min(calculatedDiscountBirr, subtotal).toFixed(2));
+  const grandTotal = Number(Math.max(0, subtotal - discountBirr).toFixed(2));
 
   // Checkout Handler
   const handleCheckout = async () => {
@@ -146,7 +160,8 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           price: Number(Number(item.customPrice || item.price || 0).toFixed(2))
         })),
         subtotal: subtotal,
-        discountPercent: Number(discountPercent || 0),
+        discountType: discountType,
+        discountValue: Number(discountValue || 0),
         discountAmount: discountBirr,
         grandTotal: grandTotal,
         paymentMethod: paymentMethod,
@@ -168,26 +183,30 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     }
   };
 
-  // Filter Products by Search and Category
+  // Helper function to check if item is low stock
+  const isProductLowStock = (p) => {
+    const qty = p.quantity ?? p.stock ?? 0;
+    const threshold = Number(p.stockThreshold);
+    if (!isNaN(threshold) && threshold > 0) {
+      return qty < threshold;
+    }
+    return qty < 5;
+  };
+
+  // Filter Products by Search, Category, and Low Stock filter flag
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name
       ? p.name.toLowerCase().includes(searchTerm.toLowerCase())
       : true;
     const matchesCategory =
       selectedCategory === 'All Categories' || p.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesLowStock = showLowStockOnly ? isProductLowStock(p) : true;
+
+    return matchesSearch && matchesCategory && matchesLowStock;
   });
 
-  // Calculate Low Stock Items Count Correctly
-  const lowStockCount = products.filter((p) => {
-    const qty = p.quantity ?? p.stock ?? 0;
-    const threshold = Number(p.stockThreshold);
-
-    if (!isNaN(threshold) && threshold > 0) {
-      return qty < threshold;
-    }
-    return qty < 5;
-  }).length;
+  // Calculate Low Stock Items Count
+  const lowStockCount = products.filter(isProductLowStock).length;
 
   return (
     <div style={{ padding: '20px', flex: 1, background: '#f4f6f8', fontFamily: 'sans-serif' }}>
@@ -201,12 +220,18 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
             type="text"
             placeholder="Search product name or category..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (showLowStockOnly) setShowLowStockOnly(false); // Reset low stock filter on manual search
+            }}
             style={{ border: 'none', outline: 'none', width: '100%', fontSize: '13px' }}
           />
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              if (showLowStockOnly) setShowLowStockOnly(false);
+            }}
             style={{ border: 'none', outline: 'none', fontSize: '13px', background: 'transparent', color: '#495057', cursor: 'pointer' }}
           >
             <option value="All Categories">All Categories</option>
@@ -234,10 +259,26 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           </div>
         </div>
 
-        {/* Low Stock Items Card */}
-        <div style={{ background: '#fff', padding: '10px 15px', borderRadius: '6px', border: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Low Stock Items Card (Clickable to Filter) */}
+        <div 
+          onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+          style={{ 
+            background: showLowStockOnly ? '#ffebee' : '#fff', 
+            padding: '10px 15px', 
+            borderRadius: '6px', 
+            border: showLowStockOnly ? '2px solid #dc3545' : '1px solid #e0e0e0', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+          title="Click to toggle low stock products"
+        >
           <div>
-            <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: 'bold' }}>Low Stock Items</div>
+            <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: 'bold' }}>
+              Low Stock Items {showLowStockOnly && '(Filtered)'}
+            </div>
             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#dc3545' }}>
               {lowStockCount}
             </div>
@@ -251,91 +292,105 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         
         {/* Left Side: Products Grid */}
         <div style={{ overflowY: 'auto', paddingRight: '5px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#333' }}>Products</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>
+              {showLowStockOnly ? 'Low Stock Products' : 'Products'}
+            </h3>
+            {showLowStockOnly && (
+              <button 
+                onClick={() => setShowLowStockOnly(false)}
+                style={{ background: '#6c757d', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px' }}>
-            {filteredProducts.map((product) => {
-              const productId = product._id || product.id;
-              const isAdded = cart.some((item) => (item._id || item.id) === productId);
-              const qty = product.quantity ?? product.stock ?? 0;
-              
-              // Correct Low Stock Check
-              const threshold = Number(product.stockThreshold);
-              const isLowStock = (!isNaN(threshold) && threshold > 0)
-                ? qty < threshold
-                : qty < 5;
+            {filteredProducts.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#6c757d' }}>
+                No products found.
+              </div>
+            ) : (
+              filteredProducts.map((product) => {
+                const productId = product._id || product.id;
+                const isAdded = cart.some((item) => (item._id || item.id) === productId);
+                const qty = product.quantity ?? product.stock ?? 0;
+                
+                const isLowStock = isProductLowStock(product);
+                const expDate = product.expiryDate || product.expirationDate;
 
-              const expDate = product.expiryDate || product.expirationDate;
-
-              return (
-                <div 
-                  key={productId} 
-                  style={{ 
-                    background: '#fff', 
-                    borderRadius: '8px', 
-                    padding: '12px', 
-                    border: isLowStock ? '2px solid #dc3545' : '1px solid #e0e0e0', 
-                    textAlign: 'center',
-                    position: 'relative'
-                  }}
-                >
-                  {/* Low Stock Warning Marker */}
-                  {isLowStock && (
-                    <span 
-                      style={{
-                        position: 'absolute',
-                        top: '6px',
-                        right: '6px',
-                        background: '#dc3545',
-                        color: '#fff',
-                        fontSize: '9px',
-                        fontWeight: 'bold',
-                        padding: '2px 6px',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      Low Stock
-                    </span>
-                  )}
-
-                  <div style={{ height: '70px', background: '#f8f9fa', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '32px' }}>📦</span>
-                  </div>
-
-                  <div style={{ background: '#e8f5e9', color: '#28a745', fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px', display: 'inline-block', marginBottom: '6px' }}>
-                    {Number(product.price || 0).toFixed(2)} Birr
-                  </div>
-
-                  <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#333' }}>{product.name}</div>
-                  
-                  {/* Quantity Indicator */}
-                  <div style={{ fontSize: '10px', color: isLowStock ? '#dc3545' : '#6c757d', fontWeight: isLowStock ? 'bold' : 'normal', marginBottom: '2px' }}>
-                    Qty: {qty} {isLowStock && '⚠️'}
-                  </div>
-
-                  {/* Expiration Date Indicator */}
-                  <div style={{ fontSize: '10px', color: expDate ? '#fd7e14' : '#adb5bd', fontWeight: '500', marginBottom: '8px' }}>
-                    Exp: {expDate ? new Date(expDate).toLocaleDateString() : 'N/A'}
-                  </div>
-
-                  <button
-                    onClick={() => addToCart(product)}
-                    style={{
-                      width: '100%',
-                      background: isAdded ? '#17a2b8' : isLowStock ? '#dc3545' : '#0d6efd',
-                      color: '#fff',
-                      border: 'none',
-                      padding: '6px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      fontWeight: 'bold'
+                return (
+                  <div 
+                    key={productId} 
+                    style={{ 
+                      background: '#fff', 
+                      borderRadius: '8px', 
+                      padding: '12px', 
+                      border: isLowStock ? '2px solid #dc3545' : '1px solid #e0e0e0', 
+                      textAlign: 'center',
+                      position: 'relative'
                     }}
                   >
-                    {isAdded ? 'Added' : 'Add to Cart'}
-                  </button>
-                </div>
-              );
-            })}
+                    {/* Low Stock Warning Marker */}
+                    {isLowStock && (
+                      <span 
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          background: '#dc3545',
+                          color: '#fff',
+                          fontSize: '9px',
+                          fontWeight: 'bold',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        Low Stock
+                      </span>
+                    )}
+
+                    <div style={{ height: '70px', background: '#f8f9fa', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '32px' }}>📦</span>
+                    </div>
+
+                    <div style={{ background: '#e8f5e9', color: '#28a745', fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px', display: 'inline-block', marginBottom: '6px' }}>
+                      {Number(product.price || 0).toFixed(2)} Birr
+                    </div>
+
+                    <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#333' }}>{product.name}</div>
+                    
+                    {/* Quantity Indicator */}
+                    <div style={{ fontSize: '10px', color: isLowStock ? '#dc3545' : '#6c757d', fontWeight: isLowStock ? 'bold' : 'normal', marginBottom: '2px' }}>
+                      Qty: {qty} {isLowStock && '⚠️'}
+                    </div>
+
+                    {/* Expiration Date Indicator */}
+                    <div style={{ fontSize: '10px', color: expDate ? '#fd7e14' : '#adb5bd', fontWeight: '500', marginBottom: '8px' }}>
+                      Exp: {expDate ? new Date(expDate).toLocaleDateString() : 'N/A'}
+                    </div>
+
+                    <button
+                      onClick={() => addToCart(product)}
+                      style={{
+                        width: '100%',
+                        background: isAdded ? '#17a2b8' : isLowStock ? '#dc3545' : '#0d6efd',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '6px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {isAdded ? 'Added' : 'Add to Cart'}
+                    </button>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -403,17 +458,54 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
               {/* Fixed Bottom Checkout Section */}
               <div style={{ borderTop: '2px dashed #dee2e6', paddingTop: '10px', marginTop: 'auto' }}>
-                {/* Discount Input */}
+                
+                {/* Discount Input with Toggle (% or Birr) */}
                 <div>
-                  <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Discount Percent (%)</label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Discount</label>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <input
                       type="number"
-                      value={discountPercent}
-                      onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                      style={{ width: '60px', padding: '4px', fontSize: '11px', border: '1px solid #ced4da', borderRadius: '4px' }}
+                      min="0"
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(Number(e.target.value))}
+                      style={{ width: '70px', padding: '4px', fontSize: '11px', border: '1px solid #ced4da', borderRadius: '4px' }}
                     />
-                    <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{discountBirr.toFixed(2)} Birr</span>
+                    
+                    {/* Discount Type Toggle */}
+                    <div style={{ display: 'flex', border: '1px solid #ced4da', borderRadius: '4px', overflow: 'hidden' }}>
+                      <button
+                        type="button"
+                        onClick={() => setDiscountType('percent')}
+                        style={{
+                          border: 'none',
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          background: discountType === 'percent' ? '#0d6efd' : '#f8f9fa',
+                          color: discountType === 'percent' ? '#fff' : '#333',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        %
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDiscountType('fixed')}
+                        style={{
+                          border: 'none',
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          background: discountType === 'fixed' ? '#0d6efd' : '#f8f9fa',
+                          color: discountType === 'fixed' ? '#fff' : '#333',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Birr
+                      </button>
+                    </div>
+
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', marginLeft: 'auto', color: '#dc3545' }}>
+                      -{discountBirr.toFixed(2)} Birr
+                    </span>
                   </div>
                 </div>
 
@@ -424,7 +516,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                     <span>{subtotal.toFixed(2)} Birr</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
-                    <span>Discount ({discountPercent}%):</span>
+                    <span>Discount ({discountType === 'percent' ? `${discountValue}%` : `${discountValue} Birr`}):</span>
                     <span>{discountBirr.toFixed(2)} Birr</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
