@@ -10,7 +10,6 @@ const Customer = require('../models/Customer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const User = require('../models/User');
 const Brevo = require('@getbrevo/brevo');
 
 exports.forgotPassword = async (req, res) => {
