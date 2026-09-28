@@ -12,16 +12,18 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 // Nodemailer Transporter ዝግጅት (ከ .env ፋይልህ መረጃዎችን ይወስዳል)
+const nodemailer = require('nodemailer');
+
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // Port 587 ሲሆን false መሆን አለበት
+  host: '142.250.27.108', // የ smtp.gmail.com የ IPv4 IP አድራሻ
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  family: 4, // <-- ይህ Render የ IPv4 አድራሻ ብቻ እንዲጠቀም ያስገድደዋል!
   tls: {
+    servername: 'smtp.gmail.com', // SSL Certificate ማረጋገጫ እንዳይበላሽ
     rejectUnauthorized: false
   }
 });
