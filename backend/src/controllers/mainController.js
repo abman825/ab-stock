@@ -322,6 +322,42 @@ exports.createCategoriesBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// DELETE CATEGORY
+exports.deleteCategory = async (req, res) => {
+  try {
+    const deletedCategory = await Category.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user.id
+    });
+
+    if (!deletedCategory) {
+      return res.status(404).json({ message: 'ካቴጎሪው አልተገኘም ወይም ለማጥፋት ፈቃድ የሎትም' });
+    }
+
+    res.json({ message: 'ካቴጎሪው በተሳካ ሁኔታ ተሰርዟል' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// UPDATE CATEGORY
+exports.updateCategory = async (req, res) => {
+  try {
+    const updatedCategory = await Category.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCategory) {
+      return res.status(404).json({ message: 'ካቴጎሪው አልተገኘም ወይም ለማስተካከል ፈቃድ የሎትም' });
+    }
+
+    res.json(updatedCategory);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
 
 // ==================== 4. SUPPLIERS ====================
 exports.getSuppliers = async (req, res) => {
@@ -342,7 +378,42 @@ exports.createSupplier = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// DELETE SUPPLIER
+exports.deleteSupplier = async (req, res) => {
+  try {
+    const deletedSupplier = await Supplier.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user.id
+    });
 
+    if (!deletedSupplier) {
+      return res.status(404).json({ message: 'አቅራቢው አልተገኘም ወይም ለማጥፋት ፈቃድ የሎትም' });
+    }
+
+    res.json({ message: 'አቅራቢው በተሳካ ሁኔታ ተሰርዟል' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// UPDATE SUPPLIER
+exports.updateSupplier = async (req, res) => {
+  try {
+    const updatedSupplier = await Supplier.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedSupplier) {
+      return res.status(404).json({ message: 'አቅራቢው አልተገኘም ወይም ለማስተካከል ፈቃድ የሎትም' });
+    }
+
+    res.json(updatedSupplier);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
 // ==================== 5. PURCHASE ORDERS ====================
 exports.getPurchases = async (req, res) => {
   try {

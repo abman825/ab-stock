@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// API Base URL ቅንብር
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
@@ -57,22 +56,28 @@ function Suppliers() {
     setFormData({ name: '', phone: '', location: '' });
   };
 
-  // 3. Supplier ለማጥፋት
+  // 3. Supplier ለማጥፋት (Delete)
   const handleDelete = async (id) => {
     if (window.confirm('ይህንን አቅራቢ (Supplier) ለማጥፋት እርግጠኛ ነዎት?')) {
       try {
-        await fetch(`${API_BASE_URL}/suppliers/${id}`, { 
+        const res = await fetch(`${API_BASE_URL}/suppliers/${id}`, { 
           method: 'DELETE',
           headers: getAuthHeaders()
         });
-        fetchSuppliers();
+        
+        if (res.ok) {
+          fetchSuppliers();
+        } else {
+          const errData = await res.json();
+          alert(errData.message || 'አቅራቢውን ማጥፋት አልተቻለም');
+        }
       } catch (err) {
         console.error('Error deleting supplier:', err);
       }
     }
   };
 
-  // 4. Supplier ለመመዝገብ / ለማስተካከል
+  // 4. Supplier ለመመዝገብ / ለማስተካከል (Create/Update)
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -81,14 +86,19 @@ function Suppliers() {
         : `${API_BASE_URL}/suppliers`;
       const method = editingId ? 'PUT' : 'POST';
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: getAuthHeaders(),
         body: JSON.stringify(formData)
       });
 
-      handleCloseModal();
-      fetchSuppliers();
+      if (res.ok) {
+        handleCloseModal();
+        fetchSuppliers();
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'መረጃውን ማስቀመጥ አልተቻለም');
+      }
     } catch (err) {
       console.error('Error saving supplier:', err);
     }
@@ -102,7 +112,7 @@ function Suppliers() {
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b', margin: 0 }}>Suppliers</h2>
           <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-            Register suppliers to choose when purchase is made
+            የግዢ አቅራቢዎችን እዚህ ይመዝግቡ እና ያስተዳድሩ
           </p>
         </div>
 
@@ -138,7 +148,7 @@ function Suppliers() {
             {suppliers.length === 0 ? (
               <tr>
                 <td colSpan="4" style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
-                  No suppliers registered yet.
+                  ምንክ አቅራቢ አልተመዘገበም።
                 </td>
               </tr>
             ) : (
