@@ -11,7 +11,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-
+const resend = new Resend(process.env.RESEND_API_KEY);
 // ==================== 1. USER & AUTHENTICATION ====================
 
 // 1. REGISTER
@@ -138,52 +138,47 @@ exports.changePassword = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
 
+    if (!email) {
+      return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
+    }
+
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
+    // 32-byte Token ማመንጨት እና Hash አድርጎ DB ውስጥ ማስቀምጥ
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ የሚቆይ
 
     await user.save();
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Render ላይ በ Port 587 የሚሰራ Transporter Config
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      family: 4,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-
-    const mailOptions = {
-      from: `"AB-Stock Support" <${process.env.EMAIL_USER}>`,
+    // Resend HTTP API ተጠቅሞ ኢሜይል መላክ (Port/IPv6 Blocking ችግር የለበትም)
+    await resend.emails.send({
+      from: 'onboarding@resend.dev', // በራሱ የ Resend ቴስቲንግ ኢሜይል ይልካል
       to: user.email,
       subject: 'Password Reset Request',
       html: `
-        <h3>የይለፍ ቃል መቀየሪያ ሊንክ</h3>
-        <p>የይለፍ ቃልዎን ለመቀየር እባክዎን የሚከተለውን ሊንክ ይጫኑ፡</p>
-        <a href="${resetUrl}" target="_blank" style="color: #0b5ed7; font-weight: bold;">
-          ${resetUrl}
-        </a>
-        <p>ይህ ሊንክ የሚያገለግለው ለ 10 ደቂቃ ብቻ ነው።</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
+          <p>ሰላም ${user.name || ''}፣</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              የይለፍ ቃል ቀይር
+            </a>
+          </div>
+          <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
+          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ችላ ይበሉት።</p>
+        </div>
       `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
     res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
 
   } catch (err) {
