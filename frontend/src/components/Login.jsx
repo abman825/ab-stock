@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
-function Login({ onLoginSuccess }) {
+function Login({ onLoginSuccess, onForgotPassword }) {
   // Mode States: 'login' | 'register' | 'forgot'
   const [mode, setMode] = useState('login');
   
@@ -19,8 +19,6 @@ function Login({ onLoginSuccess }) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -33,7 +31,6 @@ function Login({ onLoginSuccess }) {
     setLoading(true);
 
     if (mode === 'forgot') {
-      // Handle Forgot Password via Nodemailer Endpoint
       try {
         const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
           method: 'POST',
@@ -90,6 +87,16 @@ function Login({ onLoginSuccess }) {
     }
   };
 
+  const handleForgotClick = () => {
+    setError('');
+    setMessage('');
+    if (onForgotPassword) {
+      onForgotPassword(); // App.jsx ላይ ForgotPassword Component እንዲከፈት ያደርጋል
+    } else {
+      setMode('forgot'); 
+    }
+  };
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#eef2f5', padding: '20px' }}>
       <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px' }}>
@@ -112,7 +119,7 @@ function Login({ onLoginSuccess }) {
               <input
                 type="email"
                 name="email"
-                placeholder="enter your email address"
+                placeholder="Enter your email address"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -215,8 +222,8 @@ function Login({ onLoginSuccess }) {
           {mode === 'login' && (
             <>
               <span
-                onClick={() => { setMode('forgot'); setError(''); setMessage(''); }}
-                style={{ color: '#0b5ed7', cursor: 'pointer', fontSize: '12px' }}
+                onClick={handleForgotClick}
+                style={{ color: '#0b5ed7', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}
               >
                 Forgot Password?
               </span>

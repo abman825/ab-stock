@@ -11,6 +11,7 @@ import Settings from './components/Settings';
 import Login from './components/Login';
 import ReportsPage from './components/ReportsPage';
 import ResetPassword from './components/ResetPassword';
+import ForgotPassword from './components/ForgotPassword';
 
 // 1. API Base URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -25,6 +26,9 @@ function App() {
   const [categories, setCategories] = useState([]);
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [loading, setLoading] = useState(false);
+
+  // 'login' ወይም 'forgot' የሚለውን ገጽ ለመቆጣጠር
+  const [authView, setAuthView] = useState('login'); 
 
   // Mobile Navigation Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -115,10 +119,9 @@ function App() {
     }
   };
 
-  // የሽያጭ ማጠቃለያ ፋንክሽን (2 Decimal አካታች የተስተካከለ)
   const handleCompleteSale = async (saleDetails) => {
     if (cart.length === 0) {
-      alert('እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!');
+      alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
       return;
     }
 
@@ -128,7 +131,6 @@ function App() {
       const rawDiscountAmount = Number(saleDetails.discountAmount || saleDetails.discount || 0);
       const rawDiscountPercent = Number(saleDetails.discountPercent || 0);
 
-      // ቁጥሮችን በትክክል በ 2 ዴሲማል ማጠጋጋት
       const subtotalVal = Number(rawSubtotal.toFixed(2));
       const discountVal = Number(rawDiscountAmount.toFixed(2));
       const grandTotalVal = Number((subtotalVal - discountVal).toFixed(2));
@@ -183,7 +185,7 @@ function App() {
     setIsMobileMenuOpen(false);
   };
 
-  // 3. Reset Password Token ካለ የ ResetPassword component-ን ብቻ ያሳያል
+  // 3. Reset Password Token ካለ ResetPassword component ያሳያል
   if (resetToken) {
     return (
       <ResetPassword 
@@ -196,9 +198,17 @@ function App() {
     );
   }
 
-  // 4. user ከሌለ Login ማሳያ
+  // 4. user ከሌለ Login ወይም ForgotPassword ገጽን ያሳያል
   if (!user) {
-    return <Login onLoginSuccess={(userData) => setUser(userData)} />;
+    if (authView === 'forgot') {
+      return <ForgotPassword onBackToLogin={() => setAuthView('login')} />;
+    }
+    return (
+      <Login 
+        onLoginSuccess={(userData) => setUser(userData)} 
+        onForgotPassword={() => setAuthView('forgot')} 
+      />
+    );
   }
 
   // Sidebar Menu Sections
@@ -240,7 +250,7 @@ function App() {
       <div style={{ 
         width: '240px', 
         height: '100vh', 
-        backgroundColor: '#1e293b', // Dark Silver Slate
+        backgroundColor: '#1e293b', 
         color: '#f8fafc', 
         padding: '15px 12px', 
         display: 'flex', 
@@ -447,7 +457,7 @@ function App() {
             position: 'relative'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>📹 የስርዓት አጠቃቀም Tutorial</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>📹 የስርዓቱ አጠቃቀም Tutorial</h3>
               <button 
                 onClick={() => setShowVideoModal(false)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
