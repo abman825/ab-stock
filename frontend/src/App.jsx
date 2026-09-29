@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Components
 import POSpage from './components/POSpage';
 import Products from './components/Products';
 import Categories from './components/Categories';
@@ -13,8 +16,8 @@ import ReportsPage from './components/ReportsPage';
 import ResetPassword from './components/ResetPassword';
 import ForgotPassword from './components/ForgotPassword';
 
-// 1. API Base URL
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+// API Base URL
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ab-stock.onrender.com';
 const API_BASE_URL = `${BASE_URL}/api`;
 
 function App() {
@@ -27,7 +30,7 @@ function App() {
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [loading, setLoading] = useState(false);
 
-  // 'login' ወይም 'forgot' የሚለውን ገጽ ለመቆጣጠር
+  // 'login' ወይም 'forgot' የሚለውን ገፅ ለመቆጣጠር
   const [authView, setAuthView] = useState('login'); 
 
   // Mobile Navigation Menu State
@@ -38,13 +41,19 @@ function App() {
 
   // 1. URL ውስጥ /reset-password/ የሚል ካለ Token-ን መለየት
   useEffect(() => {
-    const path = window.location.pathname;
-    if (path.startsWith('/reset-password/')) {
-      const token = path.split('/reset-password/')[1];
-      if (token) {
-        setResetToken(token);
+    const checkResetToken = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/reset-password/')) {
+        const token = path.split('/reset-password/')[1];
+        if (token) {
+          setResetToken(token);
+        }
       }
-    }
+    };
+    
+    checkResetToken();
+    window.addEventListener('popstate', checkResetToken);
+    return () => window.removeEventListener('popstate', checkResetToken);
   }, []);
 
   // 2. Authorization Header
@@ -158,7 +167,7 @@ function App() {
       });
 
       if (res.ok) {
-        alert('ሽያጩ በተከከለ ሁኔታ ተጠናቋል!');
+        alert('ሽያጩ በትክክለኛ ሁኔታ ተጠናቋል!');
         setCart([]);
         fetchProducts();
         fetchTodaySalesSummary();
@@ -198,7 +207,7 @@ function App() {
     );
   }
 
-  // 4. user ከሌለ Login ወይም ForgotPassword ገጽን ያሳያል
+  // 4. user ከሌለ Login ወይም ForgotPassword ገፅን ያሳያል
   if (!user) {
     if (authView === 'forgot') {
       return <ForgotPassword onBackToLogin={() => setAuthView('login')} />;
@@ -428,7 +437,6 @@ function App() {
           {activeTab === 'reports' && <ReportsPage API_BASE_URL={API_BASE_URL} />}
           {activeTab === 'settings' && <Settings />}
         </div>
-
       </div>
 
       {/* YouTube Tutorial Modal */}
