@@ -16,6 +16,7 @@ router.post('/auth/register', controller.register);
 router.post('/auth/login', controller.login);
 router.post('/auth/forgot-password', controller.forgotPassword);
 router.post('/reset-password/:token', controller.resetPassword);
+router.post('/auth/reset-password/:token', controller.resetPassword);
 
 router.post('/register', controller.register);
 router.post('/login', controller.login);
