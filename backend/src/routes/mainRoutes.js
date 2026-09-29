@@ -8,26 +8,26 @@ const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
 
 // ==========================================
-// 1. Unprotected / Public Routes
+// 1. Unprotected / Public Routes (ቅድሚያ የሚሰጣቸው)
 // ==========================================
 
 // Authentication Routes
 router.post('/auth/register', controller.register);
 router.post('/auth/login', controller.login);
 router.post('/auth/forgot-password', controller.forgotPassword);
-router.post('/reset-password/:token', controller.resetPassword);
 router.post('/auth/reset-password/:token', controller.resetPassword);
 
 router.post('/register', controller.register);
 router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
+router.post('/reset-password/:token', controller.resetPassword);
 
 // ==========================================
 // 2. Protected Routes (JWT Token required)
 // ==========================================
 router.use(authMiddleware);
 
-// Bulk Import Routes (Protected Routes ስር መሆን አለባቸው!)
+// Bulk Import Routes
 if (controller.createProductsBulk) {
   router.post('/products/bulk', controller.createProductsBulk);
 }
@@ -70,8 +70,8 @@ const handleUpdateProfile = async (req, res) => {
 router.put('/auth/update-profile', handleUpdateProfile);
 router.put('/update-profile', handleUpdateProfile);
 
-// Password መቀየሪያ
-router.put('/auth/change-password', async (req, res) => {
+// Password መቀየሪያ (ተስተካክሏል፡ Hash አድርጎ ሴቭ ያደርጋል)
+const handleChangePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
@@ -86,7 +86,9 @@ router.put('/auth/change-password', async (req, res) => {
       return res.status(400).json({ message: 'Incorrect current password!' });
     }
 
-    user.password = newPassword; 
+    // Hash the new password before saving
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
     res.json({ message: 'Password changed successfully!' });
@@ -94,7 +96,10 @@ router.put('/auth/change-password', async (req, res) => {
     console.error('Change Password Error:', err);
     res.status(500).json({ message: 'Failed to change password!' });
   }
-});
+};
+
+router.put('/auth/change-password', handleChangePassword);
+router.put('/change-password', handleChangePassword);
 
 // Reports & Analytics
 router.get('/reports/analytics', controller.getAnalytics);
@@ -107,14 +112,15 @@ router.delete('/products/:id', controller.deleteProduct);
 
 // Categories
 router.get('/categories', controller.getCategories);
-router.post('/categories',controller.createCategory);
-router.put('/categories/:id', controller.updateCategory);     // <-- ይህን ይጨምሩ
-router.delete('/categories/:id', controller.deleteCategory);  // <-- ይህን ይጨምሩ
+router.post('/categories', controller.createCategory);
+router.put('/categories/:id', controller.updateCategory);
+router.delete('/categories/:id', controller.deleteCategory);
+
 // Suppliers
 router.get('/suppliers', controller.getSuppliers);
 router.post('/suppliers', controller.createSupplier);
 router.put('/suppliers/:id', controller.updateSupplier);     
-router.delete('/suppliers/:id',controller.deleteSupplier);
+router.delete('/suppliers/:id', controller.deleteSupplier);
 
 // Purchase Orders
 router.get('/purchase-orders', controller.getPurchases);
