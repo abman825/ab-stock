@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 // Components
 import POSpage from './components/POSpage';
@@ -22,41 +22,20 @@ const API_BASE_URL = `${BASE_URL}/api`;
 
 function App() {
   const [user, setUser] = useState(null);
-  const [resetToken, setResetToken] = useState(null);
   const [activeTab, setActiveTab] = useState('pos');
   const [cart, setCart] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [loading, setLoading] = useState(false);
-
-  // 'login' ወይም 'forgot' የሚለውን ገፅ ለመቆጣጠር
   const [authView, setAuthView] = useState('login'); 
-
-  // Mobile Navigation Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // YouTube Tutorial Modal State
   const [showVideoModal, setShowVideoModal] = useState(false);
 
-  // 1. URL ውስጥ /reset-password/ የሚል ካለ Token-ን መለየት
-  useEffect(() => {
-    const checkResetToken = () => {
-      const path = window.location.pathname;
-      if (path.startsWith('/reset-password/')) {
-        const token = path.split('/reset-password/')[1];
-        if (token) {
-          setResetToken(token);
-        }
-      }
-    };
-    
-    checkResetToken();
-    window.addEventListener('popstate', checkResetToken);
-    return () => window.removeEventListener('popstate', checkResetToken);
-  }, []);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // 2. Authorization Header
+  // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -82,15 +61,8 @@ function App() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/products`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data);
-      } else {
-        console.error("Products fetching failed:", res.status);
-      }
+      const res = await fetch(`${API_BASE_URL}/products`, { headers: getAuthHeaders() });
+      if (res.ok) setProducts(await res.json());
     } catch (err) {
       console.error("Error fetching products:", err);
     }
@@ -98,15 +70,8 @@ function App() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/categories`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data);
-      } else {
-        console.error("Categories fetching failed:", res.status);
-      }
+      const res = await fetch(`${API_BASE_URL}/categories`, { headers: getAuthHeaders() });
+      if (res.ok) setCategories(await res.json());
     } catch (err) {
       console.error("Error fetching categories:", err);
     }
@@ -114,15 +79,8 @@ function App() {
 
   const fetchTodaySalesSummary = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/today-summary`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTodaySales(data);
-      } else {
-        console.error("Sales summary fetching failed:", res.status);
-      }
+      const res = await fetch(`${API_BASE_URL}/orders/today-summary`, { headers: getAuthHeaders() });
+      if (res.ok) setTodaySales(await res.json());
     } catch (err) {
       console.error("Error fetching sales summary:", err);
     }
@@ -187,6 +145,7 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    navigate('/');
   };
 
   const handleNavClick = (tabId) => {
@@ -194,20 +153,12 @@ function App() {
     setIsMobileMenuOpen(false);
   };
 
-  // 3. Reset Password Token ካለ ResetPassword component ያሳያል
-  if (resetToken) {
-    return (
-      <ResetPassword 
-        token={resetToken} 
-        onBackToLogin={() => {
-          setResetToken(null);
-          window.history.pushState({}, '', '/');
-        }} 
-      />
-    );
+  // URL Path ለ reset-password ከሆነ አሳይ
+  if (location.pathname.startsWith('/reset-password')) {
+    return <ResetPassword onBackToLogin={() => navigate('/')} />;
   }
 
-  // 4. user ከሌለ Login ወይም ForgotPassword ገፅን ያሳያል
+  // User Authentication
   if (!user) {
     if (authView === 'forgot') {
       return <ForgotPassword onBackToLogin={() => setAuthView('login')} />;
@@ -220,7 +171,6 @@ function App() {
     );
   }
 
-  // Sidebar Menu Sections
   const menuSections = [
     { title: 'MAIN', items: [{ id: 'pos', label: 'Point of Sale' }] },
     { title: 'INVENTORY', items: [{ id: 'products', label: 'Products' }, { id: 'categories', label: 'Categories' }] },
@@ -238,79 +188,41 @@ function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Segoe UI, sans-serif' }}>
       
-      {/* Mobile Backdrop Overlay */}
       {isMobileMenuOpen && (
         <div 
           onClick={() => setIsMobileMenuOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
-            zIndex: 1040,
-            display: 'block'
-          }}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.6)', zIndex: 1040 }}
         />
       )}
 
-      {/* Silver/Slate Sidebar Navigation */}
+      {/* Sidebar */}
       <div style={{ 
-        width: '240px', 
-        height: '100vh', 
-        backgroundColor: '#1e293b', 
-        color: '#f8fafc', 
-        padding: '15px 12px', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        flexShrink: 0, 
-        boxSizing: 'border-box',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        zIndex: 1050,
-        transition: 'transform 0.3s ease-in-out',
-        borderRight: '1px solid #334155',
+        width: '240px', height: '100vh', backgroundColor: '#1e293b', color: '#f8fafc', padding: '15px 12px', 
+        display: 'flex', flexDirection: 'column', flexShrink: 0, boxSizing: 'border-box', position: 'fixed', 
+        left: 0, top: 0, bottom: 0, zIndex: 1050, transition: 'transform 0.3s ease-in-out', borderRight: '1px solid #334155',
         transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)'
       }} className="responsive-sidebar">
         
-        {/* Logo & Mobile Close Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0' }}>
-            📦 ab Stock
-          </h2>
-          <button 
-            onClick={() => setIsMobileMenuOpen(false)}
-            style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
-            className="mobile-close-btn"
-          >
-            ✖
-          </button>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: '#e2e8f0' }}>📦 ab Stock</h2>
+          <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }} className="mobile-close-btn">✖</button>
         </div>
 
-        {/* Navigation Items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', flex: 1, overflowY: 'auto' }}>
           {menuSections.map((section, idx) => (
             <div key={idx}>
-              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '6px', letterSpacing: '0.5px' }}>{section.title}</div>
+              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '6px' }}>{section.title}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {section.items.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => handleNavClick(item.id)}
                     style={{
-                      padding: '10px 12px',
-                      border: 'none',
+                      padding: '10px 12px', border: 'none',
                       background: activeTab === item.id ? '#334155' : 'transparent',
                       color: activeTab === item.id ? '#38bdf8' : '#cbd5e1',
-                      textAlign: 'left',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: activeTab === item.id ? 'bold' : 'normal',
-                      transition: 'background 0.2s, color 0.2s'
+                      textAlign: 'left', borderRadius: '6px', cursor: 'pointer', fontSize: '13px',
+                      fontWeight: activeTab === item.id ? 'bold' : 'normal'
                     }}
                   >
                     {item.label}
@@ -321,112 +233,36 @@ function App() {
           ))}
         </div>
 
-        {/* Sidebar Bottom (User Info & Settings) */}
         <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button 
-            onClick={() => handleNavClick('settings')} 
-            style={{ 
-              width: '100%', 
-              padding: '8px 10px', 
-              background: activeTab === 'settings' ? '#334155' : 'transparent', 
-              border: '1px solid #475569', 
-              color: '#e2e8f0', 
-              borderRadius: '6px', 
-              cursor: 'pointer', 
-              textAlign: 'left', 
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
+          <button onClick={() => handleNavClick('settings')} style={{ width: '100%', padding: '8px 10px', background: activeTab === 'settings' ? '#334155' : 'transparent', border: '1px solid #475569', color: '#e2e8f0', borderRadius: '6px', cursor: 'pointer', textAlign: 'left', fontSize: '12px' }}>
             ⚙️ Setting
           </button>
 
-          <div 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justify: 'space-between', 
-              background: '#0f172a', 
-              padding: '8px 10px', 
-              borderRadius: '6px',
-              border: '1px solid #334155'
-            }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0f172a', padding: '8px 10px', borderRadius: '6px', border: '1px solid #334155' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-              <span style={{ fontSize: '16px' }}>👤</span>
+              <span>👤</span>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</div>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f1f5f9' }}>{user.username}</div>
                 <div style={{ fontSize: '10px', color: '#94a3b8' }}>User</div>
               </div>
             </div>
-            <button 
-              onClick={handleLogout}
-              style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', padding: '4px' }}
-            >
-              Logout
-            </button>
+            <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>Logout</button>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: '100%' }} className="main-content-panel">
-        
-        {/* Top Header */}
-        <div style={{ backgroundColor: '#ffffff', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
-          
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: '100%' }}>
+        <div style={{ backgroundColor: '#ffffff', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              style={{
-                background: '#475569',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '5px',
-                padding: '6px 10px',
-                fontSize: '16px',
-                cursor: 'pointer'
-              }}
-              className="hamburger-btn"
-            >
-              ☰
-            </button>
-            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: 'clamp(14px, 3vw, 16px)' }}>AB Stock POS</span>
+            <button onClick={() => setIsMobileMenuOpen(true)} style={{ background: '#475569', color: '#fff', border: 'none', borderRadius: '5px', padding: '6px 10px', fontSize: '16px', cursor: 'pointer' }} className="hamburger-btn">☰</button>
+            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>AB Stock POS</span>
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button 
-              onClick={() => setShowVideoModal(true)}
-              style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              አጠቃቀም 📹
-            </button>
-
-            <button 
-              onClick={() => handleNavClick('settings')}
-              style={{ background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
-              className="desktop-settings-btn"
-            >
-              ⚙️ Setting
-            </button>
-          </div>
+          <button onClick={() => setShowVideoModal(true)} style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>አጠቃቀም 📹</button>
         </div>
 
-        {/* Dynamic Page Views Container */}
-        <div style={{ flex: 1, padding: 'clamp(10px, 2vw, 20px)', overflowY: 'auto', boxSizing: 'border-box' }}>
-          {activeTab === 'pos' && (
-            <POSpage 
-              cart={cart} 
-              setCart={setCart} 
-              products={products}
-              categories={categories}
-              todaySales={todaySales}
-              onCompleteSale={handleCompleteSale}
-              loading={loading}
-            />
-          )}
+        <div style={{ flex: 1, padding: '15px', overflowY: 'auto' }}>
+          {activeTab === 'pos' && <POSpage cart={cart} setCart={setCart} products={products} categories={categories} todaySales={todaySales} onCompleteSale={handleCompleteSale} loading={loading} />}
           {activeTab === 'products' && <Products products={products} refreshProducts={fetchProducts} />}
           {activeTab === 'categories' && <Categories categories={categories} refreshCategories={fetchCategories} />}
           {activeTab === 'suppliers' && <Suppliers />}
@@ -439,75 +275,26 @@ function App() {
         </div>
       </div>
 
-      {/* YouTube Tutorial Modal */}
       {showVideoModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(15, 23, 42, 0.75)',
-          display: 'flex',
-          alignItems: 'center',
-          justify: 'center',
-          zIndex: 9999,
-          padding: '15px',
-          boxSizing: 'border-box'
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: '12px',
-            padding: '15px',
-            width: '100%',
-            maxWidth: '700px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            position: 'relative'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>📹 የስርዓቱ አጠቃቀም Tutorial</h3>
-              <button 
-                onClick={() => setShowVideoModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
-              >
-                ✖
-              </button>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '15px', width: '100%', maxWidth: '700px', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '15px' }}>📹 የስርዓቱ አጠቃቀም Tutorial</h3>
+              <button onClick={() => setShowVideoModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✖</button>
             </div>
-
             <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '8px' }}>
-              <iframe
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                src="https://www.youtube.com/embed/1RCXr0oNXfQ" 
-                title="System Tutorial"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+              <iframe style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} src="https://www.youtube.com/embed/1RCXr0oNXfQ" title="System Tutorial" allowFullScreen></iframe>
             </div>
           </div>
         </div>
       )}
 
-      {/* Responsive Styles */}
       <style>{`
         @media (min-width: 768px) {
-          .responsive-sidebar {
-            position: relative !important;
-            transform: none !important;
-          }
-          .hamburger-btn {
-            display: none !important;
-          }
-          .mobile-close-btn {
-            display: none !important;
-          }
-        }
-        @media (max-width: 767px) {
-          .desktop-settings-btn {
-            display: none !important;
-          }
+          .responsive-sidebar { position: relative !important; transform: none !important; }
+          .hamburger-btn, .mobile-close-btn { display: none !important; }
         }
       `}</style>
-
     </div>
   );
 }
