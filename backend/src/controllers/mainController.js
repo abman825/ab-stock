@@ -13,7 +13,7 @@ const crypto = require('crypto');
 
 // ==================== 1. AUTHENTICATION & USER MANAGEMENT ====================
 
-// FORGOT PASSWORD
+// FORGOT PASSWORD (Generates 6-digit OTP Code)
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -23,45 +23,36 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // 1. Generate plain token
-    const rawToken = crypto.randomBytes(32).toString('hex');
+    // ባለ 6 አሃዝ OTP code ማመንጨት
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 2. Hash di token for save na Database
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-
-    user.resetPasswordToken = hashedToken;
-    // Set 30 mins time limit instead of 10 mins
-    user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; 
+    // Code እና Expires ጊዜ ሴቭ ማድረግ (30 ደቂቃ)
+    user.resetPasswordToken = resetCode;
+    user.resetPasswordExpires = Date.now() + 30 * 60 * 1000;
 
     await user.save();
 
-    // 3. Send di RAW token go frontend so EmailJS go put am inside di link
-    res.json({ success: true, resetToken: rawToken });
+    // resetCode ለ Frontend መላክ (EmailJS እንዲልከው)
+    res.json({ success: true, resetToken: resetCode });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-// RESET PASSWORD
+// RESET PASSWORD (Verifies OTP Code)
 exports.resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
+    const { code, password } = req.body;
 
-    // 1. Hash di incoming raw token from URL to match DB hashedToken
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-    // 2. Find user with matching hashed token and active time
     const user = await User.findOne({
-      resetPasswordToken: hashedToken,
+      resetPasswordToken: code,
       resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'የሊንኩ ጊዜ አልፏል ወይም ትክክል አይደለም!' });
+      return res.status(400).json({ message: 'የተሳሳተ ኮድ ወይም ኮዱ ጊዜው አልፏል!' });
     }
 
-    // 3. Hash new password and clear reset tokens
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
     user.resetPasswordToken = undefined;

@@ -15,12 +15,12 @@ const User = require('../models/User');
 router.post('/auth/register', controller.register);
 router.post('/auth/login', controller.login);
 router.post('/auth/forgot-password', controller.forgotPassword);
-router.post('/auth/reset-password/:token', controller.resetPassword);
+router.post('/auth/reset-password', controller.resetPassword);
 
 router.post('/register', controller.register);
 router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
-router.post('/reset-password/:token', controller.resetPassword);
+router.post('/reset-password', controller.resetPassword);
 
 // ==========================================
 // 2. Protected Routes (JWT Token required)
