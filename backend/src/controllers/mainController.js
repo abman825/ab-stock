@@ -13,7 +13,7 @@ const crypto = require('crypto');
 
 // ==================== 1. AUTHENTICATION & USER MANAGEMENT ====================
 
-// FORGOT PASSWORD (FOR EMAILJS - Generates token & saves to DB)
+// FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -23,39 +23,45 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // 1. Reset Token ማመንጨት (10 ደቂቃ ጊዜ ያለው)
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    // 1. Generate plain token
+    const rawToken = crypto.randomBytes(32).toString('hex');
+
+    // 2. Hash di token for save na Database
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    user.resetPasswordToken = hashedToken;
+    // Set 30 mins time limit instead of 10 mins
+    user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; 
 
     await user.save();
 
-    // 2. Token ለ Frontend መመለስ (EmailJS እንዲልከው)
-    res.json({ success: true, resetToken });
+    // 3. Send di RAW token go frontend so EmailJS go put am inside di link
+    res.json({ success: true, resetToken: rawToken });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-// RESET PASSWORD (Saves new password to DB)
+// RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
     const { password } = req.body;
 
+    // 1. Hash di incoming raw token from URL to match DB hashedToken
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    // 1. Token እና ጊዜው ያላለፈ መሆኑን ማረጋገጥ
+    // 2. Find user with matching hashed token and active time
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'የሊንኩ ጊዜ አልቋል ወይም ትክክል አይደለም' });
+      return res.status(400).json({ message: 'የሊንኩ ጊዜ አልፏል ወይም ትክክል አይደለም!' });
     }
 
-    // 2. አዲሱን ፓስወርድ Hash አድርጎ DB ውስጥ ማስቀመጥ
+    // 3. Hash new password and clear reset tokens
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
     user.resetPasswordToken = undefined;
