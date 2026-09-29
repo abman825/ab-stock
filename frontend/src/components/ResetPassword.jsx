@@ -1,98 +1,165 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://ab-stock.onrender.com';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ab-stock.onrender.com';
+const API_BASE_URL = `${BASE_URL}/api`;
 
-function ResetPassword({ onBackToLogin }) {
-  // 1. Tokenኑን ከ URL ውስጥ በ useParams እንወስዳለን
-  const { token } = useParams();
+function ResetPassword({ token: propsToken, onBackToLogin }) {
+  const { token: urlToken } = useParams();
   const navigate = useNavigate();
+
+  // በ URL ወይም በ Props የመጣውን Token መውሰድ
+  const token = urlToken || propsToken;
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setMessage('');
+    setError('');
 
     if (password !== confirmPassword) {
-      return setError('የስራው የይለፍ ቃሎች አይመሳሰሉም!');
+      setError('የይለፍ ቃሎቹ አይመሳሰሉም!');
+      return;
     }
 
-    if (!token || token === 'undefined') {
-      return setError('የሊንኩ ጊዜ አልፏል ወይም ትክክል አይደለም!');
+    if (password.length < 6) {
+      setError('የይለፍ ቃሉ ቢያንስ 6 አሃዛት መሆን አለበት!');
+      return;
+    }
+
+    if (!token) {
+      setError('ትክክለኛ ያልሆነ ወይም የጎደለ Token!');
+      return;
     }
 
     setLoading(true);
 
     try {
-      // 2. Tokenኑን በ URL Path ውስጥ አስተካክለን ወደ Backend እንልካለን
-      const res = await fetch(`${API_URL}/api/auth/reset-password/${token}`, {
+      const res = await fetch(`${API_BASE_URL}/auth/reset-password/${token}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || 'የሊንኩ ጊዜ አልፏል ወይም ትክክል አይደለም');
+      if (res.ok) {
+        setMessage(data.message || 'የይለፍ ቃልዎ በትክክል ተቀይሯል!');
+        setTimeout(() => {
+          if (onBackToLogin) {
+            onBackToLogin();
+          } else {
+            navigate('/');
+          }
+        }, 3000);
+      } else {
+        setError(data.message || 'የሊንኩ ጊዜ አልፏል ወይም ትክክል አይደለም!');
       }
-
-      setMessage('የይለፍ ቃልዎ በትክክል ተቀይሯል! አሁን መግባት ይችላሉ።');
-      setTimeout(() => {
-        if (onBackToLogin) {
-          onBackToLogin();
-        } else {
-          navigate('/login');
-        }
-      }, 2500);
-
     } catch (err) {
-      console.error('Reset Password Error:', err);
-      setError(err.message || 'የሊንኩ ጊዜ አልፏል ወይም ትክክል አይደለም');
+      console.error('Reset password error:', err);
+      setError('ከ Server ጋር መገናኘት አልተቻለም!');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleBack = () => {
+    if (onBackToLogin) {
+      onBackToLogin();
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#eef2f5', padding: '20px' }}>
-      <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px' }}>
-        
-        <h2 style={{ textAlign: 'center', color: '#0b5ed7', marginBottom: '15px', fontWeight: 'bold' }}>
-          New Password
-        </h2>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#f1f5f9',
+      padding: '20px'
+    }}>
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        width: '100%',
+        maxWidth: '420px',
+        textAlign: 'center'
+      }}>
+        <h2 style={{ color: '#1d4ed8', marginBottom: '20px' }}>New Password</h2>
 
-        {error && <div style={{ color: '#842029', backgroundColor: '#f8d7da', border: '1px solid #f5c2c7', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{error}</div>}
-        {message && <div style={{ color: '#0f5132', backgroundColor: '#d1e7dd', border: '1px solid #badbcc', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{message}</div>}
+        {error && (
+          <div style={{
+            backgroundColor: '#fee2e2',
+            color: '#dc2626',
+            padding: '10px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            marginBottom: '15px'
+          }}>
+            {error}
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>New Password</label>
+        {message && (
+          <div style={{
+            backgroundColor: '#dcfce7',
+            color: '#15803d',
+            padding: '10px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            marginBottom: '15px'
+          }}>
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>New Password</label>
             <input
               type="password"
-              placeholder="Enter new password"
+              placeholder="••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginTop: '4px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                boxSizing: 'border-box'
+              }}
             />
           </div>
 
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>Confirm Password</label>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>Confirm Password</label>
             <input
               type="password"
-              placeholder="Confirm new password"
+              placeholder="••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginTop: '4px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                boxSizing: 'border-box'
+              }}
             />
           </div>
 
@@ -100,29 +167,34 @@ function ResetPassword({ onBackToLogin }) {
             type="submit"
             disabled={loading}
             style={{
-              padding: '10px',
-              background: '#0b5ed7',
-              color: '#fff',
+              width: '100%',
+              padding: '12px',
+              backgroundColor: loading ? '#93c5fd' : '#2563eb',
+              color: '#ffffff',
               border: 'none',
-              borderRadius: '5px',
-              cursor: loading ? 'not-allowed' : 'pointer',
+              borderRadius: '6px',
               fontWeight: 'bold',
-              opacity: loading ? 0.7 : 1
+              cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Changing...' : 'Change Password'}
+            {loading ? 'በመቀየር ላይ...' : 'Change Password'}
           </button>
         </form>
 
-        <div style={{ marginTop: '15px', textAlign: 'center' }}>
-          <span
-            onClick={onBackToLogin || (() => navigate('/login'))}
-            style={{ color: '#0b5ed7', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
-          >
-            Back to Login
-          </span>
-        </div>
-
+        <button
+          onClick={handleBack}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#2563eb',
+            marginTop: '15px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: 'bold'
+          }}
+        >
+          Back to Login
+        </button>
       </div>
     </div>
   );
