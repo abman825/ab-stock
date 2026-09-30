@@ -5,6 +5,11 @@ const activityLogSchema = new mongoose.Schema({
     type: String, // 'ADD', 'EDIT', 'DELETE'
     required: true
   },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   productName: {
     type: String,
     required: true
