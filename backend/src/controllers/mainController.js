@@ -6,7 +6,7 @@ const PurchaseOrder = require('../models/PurchaseOrders');
 const Transfer = require('../models/Transfer');
 const Order = require('../models/Order');
 const Customer = require('../models/Customer');
-
+const ActivityLog = require('../models/ActivityLog');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -17,56 +17,144 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const ActivityLog = require('../models/ActivityLog');
 
 // Product Update (Edit)
-exports.updateProduct = async (req, res) => {
+// ==================== 2. PRODUCTS ====================
+exports.getProducts = async (req, res) => {
   try {
-    const oldProduct = await Product.findById(req.params.id);
-    if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
-
-    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-
-    // Activity Log መመዝገብ
-    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
-    
-    // Quantity ከተቀየረ ለይቶ መመዝገብ
-    let detailMsg = `Updated details for ${updatedProduct.name}`;
-    if (oldProduct.quantity !== updatedProduct.quantity) {
-      detailMsg = `Shop Qty changed from ${oldProduct.quantity} to ${updatedProduct.quantity}`;
-    }
-
-    await ActivityLog.create({
-      user: userName,
-      action: 'EDIT',
-      productName: updatedProduct.name,
-      details: detailMsg
-    });
-
-    res.json(updatedProduct);
+    const products = await Product.find({ user: req.user.id }); 
+    res.json(products);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Product Delete
+// CREATE PRODUCT
+exports.createProduct = async (req, res) => {
+  try {
+    const productData = { ...req.body, user: req.user.id };
+    const newProduct = new Product(productData);
+    const savedProduct = await newProduct.save();
+
+    // 📝 Simple Activity Log
+    try {
+      await ActivityLog.create({
+        action: 'ADD',
+        productName: savedProduct.name,
+        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0})`
+      });
+    } catch (logErr) {
+      console.error('Activity Log save error:', logErr);
+    }
+
+    res.status(201).json(savedProduct);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// UPDATE PRODUCT
+exports.updateProduct = async (req, res) => {
+  try {
+    const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
+    if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
+
+    const updatedProduct = await Product.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    const changes = [];
+
+    const oldShopQty = oldProduct.quantity ?? 0;
+    const newShopQty = updatedProduct.quantity ?? 0;
+    if (oldShopQty !== newShopQty) {
+      changes.push(`Shop Qty: ${oldShopQty} ➔ ${newShopQty}`);
+    }
+
+    const oldStoreQty = oldProduct.inStoreQty ?? 0;
+    const newStoreQty = updatedProduct.inStoreQty ?? 0;
+    if (oldStoreQty !== newStoreQty) {
+      changes.push(`Store Qty: ${oldStoreQty} ➔ ${newStoreQty}`);
+    }
+
+    const oldPrice = oldProduct.salePrice || oldProduct.price || 0;
+    const newPrice = updatedProduct.salePrice || updatedProduct.price || 0;
+    if (oldPrice !== newPrice) {
+      changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
+    }
+
+    const detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic product details';
+
+    // 📝 Simple Activity Log
+    try {
+      await ActivityLog.create({
+        action: 'EDIT',
+        productName: updatedProduct.name,
+        details: detailMsg
+      });
+    } catch (logErr) {
+      console.error('Activity Log save error:', logErr);
+    }
+
+    res.json(updatedProduct);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({ _id: req.params.id, user: req.user.id });
     if (!product) return res.status(404).json({ message: 'Product not found' });
 
-    await Product.findByIdAndDelete(req.params.id);
+    await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
 
-    // Delete ሲደረግ መመዝገብ
-    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
-
-    await ActivityLog.create({
-      user: userName,
-      action: 'DELETE',
-      productName: product.name,
-      details: `Deleted product. Final Qty was: Shop (${product.quantity}), Store (${product.inStoreQty})`
-    });
+    // 📝 Simple Activity Log
+    try {
+      await ActivityLog.create({
+        action: 'DELETE',
+        productName: product.name,
+        details: `Deleted product. Final Shop Qty: (${product.quantity || 0}), Store Qty: (${product.inStoreQty || 0})`
+      });
+    } catch (logErr) {
+      console.error('Activity Log save error:', logErr);
+    }
 
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// BULK IMPORT PRODUCTS
+exports.createProductsBulk = async (req, res) => {
+  try {
+    const products = req.body;
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: 'አስፈላጊው የዳታ Array አልተላከም!' });
+    }
+
+    const formattedProducts = products.map((prod) => ({
+      ...prod,
+      user: req.user.id
+    }));
+
+    const savedProducts = await Product.insertMany(formattedProducts);
+
+    try {
+      await ActivityLog.create({
+        action: 'ADD',
+        productName: `${savedProducts.length} Products`,
+        details: `Bulk imported ${savedProducts.length} items`
+      });
+    } catch (logErr) {
+      console.error('Activity Log save error:', logErr);
+    }
+
+    res.status(201).json(savedProducts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
