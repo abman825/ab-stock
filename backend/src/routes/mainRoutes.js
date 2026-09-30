@@ -7,6 +7,7 @@ const controller = require('../controllers/mainController');
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
+
 // ==========================================
 // 1. Unprotected / Public Routes
 // ==========================================
@@ -27,7 +28,17 @@ router.post('/forgot-password', controller.forgotPassword);
 // ==========================================
 router.use(authMiddleware);
 
-// Bulk Import Routes (áŠ¨á‰€áˆ¨á‰¡ á‰¥á‰» áŠ¥áŠ•á‹²áˆ°áˆ©)
+// ✅ Activity Logs Route (የተስተካከለ)
+router.get('/activity-logs', async (req, res) => {
+  try {
+    const logs = await ActivityLog.find().sort({ timestamp: -1 }).limit(100);
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching activity logs' });
+  }
+});
+
+// Bulk Import Routes
 if (controller.createProductsBulk) {
   router.post('/products/bulk', controller.createProductsBulk);
 }
@@ -39,7 +50,7 @@ if (controller.createCategoriesBulk) {
 router.get('/profile', controller.getProfile);
 router.get('/auth/profile', controller.getProfile);
 
-// Profile áˆ›áˆµá‰°áŠ«áŠ¨á‹«
+// Profile ማስተካከያ
 const handleUpdateProfile = async (req, res) => {
   try {
     const { fullName, email, phone, username } = req.body;
@@ -70,7 +81,7 @@ const handleUpdateProfile = async (req, res) => {
 router.put('/auth/update-profile', handleUpdateProfile);
 router.put('/update-profile', handleUpdateProfile);
 
-// Password áˆ˜á‰€á‹¨áˆªá‹«
+// ✅ Password መቀየሪያ (Bcrypt Hash ተጨምሮበታል)
 router.put('/auth/change-password', async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -86,7 +97,8 @@ router.put('/auth/change-password', async (req, res) => {
       return res.status(400).json({ message: 'Incorrect current password!' });
     }
 
-    user.password = newPassword; 
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
     res.json({ message: 'Password changed successfully!' });
@@ -164,14 +176,5 @@ router.post('/orders', controller.createOrder);
 // Customers
 router.get('/customers', controller.getCustomers);
 router.post('/customers', controller.createCustomer);
-
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const logs = await ActivityLog.find().sort({ timestamp: -1 }).limit(100);
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching activity logs' });
-  }
-});
 
 module.exports = router;
