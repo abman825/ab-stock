@@ -2,170 +2,106 @@ import React, { useState } from 'react';
 import emailjs from '@emailjs/browser';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-const API_BASE_URL = `${BASE_URL}/api`; // Backend URLህን እዚህ ጋር ተካው
 
 function ForgotPassword({ onBackToLogin }) {
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  
-  const [isSent, setIsSent] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 1. ኢሜይል ልኮ ቁጥር (OTP) ለመቀበል
-  const handleSendCode = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email }),
-});
-
-// Response-ኡ JSON መሆኑን እና ባዶ አለመሆኑን ማረጋገጫ
-const text = await res.text();
-let data = {};
-try {
-  data = text ? JSON.parse(text) : {};
-} catch (e) {
-  throw new Error('የሴርቨር መልስ አልተገኘም (Server returned invalid JSON)');
-}
-
-if (!res.ok) {
-  throw new Error(data.message || 'ተጠቃሚው አልተገኘም ወይም የሴርቨር ስህተት አለ');
-}
-
-      // EmailJS Params
-      const templateParams = {
-        to_name: email.split('@')[0],
-        to_email: email,
-        email: email,
-        passcode: data.resetToken, // ከ Backend resetToken ተብሎ የመጣውን OTP ይጠቀማል
-      };
-
-      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_ymprcgb';
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_gelwhgb';
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'OarV3EdPFEn1i2d9v';
-
-      await emailjs.send(serviceId, templateId, templateParams, publicKey);
-
-      setMessage('የይለፍ ቃል መለወጫ ኮዱ ወደ ኢሜይልዎ ተልኳል! እባክዎን ኢሜይልዎን ያረጋግጡ።');
-      setIsSent(true);
-
-    } catch (err) {
-      console.error('Forgot Password Error:', err);
-      setError(err.message || 'ችግር አጋጥሟል! እባክዎን ደግመው ይሞክሩ።');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 2. የተላከውን ቁጥር እና አዲስ ፓስወርድ ልኮ ፓስወርዱን ለመቀየር
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    setError('');
-    setMessage('');
-    setLoading(true);
-
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/api/auth/reset-password`, {
+      // 1. Backend Request - resetToken ለማግኘት
+      const res = await fetch(`${BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: otp,            // Backendህ 'code' ነው የሚፈልገው
-          password: newPassword // Backendህ 'password' ነው የሚፈልገው
-        }),
+        body: JSON.stringify({ email })
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'ኮዱ የተሳሳተ ነው ወይም ጊዜው አልፏል');
+        throw new Error(data.message || 'ኢሜይሉን ማግኘት አልተቻለም!');
       }
 
-      setMessage('ፓስወርድዎ በትክክል ተቀይሯል! አሁን መግባት ይችላሉ።');
-      
-      setTimeout(() => {
-        if (onBackToLogin) onBackToLogin();
-      }, 2000);
+      // 2. የ Reset Link ማዘጋጀት
+      const resetUrl = `${window.location.origin}/reset-password/${data.resetToken}`;
 
+      // 3. EmailJS ን በመጠቀም ኢሜይሉን ለተጠቃሚው መላክ
+      const templateParams = {
+        to_email: email,
+        reset_url: resetUrl
+      };
+
+      await emailjs.send(
+        'YOUR_SERVICE_ID',   // የ EmailJS Service ID
+        'YOUR_TEMPLATE_ID',  // የ EmailJS Template ID
+        templateParams,
+        'YOUR_PUBLIC_KEY'    // የ EmailJS Public Key
+      );
+
+      setMessage('የፓስወርድ መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል! እባክዎን ኢሜይልዎን ያካሂዱ።');
+      setEmail('');
     } catch (err) {
-      console.error('Reset Password Error:', err);
-      setError(err.message || 'ፓስወርዱን መቀየር አልተቻለም');
+      setError(err.message || 'ችግር አጋጥሟል! እባክዎ ድጋሚ ይሞክሩ።');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px', textAlign: 'center' }}>
-      <h2>Forgot Password</h2>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#eef2f5', padding: '20px' }}>
+      <div style={{ background: '#fff', padding: '30px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', width: '100%', maxWidth: '380px' }}>
+        <h2 style={{ textAlign: 'center', color: '#0b5ed7', marginBottom: '15px', fontWeight: 'bold' }}>Forgot Password</h2>
+        <p style={{ textAlign: 'center', color: '#666', fontSize: '13px', marginBottom: '20px' }}>
+          ኢሜይልዎን ያስገቡ፤ የፓስወርድ መቀየሪያ ሊንክ እንልክልዎታለን።
+        </p>
 
-      {message && <div style={{ color: 'green', background: '#e8f5e9', padding: '10px', marginBottom: '15px' }}>{message}</div>}
-      {error && <div style={{ color: 'red', background: '#ffebee', padding: '10px', marginBottom: '15px' }}>{error}</div>}
+        {error && <div style={{ color: '#842029', backgroundColor: '#f8d7da', border: '1px solid #f5c2c7', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{error}</div>}
+        {message && <div style={{ color: '#0f5132', backgroundColor: '#d1e7dd', border: '1px solid #badbcc', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{message}</div>}
 
-      {!isSent ? (
-        <form onSubmit={handleSendCode}>
-          <p>ኢሜይልዎን ያስገቡ፤ የይለፍ ቃል መለወጫ ኮድ እንልካለን።</p>
-          <input
-            type="email"
-            placeholder="Enter Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '10px', margin: '10px 0', boxSizing: 'border-box' }}
-          />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>Email Address</label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            style={{ width: '100%', padding: '10px', backgroundColor: '#0066cc', color: '#fff', border: 'none', cursor: 'pointer' }}
+            style={{
+              padding: '10px',
+              background: loading ? '#6c757d' : '#0b5ed7',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+              marginTop: '5px'
+            }}
           >
-            {loading ? 'እየላከ ነው...' : 'Send Code'}
+            {loading ? 'Sending...' : 'Send Reset Link'}
           </button>
         </form>
-      ) : (
-        <form onSubmit={handleResetPassword}>
-          <p>ወደ ኢሜይልዎ የተላከውን 6 አሃዝ ኮድ እና አዲስ ፓስወርድ ያስገቡ።</p>
-          <input
-            type="text"
-            placeholder="Enter 6-digit Code"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            required
-            style={{ width: '100%', padding: '10px', margin: '8px 0', boxSizing: 'border-box' }}
-          />
-          <input
-            type="password"
-            placeholder="New Password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '10px', margin: '8px 0', boxSizing: 'border-box' }}
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ width: '100%', padding: '10px', backgroundColor: '#28a745', color: '#fff', border: 'none', cursor: 'pointer' }}
-          >
-            {loading ? 'እየቀየረ ነው...' : 'Change Password'}
-          </button>
-        </form>
-      )}
 
-      <button
-        onClick={onBackToLogin}
-        style={{ marginTop: '15px', background: 'none', border: 'none', color: '#0066cc', cursor: 'pointer' }}
-      >
-        Back to Login
-      </button>
+        <div style={{ marginTop: '15px', textAlign: 'center', fontSize: '13px' }}>
+          <span onClick={onBackToLogin} style={{ color: '#0b5ed7', cursor: 'pointer', fontWeight: 'bold' }}>
+            Back to Login
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

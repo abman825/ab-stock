@@ -10,63 +10,64 @@ const Customer = require('../models/Customer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+// ==================== 1. USER & AUTHENTICATION ====================
 
-// ==================== 1. AUTHENTICATION & USER MANAGEMENT ====================
-
-// FORGOT PASSWORD (Generates 6-digit OTP Code)
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
 
+    if (!email) {
+      return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
+    }
+
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // ባለ 6 አሃዝ OTP code ማመንጨት
-    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Code እና Expires ጊዜ ሴቭ ማድረግ (30 ደቂቃ)
-    user.resetPasswordToken = resetCode;
-    user.resetPasswordExpires = Date.now() + 30 * 60 * 1000;
+    // 32-byte Token ማመንጨት እና Hash አድርጎ DB ውስጥ ማስቀምጥ
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ የሚቆይ
 
     await user.save();
 
-    // resetCode ለ Frontend መላክ (EmailJS እንዲልከው)
-    res.json({ success: true, resetToken: resetCode });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-// RESET PASSWORD (Verifies OTP Code)
-exports.resetPassword = async (req, res) => {
-  try {
-    const { code, password } = req.body;
-
-    const user = await User.findOne({
-      resetPasswordToken: code,
-      resetPasswordExpires: { $gt: Date.now() }
+    // Resend HTTP API ተጠቅሞ ኢሜይል መላክ (Port/IPv6 Blocking ችግር የለበትም)
+    await resend.emails.send({
+      from: 'onboarding@resend.dev', // በራሱ የ Resend ቴስቲንግ ኢሜይል ይልካል
+      to: user.email,
+      subject: 'Password Reset Request',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
+          <p>ሰላም ${user.name || ''}፣</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              የይለፍ ቃል ቀይር
+            </a>
+          </div>
+          <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
+          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ችላ ይበሉት።</p>
+        </div>
+      `
     });
 
-    if (!user) {
-      return res.status(400).json({ message: 'የተሳሳተ ኮድ ወይም ኮዱ ጊዜው አልፏል!' });
-    }
+    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-
-    await user.save();
-
-    res.json({ message: 'ፓስወርድዎ በተካሄደ ሁኔታ ተቀይሯል! አሁን መግባት ይችላሉ።' });
   } catch (err) {
-    res.status(500).json({ message: 'ፓስወርድ መቀየር አልተቻለም', error: err.message });
+    console.error('Forgot Password Server Error:', err);
+    res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
   }
 };
 
-// REGISTER
+// 1. REGISTER
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
@@ -93,7 +94,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// LOGIN
+// 2. LOGIN
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -139,7 +140,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// GET CURRENT PROFILE
+// 3. GET CURRENT PROFILE
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -150,7 +151,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// UPDATE PROFILE
+// 4. UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, email, username } = req.body;
@@ -167,7 +168,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// CHANGE PASSWORD
+// 5. CHANGE PASSWORD
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -184,6 +185,33 @@ exports.changePassword = async (req, res) => {
     res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+// 7. RESET PASSWORD
+exports.resetPassword = async (req, res) => {
+  try {
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
+    }
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል። አሁን መግባት ይችላሉ' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -295,43 +323,6 @@ exports.createCategoriesBulk = async (req, res) => {
   }
 };
 
-// DELETE CATEGORY
-exports.deleteCategory = async (req, res) => {
-  try {
-    const deletedCategory = await Category.findOneAndDelete({
-      _id: req.params.id,
-      user: req.user.id
-    });
-
-    if (!deletedCategory) {
-      return res.status(404).json({ message: 'ካቴጎሪው አልተገኘም ወይም ለማጥፋት ፈቃድ የሎትም' });
-    }
-
-    res.json({ message: 'ካቴጎሪው በተሳካ ሁኔታ ተሰርዟል' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// UPDATE CATEGORY
-exports.updateCategory = async (req, res) => {
-  try {
-    const updatedCategory = await Category.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedCategory) {
-      return res.status(404).json({ message: 'ካቴጎሪው አልተገኘም ወይም ለማስተካከል ፈቃድ የሎትም' });
-    }
-
-    res.json(updatedCategory);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
 // ==================== 4. SUPPLIERS ====================
 exports.getSuppliers = async (req, res) => {
   try {
@@ -349,43 +340,6 @@ exports.createSupplier = async (req, res) => {
     res.status(201).json(saved);
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-};
-
-// DELETE SUPPLIER
-exports.deleteSupplier = async (req, res) => {
-  try {
-    const deletedSupplier = await Supplier.findOneAndDelete({
-      _id: req.params.id,
-      user: req.user.id
-    });
-
-    if (!deletedSupplier) {
-      return res.status(404).json({ message: 'አቅራቢው አልተገኘም ወይም ለማጥፋት ፈቃድ የሎትም' });
-    }
-
-    res.json({ message: 'አቅራቢው በተሳካ ሁኔታ ተሰርዟል' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// UPDATE SUPPLIER
-exports.updateSupplier = async (req, res) => {
-  try {
-    const updatedSupplier = await Supplier.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedSupplier) {
-      return res.status(404).json({ message: 'አቅራቢው አልተገኘም ወይም ለማስተካከል ፈቃድ የሎትም' });
-    }
-
-    res.json(updatedSupplier);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
   }
 };
 
@@ -473,6 +427,7 @@ exports.createOrder = async (req, res) => {
 
     let totalCostPrice = 0;
 
+    // 1. እቃዎቹን ማዘጋጀት እና የተገዙበትን ዋጋ (Cost Price) መደመር
     const processedItems = await Promise.all(
       items.map(async (item) => {
         const productId = item.productId || item._id || item.id;
@@ -491,6 +446,7 @@ exports.createOrder = async (req, res) => {
         const finalCost = Number(Number(exactCost || 0).toFixed(2));
         const quantity = Number(item.cartQty || item.quantity || 1);
 
+        // የዕቃዎቹን አጠቃላይ የተገዙበትን ዋጋ መደመር
         totalCostPrice += finalCost * quantity;
 
         return {
@@ -509,6 +465,7 @@ exports.createOrder = async (req, res) => {
     const safeDiscount = Number(Number(discountAmount || 0).toFixed(2));
     const safeGrandTotal = Number(Number(grandTotal || (safeSubtotal - safeDiscount)).toFixed(2));
 
+    // 2. ትክክለኛውን ትርፍ ማስላት (ቅናሹን በመቀነስ)
     const netProfit = Number((safeGrandTotal - totalCostPrice).toFixed(2));
 
     const order = new Order({
@@ -518,13 +475,14 @@ exports.createOrder = async (req, res) => {
       discountAmount: safeDiscount,
       grandTotal: safeGrandTotal,
       totalCost: totalCostPrice,
-      profit: netProfit,
+      profit: netProfit, // ትርፉ በቀጥታ ቅናሹ ተቀንሶ ይመዘገባል
       paymentMethod: paymentMethod || 'Cash',
       soldAtDate: soldAtDate || new Date().toISOString().split('T')[0]
     });
 
     const savedOrder = await order.save();
 
+    // 3. የስቶክ መጠን መቀነስ (Stock Reduction)
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
@@ -567,7 +525,7 @@ exports.getTodaySalesSummary = async (req, res) => {
       user: req.user.id,
       $or: [
         { soldAtDate: todayStr },
-        { createdAt: { $gte: startOfToday, $lte: endOfToday } }
+        { createdAt: { $gte: startOfToday,$lte: endOfToday } }
       ]
     });
 
@@ -612,7 +570,6 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
   try {
@@ -661,25 +618,30 @@ exports.getAnalytics = async (req, res) => {
         }, 0) - Number(order.discountAmount || 0);
       }
 
+      // Total
       stats.totalSales += grandTotal;
       stats.totalProfit += orderProfit;
 
+      // Daily
       const orderDateStr = order.soldAtDate || orderDate.toISOString().split('T')[0];
       if (orderDateStr === todayStr || orderDate >= startOfToday) {
         stats.dailySales += grandTotal;
         stats.dailyProfit += orderProfit;
       }
 
+      // Weekly
       if (orderDate >= startOfWeek) {
         stats.weeklySales += grandTotal;
         stats.weeklyProfit += orderProfit;
       }
 
+      // Monthly
       if (orderDate >= startOfMonth) {
         stats.monthlySales += grandTotal;
         stats.monthlyProfit += orderProfit;
       }
 
+      // Yearly
       if (orderDate >= startOfYear) {
         stats.yearlySales += grandTotal;
         stats.yearlyProfit += orderProfit;
