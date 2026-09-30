@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import emailjs from '@emailjs/browser';
 
+// በ import.meta.env ፈንታ የ Render URLህን ቀጥታ አስገብተህ ተመልከተው
+const API_URL = import.meta.env.VITE_API_URL || 'https://ab-stock.onrender.com'; // Backend URLህን እዚህ ጋር ተካው
+
 function ForgotPassword({ onBackToLogin }) {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -21,16 +24,23 @@ function ForgotPassword({ onBackToLogin }) {
     try {
       const API_URL = import.meta.env.VITE_API_URL || '';
       const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email }),
+});
 
-      const data = await res.json();
+// Response-ኡ JSON መሆኑን እና ባዶ አለመሆኑን ማረጋገጫ
+const text = await res.text();
+let data = {};
+try {
+  data = text ? JSON.parse(text) : {};
+} catch (e) {
+  throw new Error('የሴርቨር መልስ አልተገኘም (Server returned invalid JSON)');
+}
 
-      if (!res.ok) {
-        throw new Error(data.message || 'ተጠቃሚው አልተገኘም');
-      }
+if (!res.ok) {
+  throw new Error(data.message || 'ተጠቃሚው አልተገኘም ወይም የሴርቨር ስህተት አለ');
+}
 
       // EmailJS Params
       const templateParams = {
