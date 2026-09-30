@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const activityLogSchema = new mongoose.Schema({
   user: {
     type: String,
-    required: true
+    required: false, // 👈 እዚች ጋር false አድርጋት (ወይም ከነጭራሹ 'user' የሚለውን ሰርዘው)
+    default: 'System'
   },
   action: {
-    type: String, // 'EDIT', 'DELETE', 'CREATE'
+    type: String,
     required: true
   },
   productName: {
@@ -14,7 +15,7 @@ const activityLogSchema = new mongoose.Schema({
     required: true
   },
   details: {
-    type: String, // ለምሳሌ: "Quantity changed from 10 to 5"
+    type: String,
     required: true
   },
   timestamp: {
