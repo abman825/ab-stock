@@ -14,31 +14,26 @@ const crypto = require('crypto');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Helper function Employee Name ለማግኘት
+// User Name ወይም Fallback ማግኛ
 const getUserName = (req) => {
   if (req.user) {
-    return req.user.name || req.user.username || req.user.fullName || 'Unknown Employee';
+    return req.user.fullName || req.user.username || req.user.name || 'User';
   }
-  return 'System Employee';
+  return 'Admin/System';
 };
 
 // ==================== 1.1 USER & AUTHENTICATION ====================
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
-    }
+    if (!email) return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
-    }
+    if (!user) return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
@@ -60,93 +55,52 @@ exports.forgotPassword = async (req, res) => {
             </a>
           </div>
           <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ቸል ይበሉት።</p>
         </div>
       `
     });
 
     res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
-
   } catch (err) {
-    console.error('Forgot Password Server Error:', err);
     res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
   }
 };
 
-// REGISTER
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
-
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
-    }
+    if (existingUser) return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
 
-    const newUser = new User({
-      username,
-      email,
-      password,
-      fullName: fullName || '',
-      phone: phone || ''
-    });
-
+    const newUser = new User({ username, email, password, fullName: fullName || '', phone: phone || '' });
     await newUser.save();
-
     res.status(201).json({ message: 'ተጠቃሚው በተሳካ ሁኔታ ተመዝግቧል!' });
   } catch (err) {
-    console.error('Register Error:', err);
     res.status(500).json({ message: 'ምዝገባው አልተሳካም!', error: err.message });
   }
 };
 
-// LOGIN
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-
     const loginInput = username || email;
+    if (!loginInput || !password) return res.status(400).json({ message: 'እባክዎን ትክክለኛ መረጃ ያስገቡ!' });
 
-    if (!loginInput || !password) {
-      return res.status(400).json({ message: 'እባክዎን ትክክለኛ መረጃ ያስገቡ!' });
-    }
-
-    const user = await User.findOne({
-      $or: [
-        { username: loginInput },
-        { email: loginInput }
-      ]
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
-    }
+    const user = await User.findOne({ $or: [{ username: loginInput }, { email: loginInput }] });
+    if (!user) return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
-    }
+    if (!isMatch) return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
 
-    const payload = { id: user._id, role: user.role };
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', {
-      expiresIn: '7d'
-    });
-
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
     const userData = user.toObject();
     delete userData.password;
 
-    res.json({
-      message: 'በተሳካ ሁኔታ ገብተዋል!',
-      token,
-      user: userData
-    });
+    res.json({ message: 'በተሳካ ሁኔታ ገብተዋል!', token, user: userData });
   } catch (err) {
-    console.error('Login Error:', err);
     res.status(500).json({ message: 'መግባት አልተቻለም!', error: err.message });
   }
 };
 
-// GET CURRENT PROFILE
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -157,57 +111,37 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, email, username } = req.body;
-
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      { fullName, phone, email, username },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, { fullName, phone, email, username }, { new: true, runValidators: true }).select('-password');
     res.json({ message: 'ፕሮፋይልዎ በተሳካ ሁኔታ ተሻሽሏል', user: updatedUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// CHANGE PASSWORD
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id);
-
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
-    }
+    if (!isMatch) return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
-
     res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
-    }
+    const user = await User.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
+    if (!user) return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(req.body.password, salt);
@@ -230,6 +164,7 @@ exports.getProducts = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // CREATE PRODUCT
 exports.createProduct = async (req, res) => {
   try {
@@ -237,15 +172,16 @@ exports.createProduct = async (req, res) => {
     const newProduct = new Product(productData);
     const savedProduct = await newProduct.save();
 
-    // Activity Log
+    // 📝 Activity Log (User field የተካተተበት)
     try {
       await ActivityLog.create({
+        user: getUserName(req),
         action: 'ADD',
         productName: savedProduct.name,
-        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0})`
+        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0}), Price (${savedProduct.salePrice || savedProduct.price || 0} Birr)`
       });
     } catch (logErr) {
-      console.error('Activity Log error:', logErr);
+      console.error('Activity Log save failed:', logErr);
     }
 
     res.status(201).json(savedProduct);
@@ -254,11 +190,11 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// UPDATE PRODUCT
+// UPDATE PRODUCT ('8 ➔ 6' Format Log)
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
-    if (!oldProduct) return res.status(404).json({ message: 'Product found hoyni' });
+    if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
 
     const updatedProduct = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
@@ -268,16 +204,16 @@ exports.updateProduct = async (req, res) => {
 
     const changes = [];
 
-    const oldShop = oldProduct.quantity ?? 0;
-    const newShop = updatedProduct.quantity ?? 0;
-    if (oldShop !== newShop) {
-      changes.push(`Shop Qty: ${oldShop} ➔ ${newShop}`);
+    const oldShopQty = oldProduct.quantity ?? 0;
+    const newShopQty = updatedProduct.quantity ?? 0;
+    if (oldShopQty !== newShopQty) {
+      changes.push(`Shop Qty: ${oldShopQty} ➔ ${newShopQty}`);
     }
 
-    const oldStore = oldProduct.inStoreQty ?? 0;
-    const newStore = updatedProduct.inStoreQty ?? 0;
-    if (oldStore !== newStore) {
-      changes.push(`Store Qty: ${oldStore} ➔ ${newStore}`);
+    const oldStoreQty = oldProduct.inStoreQty ?? 0;
+    const newStoreQty = updatedProduct.inStoreQty ?? 0;
+    if (oldStoreQty !== newStoreQty) {
+      changes.push(`Store Qty: ${oldStoreQty} ➔ ${newStoreQty}`);
     }
 
     const oldPrice = oldProduct.salePrice || oldProduct.price || 0;
@@ -286,17 +222,18 @@ exports.updateProduct = async (req, res) => {
       changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
     }
 
-    const detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic info';
+    let detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic product details';
 
-    // Activity Log Save (Employee field chara)
+    // 📝 Activity Log (User field የተካተተበት)
     try {
       await ActivityLog.create({
+        user: getUserName(req),
         action: 'EDIT',
         productName: updatedProduct.name,
         details: detailMsg
       });
     } catch (logErr) {
-      console.error('Activity Log error:', logErr);
+      console.error('Activity Log save failed:', logErr);
     }
 
     res.json(updatedProduct);
@@ -305,7 +242,7 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// DELETE PRODUCT (With Activity Log)
+// DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -313,13 +250,13 @@ exports.deleteProduct = async (req, res) => {
 
     await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
 
-    // 📝 Activity Log መመዝገቢያ
+    // 📝 Activity Log
     try {
       await ActivityLog.create({
         user: getUserName(req),
         action: 'DELETE',
         productName: product.name,
-        details: `Deleted product. Final Qty was: Shop (${product.quantity || 0}), Store (${product.inStoreQty || 0})`
+        details: `Deleted product. Final Qty: Shop (${product.quantity || 0}), Store (${product.inStoreQty || 0})`
       });
     } catch (logErr) {
       console.error('Activity Log save failed:', logErr);
@@ -331,7 +268,7 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// FOR PRODUCTS BULK IMPORT
+// BULK IMPORT PRODUCTS
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
@@ -346,13 +283,12 @@ exports.createProductsBulk = async (req, res) => {
 
     const savedProducts = await Product.insertMany(formattedProducts);
 
-    // 📝 Activity Log
     try {
       await ActivityLog.create({
         user: getUserName(req),
         action: 'ADD',
         productName: `${savedProducts.length} Products`,
-        details: `Bulk imported ${savedProducts.length} products`
+        details: `Bulk imported ${savedProducts.length} items`
       });
     } catch (logErr) {
       console.error('Activity Log save failed:', logErr);
@@ -436,7 +372,6 @@ exports.getPurchases = async (req, res) => {
 exports.createPurchase = async (req, res) => {
   try {
     const { supplierName, productId, productName, quantity, unitCost, invoiceNumber } = req.body;
-
     const qty = Number(quantity) || 1;
     const cost = Number(unitCost) || 0;
     const calculatedTotalCost = qty * cost;
@@ -515,9 +450,7 @@ exports.createOrder = async (req, res) => {
         if (exactCost === undefined || exactCost === null) {
           if (productId) {
             const product = await Product.findOne({ _id: productId, user: req.user.id });
-            if (product) {
-              exactCost = product.boughtPrice || product.costPrice || 0;
-            }
+            if (product) exactCost = product.boughtPrice || product.costPrice || 0;
           }
         }
 
@@ -542,7 +475,6 @@ exports.createOrder = async (req, res) => {
     const safeSubtotal = Number(Number(subtotal || 0).toFixed(2));
     const safeDiscount = Number(Number(discountAmount || 0).toFixed(2));
     const safeGrandTotal = Number(Number(grandTotal || (safeSubtotal - safeDiscount)).toFixed(2));
-
     const netProfit = Number((safeGrandTotal - totalCostPrice).toFixed(2));
 
     const order = new Order({
@@ -559,7 +491,6 @@ exports.createOrder = async (req, res) => {
 
     const savedOrder = await order.save();
 
-    // Stock Reduction
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
@@ -567,12 +498,7 @@ exports.createOrder = async (req, res) => {
       return {
         updateOne: {
           filter: { _id: productId, user: req.user.id },
-          update: { 
-            $inc: { 
-              quantity: -qtyToDeduct, 
-              stock: -qtyToDeduct 
-            } 
-          }
+          update: { $inc: { quantity: -qtyToDeduct, stock: -qtyToDeduct } }
         }
       };
     }).filter(op => op.updateOne.filter._id);
@@ -583,7 +509,6 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json(savedOrder);
   } catch (err) {
-    console.error('Create Order Error:', err);
     res.status(500).json({ error: err.message || 'ሽያጩን ማስመዝገብ አልተቻለም' });
   }
 };
@@ -591,38 +516,24 @@ exports.createOrder = async (req, res) => {
 exports.getTodaySalesSummary = async (req, res) => {
   try {
     const todayStr = new Date().toISOString().split('T')[0];
-
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
 
     const orders = await Order.find({
       user: req.user.id,
-      $or: [
-        { soldAtDate: todayStr },
-        { createdAt: { $gte: startOfToday,$lte: endOfToday } }
-      ]
+      $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday,$lte: endOfToday } }]
     });
 
     let cash = 0, bank = 0, telebirr = 0;
-
     orders.forEach(order => {
       const amount = Number(order.grandTotal || order.subtotal || 0);
       const method = (order.paymentMethod || '').toLowerCase();
-
       if (method === 'cash') cash += amount;
       else if (method === 'bank') bank += amount;
       else if (method === 'telebirr') telebirr += amount;
     });
 
-    res.json({
-      cash,
-      bank,
-      telebirr,
-      total: cash + bank + telebirr
-    });
+    res.json({ cash, bank, telebirr, total: cash + bank + telebirr });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -648,35 +559,23 @@ exports.createCustomer = async (req, res) => {
   }
 };
 
-// ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
+// ==================== 9. ANALYTICS ====================
 exports.getAnalytics = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user.id });
-
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
+    const startOfToday = new Date(now); startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0, 0, 0, 0);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
     let stats = {
-      dailySales: 0,
-      dailyProfit: 0,
-      weeklySales: 0,
-      weeklyProfit: 0,
-      monthlySales: 0,
-      monthlyProfit: 0,
-      yearlySales: 0,
-      yearlyProfit: 0,
-      totalSales: 0,
-      totalProfit: 0
+      dailySales: 0, dailyProfit: 0,
+      weeklySales: 0, weeklyProfit: 0,
+      monthlySales: 0, monthlyProfit: 0,
+      yearlySales: 0, yearlyProfit: 0,
+      totalSales: 0, totalProfit: 0
     };
 
     orders.forEach((order) => {
@@ -691,7 +590,6 @@ exports.getAnalytics = async (req, res) => {
           const sellPrice = Number(item.price || 0);
           const cost = Number(item.costPrice !== undefined ? item.costPrice : (item.boughtPrice || 0));
           const qty = Number(item.cartQty || item.quantity || 1);
-
           return acc + (sellPrice - cost) * qty;
         }, 0) - Number(order.discountAmount || 0);
       }
@@ -701,29 +599,21 @@ exports.getAnalytics = async (req, res) => {
 
       const orderDateStr = order.soldAtDate || orderDate.toISOString().split('T')[0];
       if (orderDateStr === todayStr || orderDate >= startOfToday) {
-        stats.dailySales += grandTotal;
-        stats.dailyProfit += orderProfit;
+        stats.dailySales += grandTotal; stats.dailyProfit += orderProfit;
       }
-
       if (orderDate >= startOfWeek) {
-        stats.weeklySales += grandTotal;
-        stats.weeklyProfit += orderProfit;
+        stats.weeklySales += grandTotal; stats.weeklyProfit += orderProfit;
       }
-
       if (orderDate >= startOfMonth) {
-        stats.monthlySales += grandTotal;
-        stats.monthlyProfit += orderProfit;
+        stats.monthlySales += grandTotal; stats.monthlyProfit += orderProfit;
       }
-
       if (orderDate >= startOfYear) {
-        stats.yearlySales += grandTotal;
-        stats.yearlyProfit += orderProfit;
+        stats.yearlySales += grandTotal; stats.yearlyProfit += orderProfit;
       }
     });
 
     res.json(stats);
   } catch (err) {
-    console.error('Error fetching analytics:', err);
     res.status(500).json({ error: 'Server error in analytics' });
   }
 };
