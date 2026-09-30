@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const controller = require('../controllers/mainController');
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog');
+
 // ==========================================
 // 1. Unprotected / Public Routes
 // ==========================================
@@ -164,14 +164,5 @@ router.post('/orders', controller.createOrder);
 // Customers
 router.get('/customers', controller.getCustomers);
 router.post('/customers', controller.createCustomer);
-
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const logs = await ActivityLog.find().sort({ timestamp: -1 }).limit(100);
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching activity logs' });
-  }
-});
 
 module.exports = router;
