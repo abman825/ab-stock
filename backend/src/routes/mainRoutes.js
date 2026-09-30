@@ -6,13 +6,10 @@ const bcrypt = require('bcryptjs');
 const controller = require('../controllers/mainController');
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog');
 
 // ==========================================
-// 1. Public Routes (ያለ Token የሚሰሩ)
+// 1. Unprotected / Public Routes (ያለ Token የሚሰሩ)
 // ==========================================
-
-// Authentication Routes
 router.post('/auth/register', controller.register);
 router.post('/auth/login', controller.login);
 router.post('/auth/forgot-password', controller.forgotPassword);
@@ -24,11 +21,11 @@ router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
 
 // ==========================================
-// 2. Protected Routes (JWT Token የግድ ያስፈልጋቸዋል)
+// 2. Protected Routes (ከዚህ በታች ያሉ ሁሉ JWT Token ይፈልጋሉ)
 // ==========================================
 router.use(authMiddleware);
 
-// Activity Logs (አሁን በ authMiddleware ስር ስለሆነ የገባውን ተጠቃሚ ID ብቻ ይለያል)
+// Activity Logs
 router.get('/activity-logs', controller.getActivityLogs);
 
 // Bulk Import Routes
@@ -43,11 +40,11 @@ if (controller.createCategoriesBulk) {
 router.get('/profile', controller.getProfile);
 router.get('/auth/profile', controller.getProfile);
 
-// Profile Update
+// Profile Update Function
 const handleUpdateProfile = async (req, res) => {
   try {
     const { fullName, email, phone, username } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -74,11 +71,11 @@ const handleUpdateProfile = async (req, res) => {
 router.put('/auth/update-profile', handleUpdateProfile);
 router.put('/update-profile', handleUpdateProfile);
 
-// Password Change
+// Password Change Route
 router.put('/auth/change-password', async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -132,10 +129,11 @@ router.post('/purchase-orders/bulk', async (req, res) => {
   try {
     const PurchaseOrder = require('../models/PurchaseOrders');
     const Product = require('../models/Product');
+    const userId = req.user.id || req.user._id;
 
     const ordersData = req.body.map((item) => ({
       ...item,
-      user: req.user.id,
+      user: userId,
       totalCost: item.totalCost || item.quantity * item.unitCost
     }));
 
@@ -144,7 +142,7 @@ router.post('/purchase-orders/bulk', async (req, res) => {
     for (const item of req.body) {
       if (item.productId) {
         await Product.findOneAndUpdate(
-          { _id: item.productId, user: req.user.id },
+          { _id: item.productId, user: userId },
           { $inc: { quantity: item.quantity, stock: item.quantity } }
         );
       }
