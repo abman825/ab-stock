@@ -32,12 +32,12 @@ function ResetPassword({ onBackToLogin }) {
       const data = await res.json();
 
       if (res.ok) {
-        setMessage('ፓስወርድዎ በትክክል ተቀይሯል!');
+        setMessage('የይለፍ ቃልዎ በትክክል ተቀይሯል!');
         setTimeout(() => {
           if (onBackToLogin) onBackToLogin();
         }, 2000);
       } else {
-        setError(data.message || 'ስህተት ተፈጥሯል!');
+        setError(data.message || 'የተሳሳተ ኮድ ወይም የኮዱ ጊዜ አልፏል!');
       }
     } catch (err) {
       setError('ከ Server ጋር መገናኘት አልተቻለም!');
