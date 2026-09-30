@@ -63,7 +63,6 @@ exports.register = async (req, res) => {
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
 
-    // User.js model-er pre('save') nijer thekei password hash korbe
     const newUser = new User({ 
       username, 
       email, 
@@ -128,7 +127,6 @@ exports.changePassword = async (req, res) => {
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
 
-    // bcrypt.hash bad diye shudhu newPassword assign korun, pre('save') hash korbe
     user.password = newPassword;
     await user.save();
     res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
@@ -143,7 +141,6 @@ exports.resetPassword = async (req, res) => {
     const user = await User.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
     if (!user) return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
 
-    // bcrypt.hash bad diye shudhu password assign korun, pre('save') hash korbe
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
@@ -165,7 +162,6 @@ exports.getProducts = async (req, res) => {
   }
 };
 
-// CREATE PRODUCT
 exports.createProduct = async (req, res) => {
   try {
     const productData = { ...req.body, user: req.user.id };
@@ -188,7 +184,6 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -201,24 +196,17 @@ exports.updateProduct = async (req, res) => {
     );
 
     const changes = [];
-
     const oldShopQty = oldProduct.quantity ?? 0;
     const newShopQty = updatedProduct.quantity ?? 0;
-    if (oldShopQty !== newShopQty) {
-      changes.push(`Shop Qty: ${oldShopQty} ➔ ${newShopQty}`);
-    }
+    if (oldShopQty !== newShopQty) changes.push(`Shop Qty: ${oldShopQty} ➔ ${newShopQty}`);
 
     const oldStoreQty = oldProduct.inStoreQty ?? 0;
     const newStoreQty = updatedProduct.inStoreQty ?? 0;
-    if (oldStoreQty !== newStoreQty) {
-      changes.push(`Store Qty: ${oldStoreQty} ➔ ${newStoreQty}`);
-    }
+    if (oldStoreQty !== newStoreQty) changes.push(`Store Qty: ${oldStoreQty} ➔ ${newStoreQty}`);
 
     const oldPrice = oldProduct.salePrice || oldProduct.price || 0;
     const newPrice = updatedProduct.salePrice || updatedProduct.price || 0;
-    if (oldPrice !== newPrice) {
-      changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
-    }
+    if (oldPrice !== newPrice) changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
 
     const detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic product details';
 
@@ -238,7 +226,6 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -262,7 +249,6 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// BULK IMPORT PRODUCTS
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
@@ -293,7 +279,7 @@ exports.createProductsBulk = async (req, res) => {
   }
 };
 
-// ==================== 3. CATEGORIES ====================
+// ==================== 3. CATEGORIES (EDIT & DELETE INCLUDED) ====================
 exports.getCategories = async (req, res) => {
   try {
     const categories = await Category.find({ user: req.user.id });
@@ -308,6 +294,30 @@ exports.createCategory = async (req, res) => {
     const newCategory = new Category({ ...req.body, user: req.user.id });
     const saved = await newCategory.save();
     res.status(201).json(saved);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateCategory = async (req, res) => {
+  try {
+    const updatedCategory = await Category.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedCategory) return res.status(404).json({ message: 'Category not found' });
+    res.json(updatedCategory);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.deleteCategory = async (req, res) => {
+  try {
+    const deletedCategory = await Category.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!deletedCategory) return res.status(404).json({ message: 'Category not found' });
+    res.json({ message: 'Category deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -332,7 +342,7 @@ exports.createCategoriesBulk = async (req, res) => {
   }
 };
 
-// ==================== 4. SUPPLIERS ====================
+// ==================== 4. SUPPLIERS (EDIT & DELETE INCLUDED) ====================
 exports.getSuppliers = async (req, res) => {
   try {
     const suppliers = await Supplier.find({ user: req.user.id });
@@ -347,6 +357,30 @@ exports.createSupplier = async (req, res) => {
     const newSupplier = new Supplier({ ...req.body, user: req.user.id });
     const saved = await newSupplier.save();
     res.status(201).json(saved);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateSupplier = async (req, res) => {
+  try {
+    const updatedSupplier = await Supplier.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedSupplier) return res.status(404).json({ message: 'Supplier not found' });
+    res.json(updatedSupplier);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.deleteSupplier = async (req, res) => {
+  try {
+    const deletedSupplier = await Supplier.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!deletedSupplier) return res.status(404).json({ message: 'Supplier not found' });
+    res.json({ message: 'Supplier deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -608,5 +642,15 @@ exports.getAnalytics = async (req, res) => {
     res.json(stats);
   } catch (err) {
     res.status(500).json({ error: 'Server error in analytics' });
+  }
+};
+
+// ==================== 10. ACTIVITY LOGS ====================
+exports.getActivityLogs = async (req, res) => {
+  try {
+    const logs = await ActivityLog.find().sort({ createdAt: -1 }).limit(100);
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
