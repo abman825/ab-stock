@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const controller = require('../controllers/mainController');
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
 
 // ==========================================
 // 1. Unprotected / Public Routes
@@ -27,7 +28,17 @@ router.post('/forgot-password', controller.forgotPassword);
 // ==========================================
 router.use(authMiddleware);
 
-// Bulk Import Routes (ከቀረቡ ብቻ እንዲሰሩ)
+// ✅ Activity Logs Route (የተስተካከለ)
+router.get('/activity-logs', async (req, res) => {
+  try {
+    const logs = await ActivityLog.find().sort({ timestamp: -1 }).limit(100);
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching activity logs' });
+  }
+});
+
+// Bulk Import Routes
 if (controller.createProductsBulk) {
   router.post('/products/bulk', controller.createProductsBulk);
 }
@@ -70,7 +81,7 @@ const handleUpdateProfile = async (req, res) => {
 router.put('/auth/update-profile', handleUpdateProfile);
 router.put('/update-profile', handleUpdateProfile);
 
-// Password መቀየሪያ
+// ✅ Password መቀየሪያ (Bcrypt Hash ተጨምሮበታል)
 router.put('/auth/change-password', async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -86,7 +97,8 @@ router.put('/auth/change-password', async (req, res) => {
       return res.status(400).json({ message: 'Incorrect current password!' });
     }
 
-    user.password = newPassword; 
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
     res.json({ message: 'Password changed successfully!' });

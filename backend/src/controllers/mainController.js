@@ -12,55 +12,117 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Brevo SMTP Transporter
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 587,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.BREVO_API_KEY
+const ActivityLog = require('../models/ActivityLog');
+
+// Product Update (Edit)
+exports.updateProduct = async (req, res) => {
+  try {
+    const oldProduct = await Product.findById(req.params.id);
+    if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
+
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+    // Activity Log መመዝገብ
+    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
+    
+    // Quantity ከተቀየረ ለይቶ መመዝገብ
+    let detailMsg = `Updated details for ${updatedProduct.name}`;
+    if (oldProduct.quantity !== updatedProduct.quantity) {
+      detailMsg = `Shop Qty changed from ${oldProduct.quantity} to ${updatedProduct.quantity}`;
+    }
+
+    await ActivityLog.create({
+      user: userName,
+      action: 'EDIT',
+      productName: updatedProduct.name,
+      details: detailMsg
+    });
+
+    res.json(updatedProduct);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-});
+};
 
-// Forgot Password function
+// Product Delete
+exports.deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    await Product.findByIdAndDelete(req.params.id);
+
+    // Delete ሲደረግ መመዝገብ
+    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
+
+    await ActivityLog.create({
+      user: userName,
+      action: 'DELETE',
+      productName: product.name,
+      details: `Deleted product. Final Qty was: Shop (${product.quantity}), Store (${product.inStoreQty})`
+    });
+
+    res.json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ==================== 1.1 USER & AUTHENTICATION ====================
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // 1. User በኢሜይሉ መኖሩን ማረጋገጥ
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም!' });
+    if (!email) {
+      return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
     }
 
-    // 2. Reset Token መፍጠር
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
+    }
+
+    // 32-byte Token ማመንጨት እና Hash አድርጎ DB ውስጥ ማስቀምጥ
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ የሚቆይ
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ የሚቆይ
+
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // 3. በ Brevo/Nodemailer ኢሜይሉን መላክ
-    await transporter.sendMail({
-      from: `"Pharmacy Management" <${process.env.EMAIL_USER}>`,
-      to: email,
+    // Resend HTTP API ተጠቅሞ ኢሜይል መላክ (Port/IPv6 Blocking ችግር የለበትም)
+    await resend.emails.send({
+      from: 'onboarding@resend.dev', // በራሱ የ Resend ቴስቲንግ ኢሜይል ይልካል
+      to: user.email,
       subject: 'Password Reset Request',
       html: `
-        <h3>የይለፍ ቃል ለመቀየር የቀረበ ጥያቄ</h3>
-        <p>የይለፍ ቃልዎን ለመቀየር እባክዎን የሚከተለውን ሊንክ ይጫኑ፦</p>
-        <a href="${resetUrl}" target="_blank">${resetUrl}</a>
-        <p>ይህ ሊንክ የሚያገለግለው ለ 10 ደቂቃ ያህል ብቻ ነው።</p>
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
+          <p>ሰላም ${user.name || ''}፣</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              የይለፍ ቃል ቀይር
+            </a>
+          </div>
+          <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
+          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ችላ ይበሉት።</p>
+        </div>
       `
     });
 
-    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል!' });
+    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
+
   } catch (err) {
-    console.error('Forgot Password Error:', err);
-    res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም፡ እባክዎ ድጋሚ ይሞክሩ።' });
+    console.error('Forgot Password Server Error:', err);
+    res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
   }
 };
+
 // 1. REGISTER
 exports.register = async (req, res) => {
   try {

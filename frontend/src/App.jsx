@@ -11,6 +11,7 @@ import Settings from './components/Settings';
 import Login from './components/Login';
 import ReportsPage from './components/ReportsPage';
 import ResetPassword from './components/ResetPassword';
+import ActivityLog from './components/ActivityLog'; // <-- 1. Activity Log Component import ተደርጓል
 
 // 1. API Base URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -118,7 +119,7 @@ function App() {
   // የሽያጭ ማጠቃለያ ፋንክሽን (2 Decimal አካታች የተስተካከለ)
   const handleCompleteSale = async (saleDetails) => {
     if (cart.length === 0) {
-      alert('እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!');
+      alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
       return;
     }
 
@@ -201,10 +202,17 @@ function App() {
     return <Login onLoginSuccess={(userData) => setUser(userData)} />;
   }
 
-  // Sidebar Menu Sections
+  // Sidebar Menu Sections (2. Activity Logs በ INVENTORY ስር ተካቷል)
   const menuSections = [
     { title: 'MAIN', items: [{ id: 'pos', label: 'Point of Sale' }] },
-    { title: 'INVENTORY', items: [{ id: 'products', label: 'Products' }, { id: 'categories', label: 'Categories' }] },
+    { 
+      title: 'INVENTORY', 
+      items: [
+        { id: 'products', label: 'Products' }, 
+        { id: 'categories', label: 'Categories' },
+        { id: 'activityLogs', label: '📋 Activity Logs' } // <-- Activity Log Sidebar Menu Item
+      ] 
+    },
     { title: 'PROCUREMENT', items: [{ id: 'suppliers', label: 'Suppliers' }, { id: 'purchases', label: 'Purchase Orders' }, { id: 'transfer', label: 'Transfer' }] },
     { 
       title: 'SALES & CUSTOMERS', 
@@ -410,6 +418,7 @@ function App() {
           )}
           {activeTab === 'products' && <Products products={products} refreshProducts={fetchProducts} />}
           {activeTab === 'categories' && <Categories categories={categories} refreshCategories={fetchCategories} />}
+          {activeTab === 'activityLogs' && <ActivityLog API_BASE_URL={API_BASE_URL} />} {/* <-- 3. ActivityLog Render ማድረግ */}
           {activeTab === 'suppliers' && <Suppliers />}
           {activeTab === 'purchases' && <PurchaseOrders />}
           {activeTab === 'transfer' && <Transfer />}
