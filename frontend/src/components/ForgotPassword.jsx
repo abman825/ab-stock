@@ -33,10 +33,10 @@ function ForgotPassword({ onBackToLogin }) {
       const resetLink = `${window.location.origin}/reset-password/${data.resetToken}`;
 
       const templateParams = {
-        email: email,
-        to_email: email,
-        reset_link: resetLink
-      };
+  to_name: email.split('@')[0],
+  to_email: email,
+  passcode: data.resetToken, // EmailJS template ላይ {{passcode}} ብለህ ተጠቀም
+};
 
       const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_ymprcgb';
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_ge1whgb';
