@@ -6,10 +6,13 @@ const bcrypt = require('bcryptjs');
 const controller = require('../controllers/mainController');
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
 
 // ==========================================
-// 1. Unprotected / Public Routes (ያለ Token የሚሰሩ)
+// 1. Unprotected / Public Routes
 // ==========================================
+
+// Authentication Routes
 router.post('/auth/register', controller.register);
 router.post('/auth/login', controller.login);
 router.post('/auth/forgot-password', controller.forgotPassword);
@@ -21,12 +24,19 @@ router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
 
 // ==========================================
-// 2. Protected Routes (ከዚህ በታች ያሉ ሁሉ JWT Token ይፈልጋሉ)
+// 2. Protected Routes (JWT Token required)
 // ==========================================
 router.use(authMiddleware);
 
-// Activity Logs
-router.get('/activity-logs', controller.getActivityLogs);
+// ✅ Activity Logs Route (የተስተካከለ)
+router.get('/activity-logs', async (req, res) => {
+  try {
+    const logs = await ActivityLog.find().sort({ timestamp: -1 }).limit(100);
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching activity logs' });
+  }
+});
 
 // Bulk Import Routes
 if (controller.createProductsBulk) {
@@ -40,11 +50,11 @@ if (controller.createCategoriesBulk) {
 router.get('/profile', controller.getProfile);
 router.get('/auth/profile', controller.getProfile);
 
-// Profile Update Function
+// Profile ማስተካከያ
 const handleUpdateProfile = async (req, res) => {
   try {
     const { fullName, email, phone, username } = req.body;
-    const userId = req.user.id || req.user._id;
+    const userId = req.user.id;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -71,11 +81,11 @@ const handleUpdateProfile = async (req, res) => {
 router.put('/auth/update-profile', handleUpdateProfile);
 router.put('/update-profile', handleUpdateProfile);
 
-// Password Change Route
+// ✅ Password መቀየሪያ (Bcrypt Hash ተጨምሮበታል)
 router.put('/auth/change-password', async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id || req.user._id;
+    const userId = req.user.id;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -87,7 +97,8 @@ router.put('/auth/change-password', async (req, res) => {
       return res.status(400).json({ message: 'Incorrect current password!' });
     }
 
-    user.password = newPassword; 
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
     res.json({ message: 'Password changed successfully!' });
@@ -129,11 +140,10 @@ router.post('/purchase-orders/bulk', async (req, res) => {
   try {
     const PurchaseOrder = require('../models/PurchaseOrders');
     const Product = require('../models/Product');
-    const userId = req.user.id || req.user._id;
 
     const ordersData = req.body.map((item) => ({
       ...item,
-      user: userId,
+      user: req.user.id,
       totalCost: item.totalCost || item.quantity * item.unitCost
     }));
 
@@ -142,7 +152,7 @@ router.post('/purchase-orders/bulk', async (req, res) => {
     for (const item of req.body) {
       if (item.productId) {
         await Product.findOneAndUpdate(
-          { _id: item.productId, user: userId },
+          { _id: item.productId, user: req.user.id },
           { $inc: { quantity: item.quantity, stock: item.quantity } }
         );
       }
