@@ -63,7 +63,19 @@ exports.register = async (req, res) => {
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
 
-    const newUser = new User({ username, email, password, fullName: fullName || '', phone: phone || '' });
+    // 1. Password Hash ማድረግ
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 2. Hashed የተደረገውን password save ማድረግ
+    const newUser = new User({ 
+      username, 
+      email, 
+      password: hashedPassword, 
+      fullName: fullName || '', 
+      phone: phone || '' 
+    });
+
     await newUser.save();
     res.status(201).json({ message: 'ተጠቃሚው በተሳካ ሁኔታ ተመዝግቧል!' });
   } catch (err) {
@@ -134,6 +146,7 @@ exports.resetPassword = async (req, res) => {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
     const user = await User.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
     if (!user) return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
+// resetPassword function ውስጥ newPassword save ከመደረጉ በፊት፡
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(req.body.password, salt);
