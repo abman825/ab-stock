@@ -6,20 +6,68 @@ const PurchaseOrder = require('../models/PurchaseOrders');
 const Transfer = require('../models/Transfer');
 const Order = require('../models/Order');
 const Customer = require('../models/Customer');
-const ActivityLog = require('../models/ActivityLog');
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Helper function Employee Name ለማግኘት
-const getUserName = (req) => {
-  if (req.user) {
-    return req.user.name || req.user.username || req.user.fullName || 'Unknown Employee';
+const ActivityLog = require('../models/ActivityLog');
+
+// Product Update (Edit)
+exports.updateProduct = async (req, res) => {
+  try {
+    const oldProduct = await Product.findById(req.params.id);
+    if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
+
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+    // Activity Log መመዝገብ
+    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
+    
+    // Quantity ከተቀየረ ለይቶ መመዝገብ
+    let detailMsg = `Updated details for ${updatedProduct.name}`;
+    if (oldProduct.quantity !== updatedProduct.quantity) {
+      detailMsg = `Shop Qty changed from ${oldProduct.quantity} to ${updatedProduct.quantity}`;
+    }
+
+    await ActivityLog.create({
+      user: userName,
+      action: 'EDIT',
+      productName: updatedProduct.name,
+      details: detailMsg
+    });
+
+    res.json(updatedProduct);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-  return 'System Employee';
+};
+
+// Product Delete
+exports.deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    await Product.findByIdAndDelete(req.params.id);
+
+    // Delete ሲደረግ መመዝገብ
+    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
+
+    await ActivityLog.create({
+      user: userName,
+      action: 'DELETE',
+      productName: product.name,
+      details: `Deleted product. Final Qty was: Shop (${product.quantity}), Store (${product.inStoreQty})`
+    });
+
+    res.json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // ==================== 1.1 USER & AUTHENTICATION ====================
@@ -36,31 +84,33 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
+    // 32-byte Token ማመንጨት እና Hash አድርጎ DB ውስጥ ማስቀምጥ
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ የሚቆይ
 
     await user.save();
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
+    // Resend HTTP API ተጠቅሞ ኢሜይል መላክ (Port/IPv6 Blocking ችግር የለበትም)
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'onboarding@resend.dev', // በራሱ የ Resend ቴስቲንግ ኢሜይል ይልካል
       to: user.email,
       subject: 'Password Reset Request',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
           <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.name || ''}፤</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፤</p>
+          <p>ሰላም ${user.name || ''}፣</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               የይለፍ ቃል ቀይር
             </a>
           </div>
           <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ቸል ይበሉት።</p>
+          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ችላ ይበሉት።</p>
         </div>
       `
     });
@@ -73,7 +123,7 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// REGISTER
+// 1. REGISTER
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
@@ -100,7 +150,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// LOGIN
+// 2. LOGIN
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -146,7 +196,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// GET CURRENT PROFILE
+// 3. GET CURRENT PROFILE
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -157,7 +207,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// UPDATE PROFILE
+// 4. UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, email, username } = req.body;
@@ -174,7 +224,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// CHANGE PASSWORD
+// 5. CHANGE PASSWORD
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -185,8 +235,7 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = newPassword; 
     await user.save();
 
     res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
@@ -195,7 +244,9 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// RESET PASSWORD
+
+
+// 7. RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
@@ -209,13 +260,12 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(req.body.password, salt);
+    user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
     await user.save();
-    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል፤ አሁን መግባት ይችላሉ' });
+    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል። አሁን መግባት ይችላሉ' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -230,102 +280,40 @@ exports.getProducts = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// CREATE PRODUCT
+
 exports.createProduct = async (req, res) => {
   try {
     const productData = { ...req.body, user: req.user.id };
     const newProduct = new Product(productData);
     const savedProduct = await newProduct.save();
-
-    // Activity Log
-    try {
-      await ActivityLog.create({
-        action: 'ADD',
-        productName: savedProduct.name,
-        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0})`
-      });
-    } catch (logErr) {
-      console.error('Activity Log error:', logErr);
-    }
-
     res.status(201).json(savedProduct);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
-// UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
-    const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
-    if (!oldProduct) return res.status(404).json({ message: 'Product found hoyni' });
-
-    const updatedProduct = await Product.findOneAndUpdate(
+    const updated = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       req.body,
       { new: true, runValidators: true }
     );
 
-    const changes = [];
-
-    const oldShop = oldProduct.quantity ?? 0;
-    const newShop = updatedProduct.quantity ?? 0;
-    if (oldShop !== newShop) {
-      changes.push(`Shop Qty: ${oldShop} ➔ ${newShop}`);
+    if (!updated) {
+      return res.status(404).json({ message: 'Product not found or unauthorized' });
     }
 
-    const oldStore = oldProduct.inStoreQty ?? 0;
-    const newStore = updatedProduct.inStoreQty ?? 0;
-    if (oldStore !== newStore) {
-      changes.push(`Store Qty: ${oldStore} ➔ ${newStore}`);
-    }
-
-    const oldPrice = oldProduct.salePrice || oldProduct.price || 0;
-    const newPrice = updatedProduct.salePrice || updatedProduct.price || 0;
-    if (oldPrice !== newPrice) {
-      changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
-    }
-
-    const detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic info';
-
-    // Activity Log Save (Employee field chara)
-    try {
-      await ActivityLog.create({
-        action: 'EDIT',
-        productName: updatedProduct.name,
-        details: detailMsg
-      });
-    } catch (logErr) {
-      console.error('Activity Log error:', logErr);
-    }
-
-    res.json(updatedProduct);
+    res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
-// DELETE PRODUCT (With Activity Log)
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findOne({ _id: req.params.id, user: req.user.id });
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-
     await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
-
-    // 📝 Activity Log መመዝገቢያ
-    try {
-      await ActivityLog.create({
-        user: getUserName(req),
-        action: 'DELETE',
-        productName: product.name,
-        details: `Deleted product. Final Qty was: Shop (${product.quantity || 0}), Store (${product.inStoreQty || 0})`
-      });
-    } catch (logErr) {
-      console.error('Activity Log save failed:', logErr);
-    }
-
-    res.json({ message: 'Product deleted successfully' });
+    res.json({ message: 'Product deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -345,19 +333,6 @@ exports.createProductsBulk = async (req, res) => {
     }));
 
     const savedProducts = await Product.insertMany(formattedProducts);
-
-    // 📝 Activity Log
-    try {
-      await ActivityLog.create({
-        user: getUserName(req),
-        action: 'ADD',
-        productName: `${savedProducts.length} Products`,
-        details: `Bulk imported ${savedProducts.length} products`
-      });
-    } catch (logErr) {
-      console.error('Activity Log save failed:', logErr);
-    }
-
     res.status(201).json(savedProducts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -384,6 +359,7 @@ exports.createCategory = async (req, res) => {
   }
 };
 
+// FOR CATEGORIES BULK IMPORT
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
@@ -507,6 +483,7 @@ exports.createOrder = async (req, res) => {
 
     let totalCostPrice = 0;
 
+    // 1. እቃዎቹን ማዘጋጀት እና የተገዙበትን ዋጋ (Cost Price) መደመር
     const processedItems = await Promise.all(
       items.map(async (item) => {
         const productId = item.productId || item._id || item.id;
@@ -525,6 +502,7 @@ exports.createOrder = async (req, res) => {
         const finalCost = Number(Number(exactCost || 0).toFixed(2));
         const quantity = Number(item.cartQty || item.quantity || 1);
 
+        // የዕቃዎቹን አጠቃላይ የተገዙበትን ዋጋ መደመር
         totalCostPrice += finalCost * quantity;
 
         return {
@@ -543,6 +521,7 @@ exports.createOrder = async (req, res) => {
     const safeDiscount = Number(Number(discountAmount || 0).toFixed(2));
     const safeGrandTotal = Number(Number(grandTotal || (safeSubtotal - safeDiscount)).toFixed(2));
 
+    // 2. ትክክለኛውን ትርፍ ማስላት (ቅናሹን በመቀነስ)
     const netProfit = Number((safeGrandTotal - totalCostPrice).toFixed(2));
 
     const order = new Order({
@@ -552,14 +531,14 @@ exports.createOrder = async (req, res) => {
       discountAmount: safeDiscount,
       grandTotal: safeGrandTotal,
       totalCost: totalCostPrice,
-      profit: netProfit,
+      profit: netProfit, // ትርፉ በቀጥታ ቅናሹ ተቀንሶ ይመዘገባል
       paymentMethod: paymentMethod || 'Cash',
       soldAtDate: soldAtDate || new Date().toISOString().split('T')[0]
     });
 
     const savedOrder = await order.save();
 
-    // Stock Reduction
+    // 3. የስቶክ መጠን መቀነስ (Stock Reduction)
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
@@ -647,7 +626,6 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
   try {
@@ -696,25 +674,30 @@ exports.getAnalytics = async (req, res) => {
         }, 0) - Number(order.discountAmount || 0);
       }
 
+      // Total
       stats.totalSales += grandTotal;
       stats.totalProfit += orderProfit;
 
+      // Daily
       const orderDateStr = order.soldAtDate || orderDate.toISOString().split('T')[0];
       if (orderDateStr === todayStr || orderDate >= startOfToday) {
         stats.dailySales += grandTotal;
         stats.dailyProfit += orderProfit;
       }
 
+      // Weekly
       if (orderDate >= startOfWeek) {
         stats.weeklySales += grandTotal;
         stats.weeklyProfit += orderProfit;
       }
 
+      // Monthly
       if (orderDate >= startOfMonth) {
         stats.monthlySales += grandTotal;
         stats.monthlyProfit += orderProfit;
       }
 
+      // Yearly
       if (orderDate >= startOfYear) {
         stats.yearlySales += grandTotal;
         stats.yearlyProfit += orderProfit;
