@@ -15,63 +15,21 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ==================== 1. USER & AUTHENTICATION ====================
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
-
-    await user.save();
-
-    const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
-    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-
-    await resend.emails.send({
-      from: 'onboarding@resend.dev',
-      to: user.email,
-      subject: 'Password Reset Request',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
-          <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.name || ''}፤</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፤</p>
-          <div style="text-align: center; margin: 25px 0;">
-            <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-              የይለፍ ቃል ቀይር
-            </a>
-          </div>
-          <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-        </div>
-      `
-    });
-
-    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
-  } catch (err) {
-    res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
-  }
-};
-
+// 1. User Registration
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
+
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
+    }
 
-    // 1. Password Hash ማድረግ
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // 2. Hashed የተደረገውን password save ማድረግ
+    // pre('save') በራሱ Hash ስለሚያደርግ እዚህ ጋር bcrypt.hash አያስፈልግም
     const newUser = new User({ 
       username, 
       email, 
-      password: hashedPassword, 
+      password, 
       fullName: fullName || '', 
       phone: phone || '' 
     });
@@ -83,80 +41,121 @@ exports.register = async (req, res) => {
   }
 };
 
+// 2. User Login
 exports.login = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    const loginInput = username || email;
-    if (!loginInput || !password) return res.status(400).json({ message: 'እባክዎን ትክክለኛ መረጃ ያስገቡ!' });
+    const { username, password } = req.body;
 
-    const user = await User.findOne({ $or: [{ username: loginInput }, { email: loginInput }] });
-    if (!user) return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
+    const user = await User.findOne({
+      $or: [{ username: username }, { email: username }]
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
+    if (!isMatch) {
+      return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
+    }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
-    const userData = user.toObject();
-    delete userData.password;
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET || 'secretkey',
+      { expiresIn: '1d' }
+    );
 
-    res.json({ message: 'በተሳካ ሁኔታ ገብተዋል!', token, user: userData });
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        fullName: user.fullName
+      }
+    });
   } catch (err) {
-    res.status(500).json({ message: 'መግባት አልተቻለም!', error: err.message });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-exports.getProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'ተጠቃሚው አልተገኘም' });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.updateProfile = async (req, res) => {
-  try {
-    const { fullName, phone, email, username } = req.body;
-    const updatedUser = await User.findByIdAndUpdate(req.user.id, { fullName, phone, email, username }, { new: true, runValidators: true }).select('-password');
-    res.json({ message: 'ፕሮፋይልዎ በተሳካ ሁኔታ ተሻሽሏል', user: updatedUser });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
+// 3. Change Password
 exports.changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    const user = await User.findById(req.user.id);
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User አልተገኘም!' });
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'የድሮው ፓስወርድ የተሳሳተ ነው!' });
+    }
+
+    // እዚህ ጋር bcrypt.hash አያስፈልግም! pre('save') በራሱ Hash ያደርገዋል
+    user.password = newPassword;
     await user.save();
-    res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    res.json({ message: 'ፓስወርድ በተሳካ ሁኔታ ተቀይሯል!' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 };
 
+// 4. Forgot Password (ከ Reset Link ጋር)
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ አካውንት አልተገኘም!' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 ሰዓት
+
+    await user.save();
+
+    const resetUrl = `https://ab-stock.vercel.app/reset-password/${resetToken}`;
+
+    res.json({
+      message: 'የፓስወርድ መቀየሪያ ሊንክ ተልኳል!',
+      resetUrl // ለጊዜው Testing ለማድረግ Response ላይ መመለስ
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
+
+// 5. Reset Password
 exports.resetPassword = async (req, res) => {
   try {
-    const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-    const user = await User.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
-    if (!user) return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
-// resetPassword function ውስጥ newPassword save ከመደረጉ በፊት፡
+    const { token } = req.params;
+    const { password } = req.body;
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(req.body.password, salt);
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'የላኩት ሊንክ ጊዜው አልፎበታል ወይም የተሳሳተ ነው!' });
+    }
+
+    // እዚህ ጋርም bcrypt.hash አያስፈልግም! pre('save') በራሱ Hash ያደርገዋል
+    user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
     await user.save();
-    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል፤ አሁን መግባት ይችላሉ' });
+
+    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል! አሁን መግባት ይችላሉ።' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 };
 
