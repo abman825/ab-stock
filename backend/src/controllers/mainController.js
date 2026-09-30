@@ -14,15 +14,7 @@ const crypto = require('crypto');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// User Name ወይም Fallback ማግኛ
-const getUserName = (req) => {
-  if (req.user) {
-    return req.user.fullName || req.user.username || req.user.name || 'User';
-  }
-  return 'Admin/System';
-};
-
-// ==================== 1.1 USER & AUTHENTICATION ====================
+// ==================== 1. USER & AUTHENTICATION ====================
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -172,16 +164,15 @@ exports.createProduct = async (req, res) => {
     const newProduct = new Product(productData);
     const savedProduct = await newProduct.save();
 
-    // 📝 Activity Log (User field የተካተተበት)
+    // 📝 Simple Activity Log
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'ADD',
         productName: savedProduct.name,
-        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0}), Price (${savedProduct.salePrice || savedProduct.price || 0} Birr)`
+        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0})`
       });
     } catch (logErr) {
-      console.error('Activity Log save failed:', logErr);
+      console.error('Activity Log save error:', logErr);
     }
 
     res.status(201).json(savedProduct);
@@ -190,7 +181,7 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// UPDATE PRODUCT ('8 ➔ 6' Format Log)
+// UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -222,18 +213,17 @@ exports.updateProduct = async (req, res) => {
       changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
     }
 
-    let detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic product details';
+    const detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic product details';
 
-    // 📝 Activity Log (User field የተካተተበት)
+    // 📝 Simple Activity Log
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'EDIT',
         productName: updatedProduct.name,
         details: detailMsg
       });
     } catch (logErr) {
-      console.error('Activity Log save failed:', logErr);
+      console.error('Activity Log save error:', logErr);
     }
 
     res.json(updatedProduct);
@@ -250,16 +240,15 @@ exports.deleteProduct = async (req, res) => {
 
     await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
 
-    // 📝 Activity Log
+    // 📝 Simple Activity Log
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'DELETE',
         productName: product.name,
-        details: `Deleted product. Final Qty: Shop (${product.quantity || 0}), Store (${product.inStoreQty || 0})`
+        details: `Deleted product. Final Shop Qty: (${product.quantity || 0}), Store Qty: (${product.inStoreQty || 0})`
       });
     } catch (logErr) {
-      console.error('Activity Log save failed:', logErr);
+      console.error('Activity Log save error:', logErr);
     }
 
     res.json({ message: 'Product deleted successfully' });
@@ -285,13 +274,12 @@ exports.createProductsBulk = async (req, res) => {
 
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'ADD',
         productName: `${savedProducts.length} Products`,
         details: `Bulk imported ${savedProducts.length} items`
       });
     } catch (logErr) {
-      console.error('Activity Log save failed:', logErr);
+      console.error('Activity Log save error:', logErr);
     }
 
     res.status(201).json(savedProducts);
