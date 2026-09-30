@@ -19,7 +19,6 @@ function ForgotPassword({ onBackToLogin }) {
     setLoading(true);
 
     try {
-      // Backend Endpoint (የምታጠቀመውን API URL አስተካክል)
       const API_URL = import.meta.env.VITE_API_URL || '';
       const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
@@ -30,7 +29,6 @@ function ForgotPassword({ onBackToLogin }) {
       const data = await res.json();
 
       if (!res.ok) {
-
         throw new Error(data.message || 'ተጠቃሚው አልተገኘም');
       }
 
@@ -105,12 +103,12 @@ function ForgotPassword({ onBackToLogin }) {
       {error && <div style={{ color: 'red', background: '#ffebee', padding: '10px', marginBottom: '15px' }}>{error}</div>}
 
       {!isSent ? (
-        /* 1ኛ ደረጃ፡ ኢሜይል ማስገቢያ */
+        /* 1ኛ ደረጃ፡ ኢሜይል ማስገቢያ ፎርም */
         <form onSubmit={handleSendCode}>
           <p>ኢሜይልዎን ያስገቡ፤ የይለፍ ቃል መለወጫ ኮድ እንልካለን።</p>
           <input
             type="email"
-            placeholder="Email Address"
+            placeholder="Enter Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -121,16 +119,16 @@ function ForgotPassword({ onBackToLogin }) {
             disabled={loading}
             style={{ width: '100%', padding: '10px', backgroundColor: '#0066cc', color: '#fff', border: 'none', cursor: 'pointer' }}
           >
-            {loading ? 'እየላከ ነው...' : 'Send Reset Code'}
+            {loading ? 'እየላከ ነው...' : 'Send Code'}
           </button>
         </form>
       ) : (
-        /* 2ኛ ደረጃ፡ 6 አሃዝ OTP እና አዲስ ፓስወርድ ማስገቢያ */
+        /* 2ኛ ደረጃ፡ ኮዱ ሲላክ የሚመጣው የ 6 አሃዝ OTP እና አዲስ ፓስወርድ ማስገቢያ */
         <form onSubmit={handleResetPassword}>
           <p>ወደ ኢሜይልዎ የተላከውን 6 አሃዝ ኮድ እና አዲስ ፓስወርድ ያስገቡ።</p>
           <input
             type="text"
-            placeholder="6-digit Code (e.g. 610061)"
+            placeholder="Enter 6-digit Code"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             required
