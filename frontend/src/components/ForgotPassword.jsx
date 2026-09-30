@@ -37,7 +37,7 @@ function ForgotPassword({ onBackToLogin }) {
         to_name: email.split('@')[0],
         to_email: email,
         email: email,
-        passcode: data.resetToken, // ከ backend የመጣው ባለ 6 አሃዝ OTP
+        passcode: data.resetToken, // ከ Backend resetToken ተብሎ የመጣውን OTP ይጠቀማል
       };
 
       const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_ymprcgb';
@@ -47,7 +47,7 @@ function ForgotPassword({ onBackToLogin }) {
       await emailjs.send(serviceId, templateId, templateParams, publicKey);
 
       setMessage('የይለፍ ቃል መለወጫ ኮዱ ወደ ኢሜይልዎ ተልኳል! እባክዎን ኢሜይልዎን ያረጋግጡ።');
-      setIsSent(true); // ፎርሙን ወደ OTP ማስገቢያ ይቀይረዋል
+      setIsSent(true);
 
     } catch (err) {
       console.error('Forgot Password Error:', err);
@@ -70,8 +70,8 @@ function ForgotPassword({ onBackToLogin }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          resetToken: otp,
-          newPassword: newPassword,
+          code: otp,            // Backendህ 'code' ነው የሚፈልገው
+          password: newPassword // Backendህ 'password' ነው የሚፈልገው
         }),
       });
 
@@ -103,7 +103,6 @@ function ForgotPassword({ onBackToLogin }) {
       {error && <div style={{ color: 'red', background: '#ffebee', padding: '10px', marginBottom: '15px' }}>{error}</div>}
 
       {!isSent ? (
-        /* 1ኛ ደረጃ፡ ኢሜይል ማስገቢያ ፎርም */
         <form onSubmit={handleSendCode}>
           <p>ኢሜይልዎን ያስገቡ፤ የይለፍ ቃል መለወጫ ኮድ እንልካለን።</p>
           <input
@@ -123,7 +122,6 @@ function ForgotPassword({ onBackToLogin }) {
           </button>
         </form>
       ) : (
-        /* 2ኛ ደረጃ፡ ኮዱ ሲላክ የሚመጣው የ 6 አሃዝ OTP እና አዲስ ፓስወርድ ማስገቢያ */
         <form onSubmit={handleResetPassword}>
           <p>ወደ ኢሜይልዎ የተላከውን 6 አሃዝ ኮድ እና አዲስ ፓስወርድ ያስገቡ።</p>
           <input
