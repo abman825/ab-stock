@@ -13,64 +13,8 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
+// ==================== 1. USER & AUTHENTICATION ====================
 
-const ActivityLog = require('../models/ActivityLog');
-
-// Product Update (Edit)
-exports.updateProduct = async (req, res) => {
-  try {
-    const oldProduct = await Product.findById(req.params.id);
-    if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
-
-    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-
-    // Activity Log መመዝገብ
-    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
-    
-    // Quantity ከተቀየረ ለይቶ መመዝገብ
-    let detailMsg = `Updated details for ${updatedProduct.name}`;
-    if (oldProduct.quantity !== updatedProduct.quantity) {
-      detailMsg = `Shop Qty changed from ${oldProduct.quantity} to ${updatedProduct.quantity}`;
-    }
-
-    await ActivityLog.create({
-      user: userName,
-      action: 'EDIT',
-      productName: updatedProduct.name,
-      details: detailMsg
-    });
-
-    res.json(updatedProduct);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Product Delete
-exports.deleteProduct = async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-
-    await Product.findByIdAndDelete(req.params.id);
-
-    // Delete ሲደረግ መመዝገብ
-    const userName = req.user ? req.user.name || req.user.username : 'Unknown Employee';
-
-    await ActivityLog.create({
-      user: userName,
-      action: 'DELETE',
-      productName: product.name,
-      details: `Deleted product. Final Qty was: Shop (${product.quantity}), Store (${product.inStoreQty})`
-    });
-
-    res.json({ message: 'Product deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// ==================== 1.1 USER & AUTHENTICATION ====================
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;

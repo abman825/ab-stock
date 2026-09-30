@@ -6,7 +6,6 @@ const bcrypt = require('bcryptjs');
 const controller = require('../controllers/mainController');
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog');
 
 // ==========================================
 // 1. Unprotected / Public Routes
@@ -16,7 +15,6 @@ const ActivityLog = require('../models/ActivityLog');
 router.post('/auth/register', controller.register);
 router.post('/auth/login', controller.login);
 router.post('/auth/forgot-password', controller.forgotPassword);
-router.post('/auth/reset-password', controller.resetPassword);
 router.post('/reset-password/:token', controller.resetPassword);
 
 router.post('/register', controller.register);
@@ -28,17 +26,7 @@ router.post('/forgot-password', controller.forgotPassword);
 // ==========================================
 router.use(authMiddleware);
 
-// ✅ Activity Logs Route (የተስተካከለ)
-router.get('/activity-logs', async (req, res) => {
-  try {
-    const logs = await ActivityLog.find().sort({ timestamp: -1 }).limit(100);
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching activity logs' });
-  }
-});
-
-// Bulk Import Routes
+// Bulk Import Routes (Protected Routes ስር መሆን አለባቸው!)
 if (controller.createProductsBulk) {
   router.post('/products/bulk', controller.createProductsBulk);
 }
@@ -81,7 +69,7 @@ const handleUpdateProfile = async (req, res) => {
 router.put('/auth/update-profile', handleUpdateProfile);
 router.put('/update-profile', handleUpdateProfile);
 
-// ✅ Password መቀየሪያ (Bcrypt Hash ተጨምሮበታል)
+// Password መቀየሪያ
 router.put('/auth/change-password', async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -97,8 +85,7 @@ router.put('/auth/change-password', async (req, res) => {
       return res.status(400).json({ message: 'Incorrect current password!' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = newPassword; 
     await user.save();
 
     res.json({ message: 'Password changed successfully!' });
@@ -109,27 +96,21 @@ router.put('/auth/change-password', async (req, res) => {
 });
 
 // Reports & Analytics
-if (controller.getAnalytics) {
-  router.get('/reports/analytics', controller.getAnalytics);
-}
+router.get('/reports/analytics', controller.getAnalytics);
 
 // Products
 router.get('/products', controller.getProducts);
 router.post('/products', controller.createProduct);
-if (controller.updateProduct) router.put('/products/:id', controller.updateProduct);
-if (controller.deleteProduct) router.delete('/products/:id', controller.deleteProduct);
+router.put('/products/:id', controller.updateProduct);
+router.delete('/products/:id', controller.deleteProduct);
 
 // Categories
 router.get('/categories', controller.getCategories);
 router.post('/categories', controller.createCategory);
-if (controller.updateCategory) router.put('/categories/:id', controller.updateCategory);
-if (controller.deleteCategory) router.delete('/categories/:id', controller.deleteCategory);
 
 // Suppliers
 router.get('/suppliers', controller.getSuppliers);
 router.post('/suppliers', controller.createSupplier);
-if (controller.updateSupplier) router.put('/suppliers/:id', controller.updateSupplier);     
-if (controller.deleteSupplier) router.delete('/suppliers/:id', controller.deleteSupplier);
 
 // Purchase Orders
 router.get('/purchase-orders', controller.getPurchases);
