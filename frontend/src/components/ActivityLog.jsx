@@ -9,7 +9,6 @@ function ActivityLog({ API_BASE_URL }) {
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem('token');
-        // App.jsx የሰጠውን API_BASE_URL በመጠቀም ጥሪ ማድረግ
         const baseUrl = API_BASE_URL || 'http://localhost:5000/api';
         
         const res = await axios.get(`${baseUrl}/activity-logs`, {
@@ -61,7 +60,8 @@ function ActivityLog({ API_BASE_URL }) {
                     {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
                   </td>
                   <td style={{ padding: '10px', fontWeight: 'bold', color: '#1e293b' }}>
-                    {log.user || 'Unknown'}
+                    {/* Wano kyuusa oteekewo employeeName oba userId */}
+                    {log.employeeName || log.userId?.name || log.userId?.username || 'Unknown'}
                   </td>
                   <td style={{ padding: '10px' }}>
                     <span style={{

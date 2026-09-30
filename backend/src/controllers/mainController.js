@@ -646,11 +646,35 @@ exports.getAnalytics = async (req, res) => {
 };
 
 // ==================== 10. ACTIVITY LOGS ====================
+// 1. Okuggyayo activity logs mu ngeri entuufu
 exports.getActivityLogs = async (req, res) => {
-  try {
-    const logs = await ActivityLog.find().sort({ createdAt: -1 }).limit(100);
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    try {
+        const logs = await ActivityLog.find()
+            .populate('userId', 'username name') // bw'oba oyagala okuggyayo user info
+            .sort({ timestamp: -1 }) // kozesa timestamp, si createdAt
+            .limit(100);
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// 2. Bw'oba okola Edit/Add/Delete (Ekyokulabirako mu Edit Product)
+exports.editProduct = async (req, res) => {
+    try {
+        // ... code yo ey'okukuyusa product ...
+
+        // Wano w'oteekera ekyokukola eky'okutondawo log
+        await ActivityLog.create({
+            action: 'EDIT',
+            productName: product.name,
+            details: `Store Qty: ${oldQty} -> ${newQty}`,
+            userId: req.user ? req.user._id : null,
+            employeeName: req.user ? (req.user.name || req.user.username) : 'Unknown'
+        });
+
+        res.json({ message: 'Product updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };
