@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import emailjs from '@emailjs/browser';
 
-// በ import.meta.env ፈንታ የ Render URLህን ቀጥታ አስገብተህ ተመልከተው
-const API_URL = import.meta.env.VITE_API_URL || 'https://ab-stock.onrender.com'; // Backend URLህን እዚህ ጋር ተካው
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = `${BASE_URL}/api`; // Backend URLህን እዚህ ጋር ተካው
 
 function ForgotPassword({ onBackToLogin }) {
   const [email, setEmail] = useState('');
