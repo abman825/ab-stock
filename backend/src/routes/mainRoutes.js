@@ -9,10 +9,8 @@ const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
 
 // ==========================================
-// 1. Unprotected / Public Routes
+// 1. Public Routes (ያለ Token የሚሰሩ)
 // ==========================================
-// Activity logs endpoint thik kora hoyeche
-router.get('/activity-logs', authMiddleware, controller.getActivityLogs);
 
 // Authentication Routes
 router.post('/auth/register', controller.register);
@@ -26,9 +24,12 @@ router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
 
 // ==========================================
-// 2. Protected Routes (JWT Token required)
+// 2. Protected Routes (JWT Token የግድ ያስፈልጋቸዋል)
 // ==========================================
 router.use(authMiddleware);
+
+// Activity Logs (አሁን በ authMiddleware ስር ስለሆነ የገባውን ተጠቃሚ ID ብቻ ይለያል)
+router.get('/activity-logs', controller.getActivityLogs);
 
 // Bulk Import Routes
 if (controller.createProductsBulk) {

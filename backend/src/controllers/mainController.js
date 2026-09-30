@@ -18,10 +18,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
+    if (!email) return res.status(400).json({ message: 'áŠ¥á‰£áŠ­á‹ŽáŠ• áŠ¢áˆœá‹­áˆ á‹«áˆµáŒˆá‰¡' });
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
+    if (!user) return res.status(404).json({ message: 'á‰ á‹šáˆ… áŠ¢áˆœá‹­áˆ á‹¨á‰°áˆ˜á‹˜áŒˆá‰  á‰°áŒ á‰ƒáˆš áŠ áˆá‰°áŒˆáŠ˜áˆ' });
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -38,22 +38,22 @@ exports.forgotPassword = async (req, res) => {
       subject: 'Password Reset Request',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
-          <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.fullName || ''}፤</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፤</p>
+          <h2 style="color: #0b5ed7; text-align: center;">á‹¨á‹­áˆˆá á‰ƒáˆ áˆ˜á‰€á‹¨áˆªá‹«</h2>
+          <p>áˆ°áˆ‹áˆ ${user.fullName || ''}á¤</p>
+          <p>á‹¨á‹­áˆˆá á‰ƒáˆá‹ŽáŠ• áˆˆáˆ˜á‰€á‹¨áˆ­ áŒ¥á‹«á‰„ áŠ á‰…áˆ­á‰ á‹‹áˆá¢ áŠ¥á‰£áŠ­á‹ŽáŠ• áŠ¨á‰³á‰½ á‹«áˆˆá‹áŠ• áˆŠáŠ•áŠ­ á‹­áŒ«áŠ‘á¤</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-              የይለፍ ቃል ቀይር
+              á‹¨á‹­áˆˆá á‰ƒáˆ á‰€á‹­áˆ­
             </a>
           </div>
-          <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
+          <p style="color: #666; font-size: 13px;">á‹­áˆ… áˆŠáŠ•áŠ­ á‹¨áˆšá‹«áŒˆáˆˆáŒáˆˆá‹ áˆˆ <strong>10 á‹°á‰‚á‰ƒ</strong> á‰¥á‰» áŠá‹á¢</p>
         </div>
       `
     });
 
-    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
+    res.json({ message: 'á‹¨á‹­áˆˆá á‰ƒáˆ áˆ˜á‰€á‹¨áˆªá‹« áˆŠáŠ•áŠ­ á‹ˆá‹° áŠ¢áˆœá‹­áˆá‹Ž á‰°áˆáŠ³áˆ' });
   } catch (err) {
-    res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
+    res.status(500).json({ message: 'áŠ¢áˆœá‹­áˆ áˆ˜áˆ‹áŠ­ áŠ áˆá‰°‰»áˆˆáˆ', error: err.message });
   }
 };
 
@@ -61,7 +61,7 @@ exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
+    if (existingUser) return res.status(400).json({ message: 'Username á‹ˆá‹­áˆ Email á‰€á‹°áˆ á‰¥áˆŽ á‰°áˆ˜á‹áŒá‰§áˆ!' });
 
     const newUser = new User({ 
       username, 
@@ -72,9 +72,9 @@ exports.register = async (req, res) => {
     });
 
     await newUser.save();
-    res.status(201).json({ message: 'ተጠቃሚው በተሳካ ሁኔታ ተመዝግቧል!' });
+    res.status(201).json({ message: 'á‰°áŒ á‰ƒáˆšá‹ á‰ á‰°áˆ³áŠ« áˆáŠ”á‰³ á‰°áˆ˜á‹áŒá‰§áˆ!' });
   } catch (err) {
-    res.status(500).json({ message: 'ምዝገባው አልተሳካም!', error: err.message });
+    res.status(500).json({ message: 'áˆá‹áŒˆá‰£á‹ áŠ áˆá‰°áˆ³áŠ«áˆ!', error: err.message });
   }
 };
 
@@ -82,28 +82,28 @@ exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
     const loginInput = username || email;
-    if (!loginInput || !password) return res.status(400).json({ message: 'እባክዎን ትክክለኛ መረጃ ያስገቡ!' });
+    if (!loginInput || !password) return res.status(400).json({ message: 'áŠ¥á‰£áŠ­á‹ŽáŠ• á‰µáŠ­áŠ­áˆˆáŠ› áˆ˜áˆ¨áŒƒ á‹«áˆµáŒˆá‰¡!' });
 
     const user = await User.findOne({ $or: [{ username: loginInput }, { email: loginInput }] });
-    if (!user) return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
+    if (!user) return res.status(400).json({ message: 'á‹¨á‰°áˆ³áˆ³á‰° Username/Email á‹ˆá‹­áˆ Password!' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
+    if (!isMatch) return res.status(400).json({ message: 'á‹¨á‰°áˆ³áˆ³á‰° Username/Email á‹ˆá‹­áˆ Password!' });
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
     const userData = user.toObject();
     delete userData.password;
 
-    res.json({ message: 'በተሳካ ሁኔታ ገብተዋል!', token, user: userData });
+    res.json({ message: 'á‰ á‰°áˆ³áŠ« áˆáŠ”á‰³ áŒˆá‰¥á‰°á‹‹áˆ!', token, user: userData });
   } catch (err) {
-    res.status(500).json({ message: 'መግባት አልተቻለም!', error: err.message });
+    res.status(500).json({ message: 'áˆ˜áŒá‰£á‰µ áŠ áˆá‰°á‰»áˆˆáˆ!', error: err.message });
   }
 };
 
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'ተጠቃሚው አልተገኘም' });
+    if (!user) return res.status(404).json({ message: 'á‰°áŒ á‰ƒáˆšá‹ áŠ áˆá‰°áŒˆáŠ˜áˆ' });
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -114,7 +114,7 @@ exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, email, username } = req.body;
     const updatedUser = await User.findByIdAndUpdate(req.user.id, { fullName, phone, email, username }, { new: true, runValidators: true }).select('-password');
-    res.json({ message: 'ፕሮፋይልዎ በተሳካ ሁኔታ ተሻሽሏል', user: updatedUser });
+    res.json({ message: 'á•áˆ®á‹á‹­áˆá‹Ž á‰ á‰°áˆ³áŠ« áˆáŠ”á‰³ á‰°áˆ»áˆ½áˆáˆ', user: updatedUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -125,11 +125,11 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id);
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
+    if (!isMatch) return res.status(400).json({ message: "á‹¨áŠá‰ áˆ¨á‹ á“áˆµá‹ˆáˆ­á‹µ á‰µáŠ­áŠ­áˆˆáŠ› áŠ á‹­á‹°áˆˆáˆ!" });
 
     user.password = newPassword;
     await user.save();
-    res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
+    res.json({ message: "á“áˆµá‹ˆáˆ­á‹µá‹Ž á‰ á‰°áˆ³áŠ« áˆáŠ”á‰³ á‰°á‰€á‹­áˆ¯áˆ!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -139,14 +139,14 @@ exports.resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
     const user = await User.findOne({ resetPasswordToken, resetPasswordExpires: { $gt: Date.now() } });
-    if (!user) return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
+    if (!user) return res.status(400).json({ message: 'áˆŠáŠ•áŠ© áŒŠá‹œá‹ áŠ áˆááˆ á‹ˆá‹­áˆ á‰µáŠ­áŠ­áˆˆáŠ› áŠ á‹­á‹°áˆˆáˆ' });
 
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
     await user.save();
-    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል! አሁን መግባት ይችላሉ' });
+    res.json({ message: 'á“áˆµá‹ˆáˆ­á‹µá‹Ž á‰ á‰°áˆ³áŠ« áˆáŠ”á‰³ á‰°á‰€á‹­áˆ¯áˆ! áŠ áˆáŠ• áˆ˜áŒá‰£á‰µ á‹­á‰½áˆ‹áˆ‰' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -172,7 +172,9 @@ exports.createProduct = async (req, res) => {
       await ActivityLog.create({
         action: 'ADD',
         productName: savedProduct.name,
-        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0})`
+        details: `Added product: Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0})`,
+        userId: req.user.id,
+        user: req.user.id
       });
     } catch (logErr) {
       console.error('Activity Log save error:', logErr);
@@ -198,15 +200,15 @@ exports.updateProduct = async (req, res) => {
     const changes = [];
     const oldShopQty = oldProduct.quantity ?? 0;
     const newShopQty = updatedProduct.quantity ?? 0;
-    if (oldShopQty !== newShopQty) changes.push(`Shop Qty: ${oldShopQty} ➔ ${newShopQty}`);
+    if (oldShopQty !== newShopQty) changes.push(`Shop Qty: ${oldShopQty} âž” ${newShopQty}`);
 
     const oldStoreQty = oldProduct.inStoreQty ?? 0;
     const newStoreQty = updatedProduct.inStoreQty ?? 0;
-    if (oldStoreQty !== newStoreQty) changes.push(`Store Qty: ${oldStoreQty} ➔ ${newStoreQty}`);
+    if (oldStoreQty !== newStoreQty) changes.push(`Store Qty: ${oldStoreQty} âž” ${newStoreQty}`);
 
     const oldPrice = oldProduct.salePrice || oldProduct.price || 0;
     const newPrice = updatedProduct.salePrice || updatedProduct.price || 0;
-    if (oldPrice !== newPrice) changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
+    if (oldPrice !== newPrice) changes.push(`Price: ${oldPrice} âž” ${newPrice} Birr`);
 
     const detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic product details';
 
@@ -214,7 +216,9 @@ exports.updateProduct = async (req, res) => {
       await ActivityLog.create({
         action: 'EDIT',
         productName: updatedProduct.name,
-        details: detailMsg
+        details: detailMsg,
+        userId: req.user.id,
+        user: req.user.id
       });
     } catch (logErr) {
       console.error('Activity Log save error:', logErr);
@@ -237,7 +241,9 @@ exports.deleteProduct = async (req, res) => {
       await ActivityLog.create({
         action: 'DELETE',
         productName: product.name,
-        details: `Deleted product. Final Shop Qty: (${product.quantity || 0}), Store Qty: (${product.inStoreQty || 0})`
+        details: `Deleted product. Final Shop Qty: (${product.quantity || 0}), Store Qty: (${product.inStoreQty || 0})`,
+        userId: req.user.id,
+        user: req.user.id
       });
     } catch (logErr) {
       console.error('Activity Log save error:', logErr);
@@ -253,7 +259,7 @@ exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
     if (!Array.isArray(products) || products.length === 0) {
-      return res.status(400).json({ message: 'አስፈላጊው የዳታ Array አልተላከም!' });
+      return res.status(400).json({ message: 'áŠ áˆµáˆáˆ‹áŒŠá‹ á‹¨á‹³á‰³ Array áŠ áˆá‰°áˆ‹áŠ¨áˆ!' });
     }
 
     const formattedProducts = products.map((prod) => ({
@@ -267,7 +273,9 @@ exports.createProductsBulk = async (req, res) => {
       await ActivityLog.create({
         action: 'ADD',
         productName: `${savedProducts.length} Products`,
-        details: `Bulk imported ${savedProducts.length} items`
+        details: `Bulk imported ${savedProducts.length} items`,
+        userId: req.user.id,
+        user: req.user.id
       });
     } catch (logErr) {
       console.error('Activity Log save error:', logErr);
@@ -327,7 +335,7 @@ exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
     if (!Array.isArray(categories) || categories.length === 0) {
-      return res.status(400).json({ message: 'አስፈላጊው የዳታ Array አልተላከም!' });
+      return res.status(400).json({ message: 'áŠ áˆµáˆáˆ‹áŒŠá‹ á‹¨á‹³á‰³ Array áŠ áˆá‰°áˆ‹áŠ¨áˆ!' });
     }
 
     const formattedCategories = categories.map((cat) => ({
@@ -464,7 +472,7 @@ exports.createOrder = async (req, res) => {
     const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማስገባት ያስፈልጋል' });
+      return res.status(400).json({ error: 'á‰¢á‹«áŠ•áˆµ áŠ áŠ•á‹µ áŠ¥á‰ƒ áˆ›áˆµáŒˆá‰£á‰µ á‹«áˆµáˆáˆáŒ‹áˆ' });
     }
 
     let totalCostPrice = 0;
@@ -536,7 +544,7 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json(savedOrder);
   } catch (err) {
-    res.status(500).json({ error: err.message || 'ሽያጩን ማስመዝገብ አልተቻለም' });
+    res.status(500).json({ error: err.message || 'áˆ½á‹«áŒ©áŠ• áˆ›áˆµáˆ˜á‹áŒˆá‰¥ áŠ áˆá‰°á‰»áˆˆáˆ' });
   }
 };
 
@@ -649,9 +657,14 @@ exports.getAnalytics = async (req, res) => {
 // 1. Okuggyayo activity logs mu ngeri entuufu
 exports.getActivityLogs = async (req, res) => {
     try {
-        const logs = await ActivityLog.find()
-            .populate('userId', 'username name') // bw'oba oyagala okuggyayo user info
-            .sort({ timestamp: -1 }) // kozesa timestamp, si createdAt
+        const logs = await ActivityLog.find({ 
+            $or: [
+              { user: req.user.id },
+              { userId: req.user.id }
+            ] 
+        })
+            .populate('userId', 'username name')
+            .sort({ timestamp: -1 })
             .limit(100);
         res.json(logs);
     } catch (err) {
@@ -662,14 +675,12 @@ exports.getActivityLogs = async (req, res) => {
 // 2. Bw'oba okola Edit/Add/Delete (Ekyokulabirako mu Edit Product)
 exports.editProduct = async (req, res) => {
     try {
-        // ... code yo ey'okukuyusa product ...
-
-        // Wano w'oteekera ekyokukola eky'okutondawo log
         await ActivityLog.create({
             action: 'EDIT',
             productName: product.name,
             details: `Store Qty: ${oldQty} -> ${newQty}`,
-            userId: req.user ? req.user._id : null,
+            userId: req.user ? req.user.id : null,
+            user: req.user ? req.user.id : null,
             employeeName: req.user ? (req.user.name || req.user.username) : 'Unknown'
         });
 
