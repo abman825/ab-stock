@@ -32,10 +32,11 @@ function ForgotPassword({ onBackToLogin }) {
       // 2. Token ከተገኘ በኋላ በ EmailJS አማካኝነት ወደ ተጠቃሚው ኢሜይል እንልካለን
       const resetLink = `${window.location.origin}/reset-password/${data.resetToken}`;
 
-      const templateParams = {
+     const templateParams = {
   to_name: email.split('@')[0],
   to_email: email,
-  passcode: data.resetToken, // EmailJS template ላይ {{passcode}} ብለህ ተጠቀም
+  email: email, // <-- Ha badal zaroori ahe! {{email}} la hi value pahije.
+  passcode: data.resetToken,
 };
 
       const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_ymprcgb';
