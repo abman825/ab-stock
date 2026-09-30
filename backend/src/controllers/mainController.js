@@ -14,14 +14,6 @@ const crypto = require('crypto');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Helper function Employee Name ለማግኘት
-const getUserName = (req) => {
-  if (req.user) {
-    return req.user.name || req.user.username || req.user.fullName || 'Unknown Employee';
-  }
-  return 'System Employee';
-};
-
 // ==================== 1.1 USER & AUTHENTICATION ====================
 exports.forgotPassword = async (req, res) => {
   try {
@@ -231,20 +223,19 @@ exports.getProducts = async (req, res) => {
   }
 };
 
-// CREATE PRODUCT (With Activity Log)
+// CREATE PRODUCT (With Detailed Log, No Employee Field)
 exports.createProduct = async (req, res) => {
   try {
     const productData = { ...req.body, user: req.user.id };
     const newProduct = new Product(productData);
     const savedProduct = await newProduct.save();
 
-    // 📝 Activity Log መመዝገቢያ
+    // 📝 Activity Log (Employee ተሰርዟል)
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'ADD',
         productName: savedProduct.name,
-        details: `Added product with Shop Qty: ${savedProduct.quantity || 0}, Price: ${savedProduct.salePrice || savedProduct.price || 0} Birr`
+        details: `Added product: Initial Shop Qty (${savedProduct.quantity || 0}), Store Qty (${savedProduct.inStoreQty || 0}), Price (${savedProduct.salePrice || savedProduct.price || 0} Birr)`
       });
     } catch (logErr) {
       console.error('Activity Log save failed:', logErr);
@@ -256,7 +247,7 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// UPDATE PRODUCT (With Activity Log)
+// UPDATE PRODUCT (With Clear '8 ➔ 6' Format Log)
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -268,15 +259,32 @@ exports.updateProduct = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    let detailMsg = `Updated details for ${updatedProduct.name}`;
-    if (oldProduct.quantity !== updatedProduct.quantity) {
-      detailMsg = `Shop Qty changed from ${oldProduct.quantity} to ${updatedProduct.quantity}`;
+    // የተቀየሩ ዳታዎችን በግልፅ የመለየት ስራ
+    const changes = [];
+
+    const oldShopQty = oldProduct.quantity ?? 0;
+    const newShopQty = updatedProduct.quantity ?? 0;
+    if (oldShopQty !== newShopQty) {
+      changes.push(`Shop Qty: ${oldShopQty} ➔ ${newShopQty}`);
     }
 
-    // 📝 Activity Log መመዝገቢያ
+    const oldStoreQty = oldProduct.inStoreQty ?? 0;
+    const newStoreQty = updatedProduct.inStoreQty ?? 0;
+    if (oldStoreQty !== newStoreQty) {
+      changes.push(`Store Qty: ${oldStoreQty} ➔ ${newStoreQty}`);
+    }
+
+    const oldPrice = oldProduct.salePrice || oldProduct.price || 0;
+    const newPrice = updatedProduct.salePrice || updatedProduct.price || 0;
+    if (oldPrice !== newPrice) {
+      changes.push(`Price: ${oldPrice} ➔ ${newPrice} Birr`);
+    }
+
+    let detailMsg = changes.length > 0 ? changes.join(' | ') : 'Updated basic product details';
+
+    // 📝 Activity Log (Employee ተሰርዟል)
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'EDIT',
         productName: updatedProduct.name,
         details: detailMsg
@@ -291,7 +299,7 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// DELETE PRODUCT (With Activity Log)
+// DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -299,10 +307,9 @@ exports.deleteProduct = async (req, res) => {
 
     await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
 
-    // 📝 Activity Log መመዝገቢያ
+    // 📝 Activity Log
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'DELETE',
         productName: product.name,
         details: `Deleted product. Final Qty was: Shop (${product.quantity || 0}), Store (${product.inStoreQty || 0})`
@@ -317,7 +324,7 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// FOR PRODUCTS BULK IMPORT
+// BULK IMPORT PRODUCTS
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
@@ -335,10 +342,9 @@ exports.createProductsBulk = async (req, res) => {
     // 📝 Activity Log
     try {
       await ActivityLog.create({
-        user: getUserName(req),
         action: 'ADD',
         productName: `${savedProducts.length} Products`,
-        details: `Bulk imported ${savedProducts.length} products`
+        details: `Bulk imported ${savedProducts.length} items`
       });
     } catch (logErr) {
       console.error('Activity Log save failed:', logErr);
