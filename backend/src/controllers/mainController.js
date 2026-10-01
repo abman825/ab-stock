@@ -99,44 +99,53 @@ exports.register = async (req, res) => {
 };
 
 // LOGIN
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// LOGIN
 exports.login = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    const loginInput = username || email;
+    const { username, password } = req.body; 
 
-    if (!loginInput || !password) {
-      return res.status(400).json({ message: 'እባክዎን ትክክለኛ መረጃ ያስገቡ!' });
+    if (!username || !password) {
+      return res.status(400).json({ message: 'እባክዎን የተጠቃሚ ስም/ኢሜይል እና ፓስወርድ ያስገቡ!' });
     }
 
+    // የተጠቃሚ ስም ወይም ኢሜይል መሆኑን በ $or ፈልጎ ያገኛል
     const user = await User.findOne({
-      $or: [{ username: loginInput }, { email: loginInput }]
+      $or: [
+        { username: username },
+        { email: username.toLowerCase() }
+      ]
     });
 
     if (!user) {
       return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
     }
 
+    // ፓስወርዱን ማረጋገጥ
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
     }
 
-    const payload = { id: user._id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', {
+    // JWT Token መስጠት
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secretkey', {
       expiresIn: '7d'
     });
 
-    const userData = user.toObject();
-    delete userData.password;
-
     res.json({
-      message: 'በተሳካ ሁኔታ ገብተዋል!',
       token,
-      user: userData
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role
+      }
     });
   } catch (err) {
-    console.error('Login Error:', err);
-    res.status(500).json({ message: 'መግባት አልተቻለም!', error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -190,26 +199,42 @@ exports.changePassword = async (req, res) => {
 };
 
 // RESET PASSWORD
+const crypto = require('crypto');
+const User = require('../models/User');
+
+// RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
-    const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ message: 'እባክዎን አዲስ ፓስወርድ ያስገቡ!' });
+    }
+
+    // 1. Token-ኡን Hash አድርጎ በዳታቤዝ ውስጥ መፈለግ
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
 
     const user = await User.findOne({
       resetPasswordToken,
-      resetPasswordExpires: { $gt: Date.now() }
+      resetPasswordExpires: { $gt: Date.now() } // ቶከኑ ጊዜው እንዳላበቃ ማረጋገጥ
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
+      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፎበታል ወይም ትክክል አይደለም!' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(req.body.password, salt);
+    // 2. አዲሱን ፓስወርድ መስጠት (user.save() ሲደረግ በ User.js ላይ ያለው bcrypt በራሱ Hash ያደርገዋል)
+    user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
-    await user.save();
-    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል፤ አሁን መግባት ይችላሉ' });
+    await user.save(); 
+
+    res.json({ message: 'ፓስወርድዎ በትክክል ተቀይሯል! አሁን መግባት ይችላሉ።' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
