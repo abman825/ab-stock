@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
 
 // Controller & Middleware Imports
 const controller = require('../controllers/mainController');
 const authMiddleware = require('../middleware/authMiddleware');
-const User = require('../models/User');
 
 // ==========================================
 // 1. Unprotected / Public Routes
@@ -17,6 +15,7 @@ router.post('/auth/login', controller.login);
 router.post('/auth/forgot-password', controller.forgotPassword);
 router.post('/reset-password/:token', controller.resetPassword);
 
+// Shortcut Public Routes
 router.post('/register', controller.register);
 router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
@@ -26,7 +25,7 @@ router.post('/forgot-password', controller.forgotPassword);
 // ==========================================
 router.use(authMiddleware);
 
-// Bulk Import Routes (Protected Routes ስር መሆን አለባቸው!)
+// Bulk Import Routes
 if (controller.createProductsBulk) {
   router.post('/products/bulk', controller.createProductsBulk);
 }
@@ -37,63 +36,10 @@ if (controller.createCategoriesBulk) {
 // Profile & Account Settings
 router.get('/profile', controller.getProfile);
 router.get('/auth/profile', controller.getProfile);
-
-// Profile ማስተካከያ
-const handleUpdateProfile = async (req, res) => {
-  try {
-    const { fullName, email, phone, username } = req.body;
-    const userId = req.user.id;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found!' });
-    }
-
-    if (fullName) user.fullName = fullName;
-    if (email) user.email = email;
-    if (phone) user.phone = phone;
-    if (username) user.username = username;
-
-    await user.save();
-
-    const updatedUser = user.toObject();
-    delete updatedUser.password;
-
-    res.json({ message: 'Profile update successful!', user: updatedUser });
-  } catch (err) {
-    console.error('Update Profile Error:', err);
-    res.status(500).json({ message: 'Failed to update profile!' });
-  }
-};
-
-router.put('/auth/update-profile', handleUpdateProfile);
-router.put('/update-profile', handleUpdateProfile);
-
-// Password መቀየሪያ
-router.put('/auth/change-password', async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found!' });
-    }
-
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Incorrect current password!' });
-    }
-
-    user.password = newPassword; 
-    await user.save();
-
-    res.json({ message: 'Password changed successfully!' });
-  } catch (err) {
-    console.error('Change Password Error:', err);
-    res.status(500).json({ message: 'Failed to change password!' });
-  }
-});
+router.put('/auth/update-profile', controller.updateProfile);
+router.put('/update-profile', controller.updateProfile);
+router.put('/auth/change-password', controller.changePassword);
+router.put('/change-password', controller.changePassword);
 
 // Reports & Analytics
 router.get('/reports/analytics', controller.getAnalytics);
@@ -116,8 +62,7 @@ router.post('/suppliers', controller.createSupplier);
 router.get('/purchase-orders', controller.getPurchases);
 router.post('/purchase-orders', controller.createPurchase);
 
-// Bulk Import CSV Route (Purchase Orders)\
-
+// Bulk Import CSV Route (Purchase Orders)
 router.post('/purchase-orders/bulk', async (req, res) => {
   try {
     const PurchaseOrder = require('../models/PurchaseOrders');

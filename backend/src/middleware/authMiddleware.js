@@ -11,12 +11,12 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    // Token ማረጋገጥ (Verify)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    req.user = decoded; // የተጠቃሚውን መረጃ (id, username) በ req.user ውስጥ ማስቀመጥ
-    next(); // ወደ ቀጣዩ Controller/Route ማለፍ
+    // Token ማረጋገጫ (Secret Key ከ login ጋር ተመሳሳይ መሆን አለበት)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
+    req.user = decoded; // የተጠቃሚውን መረጃ (id) በ req.user ውስጥ ማቀመጥ
+    next();
   } catch (err) {
-    return res.status(403).json({ message: 'ትክክለኛ ያልሆነ ወይም የጊዜ ገደቡ ያለፈበት Token (Invalid or expired token)' });
+    return res.status(403).json({ message: 'ትክክለኛ ያልሆነ ወይም ጊዜው ያለፈበት Token (Invalid or expired token)' });
   }
 };
 

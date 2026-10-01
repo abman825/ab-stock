@@ -116,7 +116,7 @@ function App() {
     }
   };
 
-  // የሽያጭ ማጠቃለያ ፋንክሽን (2 Decimal አካታች የተስተካከለ)
+  // የሽያጭ ማጠቃለያ ፋንክሽን
   const handleCompleteSale = async (saleDetails) => {
     if (cart.length === 0) {
       alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
@@ -129,7 +129,6 @@ function App() {
       const rawDiscountAmount = Number(saleDetails.discountAmount || saleDetails.discount || 0);
       const rawDiscountPercent = Number(saleDetails.discountPercent || 0);
 
-      // ቁጥሮችን በትክክል በ 2 ዴሲማል ማጠጋጋት
       const subtotalVal = Number(rawSubtotal.toFixed(2));
       const discountVal = Number(rawDiscountAmount.toFixed(2));
       const grandTotalVal = Number((subtotalVal - discountVal).toFixed(2));
@@ -173,12 +172,12 @@ function App() {
     }
   };
 
-  // Logout ሲደረግ LocalStorage አጽድቶ ገጹን ሙሉ በሙሉ Reload ማድረግ
+  // Logout ሲደረግ LocalStorage አፅድቆ ገጹን ሙሉ በሙሉ Reload ማድረግ
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    window.location.href = '/'; // ገጹን Reload በማድረግ የድሮ State እንዲጠፋ ያደርጋል
+    window.location.href = '/';
   };
 
   const handleNavClick = (tabId) => {

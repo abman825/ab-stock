@@ -15,6 +15,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ==================== 1. USER & AUTHENTICATION ====================
 
+// FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -44,15 +45,15 @@ exports.forgotPassword = async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
           <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.fullName || user.username || ''}፤</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፦</p>
+          <p>ሰላም ${user.fullName || user.username || ''}፣</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               የይለፍ ቃል ቀይር
             </a>
           </div>
           <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ቸል ይበሉት።</p>
+          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልእክት ቸል ይበሉት።</p>
         </div>
       `
     });
@@ -65,7 +66,7 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// 1. REGISTER
+// REGISTER
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
@@ -96,7 +97,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// 2. LOGIN
+// LOGIN
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -138,7 +139,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// 3. GET CURRENT PROFILE
+// GET CURRENT PROFILE
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -149,7 +150,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// 4. UPDATE PROFILE
+// UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, email, username } = req.body;
@@ -166,7 +167,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// 5. CHANGE PASSWORD
+// CHANGE PASSWORD (ተስተካክሏል: Hash ይደረጋል)
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -177,7 +178,8 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
     }
 
-    user.password = newPassword; 
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt); 
     await user.save();
 
     res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
@@ -186,7 +188,7 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// 7. RESET PASSWORD
+// RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
@@ -200,7 +202,8 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
     }
 
-    user.password = req.body.password;
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(req.body.password, salt);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
