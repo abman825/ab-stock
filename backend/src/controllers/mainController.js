@@ -246,25 +246,49 @@ exports.createProduct = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
-
-// UPDATE PRODUCT
+// UPDATE PRODUCT (ከቀደመው እና አዲሱ ቫልዩ ጋር ዝርዝር መረጃ የሚመዘግብ)
 exports.updateProduct = async (req, res) => {
   try {
+    // 1. መጀመሪያ እቃው ከመቀየሩ በፊት የነበረውን ዳታ እንፈልጋለን
+    const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
+
+    if (!oldProduct) {
+      return res.status(404).json({ message: 'እቃው አልተገኘም ወይም የማስተካከል ፈቃድ የለዎትም' });
+    }
+
+    // 2. እቃውን አዲሱ ዳታ ላይ እናስተክላለን
     const updated = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       req.body,
       { new: true, runValidators: true }
     );
 
-    if (!updated) {
-      return res.status(404).json({ message: 'እቃው አልተገኘም ወይም የማስተካከል ፈቃድ የለዎትም' });
+    // 3. የተለወጡትን ነገሮች መዝግቦ የሚይዝ ዝርዝር (Changes Array)
+    const changes = [];
+
+    if (req.body.quantity !== undefined && oldProduct.quantity !== Number(req.body.quantity)) {
+      changes.push(`Stock: ${oldProduct.quantity} ➔ ${req.body.quantity}`);
+    }
+    if (req.body.price !== undefined && oldProduct.price !== Number(req.body.price)) {
+      changes.push(`Price: ${oldProduct.price} Birr ➔ ${req.body.price} Birr`);
+    }
+    if (req.body.boughtPrice !== undefined && oldProduct.boughtPrice !== Number(req.body.boughtPrice)) {
+      changes.push(`Cost Price: ${oldProduct.boughtPrice} Birr ➔ ${req.body.boughtPrice} Birr`);
+    }
+    if (req.body.name && oldProduct.name !== req.body.name) {
+      changes.push(`Name: '${oldProduct.name}' ➔ '${req.body.name}'`);
     }
 
-    // 🚀 Activity Log መመዝገቢያ
+    // የተቀየረ ነገር ካለ ብቻ Activity Log ይመዘገባል
+    const changeDetails = changes.length > 0 
+      ? `Updated: ${changes.join(', ')}` 
+      : 'Updated product info (no quantity/price changed)';
+
+    // 4. ActivityLog ላይ ማስመዝገብ
     await ActivityLog.create({
       action: 'EDIT',
       productName: updated.name,
-      details: `Updated product details for ${updated.name}`,
+      details: changeDetails,
       userId: req.user.id,
       employeeName: req.user.username || req.user.fullName || 'User'
     });
@@ -274,7 +298,6 @@ exports.updateProduct = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
-
 // DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
