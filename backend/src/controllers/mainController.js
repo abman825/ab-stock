@@ -247,44 +247,94 @@ exports.createProduct = async (req, res) => {
   }
 };
 // UPDATE PRODUCT (ከቀደመው እና አዲሱ ቫልዩ ጋር ዝርዝር መረጃ የሚመዘግብ)
+// UPDATE PRODUCT (Edit Modal-er sob field-er track korbe)
 exports.updateProduct = async (req, res) => {
   try {
-    // 1. መጀመሪያ እቃው ከመቀየሩ በፊት የነበረውን ዳታ እንፈልጋለን
+    // 1. Purono product fetch kora
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
 
     if (!oldProduct) {
-      return res.status(404).json({ message: 'እቃው አልተገኘም ወይም የማስተካከል ፈቃድ የለዎትም' });
+      return res.status(404).json({ message: 'Product pawoa jayni ba edit korar permission nei' });
     }
 
-    // 2. እቃውን አዲሱ ዳታ ላይ እናስተክላለን
+    // 2. Product update kora
     const updated = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       req.body,
       { new: true, runValidators: true }
     );
 
-    // 3. የተለወጡትን ነገሮች መዝግቦ የሚይዝ ዝርዝር (Changes Array)
+    // 3. Shob gulo field-er poriborton track korar array
     const changes = [];
 
-    if (req.body.quantity !== undefined && oldProduct.quantity !== Number(req.body.quantity)) {
-      changes.push(`Stock: ${oldProduct.quantity} ➔ ${req.body.quantity}`);
-    }
-    if (req.body.price !== undefined && oldProduct.price !== Number(req.body.price)) {
-      changes.push(`Price: ${oldProduct.price} Birr ➔ ${req.body.price} Birr`);
-    }
-    if (req.body.boughtPrice !== undefined && oldProduct.boughtPrice !== Number(req.body.boughtPrice)) {
-      changes.push(`Cost Price: ${oldProduct.boughtPrice} Birr ➔ ${req.body.boughtPrice} Birr`);
-    }
-    if (req.body.name && oldProduct.name !== req.body.name) {
+    // Product Name
+    if (req.body.name !== undefined && oldProduct.name !== req.body.name) {
       changes.push(`Name: '${oldProduct.name}' ➔ '${req.body.name}'`);
     }
 
-    // የተቀየረ ነገር ካለ ብቻ Activity Log ይመዘገባል
+    // Category
+    if (req.body.category !== undefined && oldProduct.category !== req.body.category) {
+      changes.push(`Category: '${oldProduct.category}' ➔ '${req.body.category}'`);
+    }
+
+    // Sale Price
+    if (req.body.price !== undefined && Number(oldProduct.price) !== Number(req.body.price)) {
+      changes.push(`Sale Price: ${oldProduct.price} Birr ➔ ${req.body.price} Birr`);
+    }
+
+    // Product Type
+    if (req.body.productType !== undefined && oldProduct.productType !== req.body.productType) {
+      changes.push(`Product Type: '${oldProduct.productType}' ➔ '${req.body.productType}'`);
+    }
+
+    // Bought Price
+    if (req.body.boughtPrice !== undefined && Number(oldProduct.boughtPrice) !== Number(req.body.boughtPrice)) {
+      changes.push(`Bought Price: ${oldProduct.boughtPrice} Birr ➔ ${req.body.boughtPrice} Birr`);
+    }
+
+    // Stock Threshold
+    if (req.body.stockThreshold !== undefined && Number(oldProduct.stockThreshold) !== Number(req.body.stockThreshold)) {
+      changes.push(`Stock Threshold: ${oldProduct.stockThreshold} ➔ ${req.body.stockThreshold}`);
+    }
+
+    // Specific Type
+    if (req.body.specificType !== undefined && oldProduct.specificType !== req.body.specificType) {
+      changes.push(`Type: '${oldProduct.specificType}' ➔ '${req.body.specificType}'`);
+    }
+
+    // Is Syrup
+    if (req.body.isSyrup !== undefined && Boolean(oldProduct.isSyrup) !== Boolean(req.body.isSyrup)) {
+      changes.push(`Is Syrup: ${oldProduct.isSyrup ? 'Yes' : 'No'} ➔ ${req.body.isSyrup ? 'Yes' : 'No'}`);
+    }
+
+    // In Store Qty
+    if (req.body.inStoreQty !== undefined && Number(oldProduct.inStoreQty) !== Number(req.body.inStoreQty)) {
+      changes.push(`In Store Qty: ${oldProduct.inStoreQty} ➔ ${req.body.inStoreQty}`);
+    }
+
+    // In Shop Qty / Quantity
+    const newQty = req.body.quantity !== undefined ? req.body.quantity : req.body.inShopQty;
+    const oldQty = oldProduct.quantity !== undefined ? oldProduct.quantity : oldProduct.inShopQty;
+    if (newQty !== undefined && Number(oldQty) !== Number(newQty)) {
+      changes.push(`In Shop Qty: ${oldQty} ➔ ${newQty}`);
+    }
+
+    // Invoice No
+    if (req.body.invoiceNo !== undefined && oldProduct.invoiceNo !== req.body.invoiceNo) {
+      changes.push(`Invoice No: '${oldProduct.invoiceNo || '-'}' ➔ '${req.body.invoiceNo}'`);
+    }
+
+    // Expiration Date
+    if (req.body.expirationDate !== undefined && oldProduct.expirationDate !== req.body.expirationDate) {
+      changes.push(`Expiration Date: '${oldProduct.expirationDate || '-'}' ➔ '${req.body.expirationDate}'`);
+    }
+
+    // Details message toiri kora
     const changeDetails = changes.length > 0 
       ? `Updated: ${changes.join(', ')}` 
-      : 'Updated product info (no quantity/price changed)';
+      : 'Updated product info (No major fields changed)';
 
-    // 4. ActivityLog ላይ ማስመዝገብ
+    // 4. ActivityLog entry toiri kora
     await ActivityLog.create({
       action: 'EDIT',
       productName: updated.name,
