@@ -56,10 +56,13 @@ router.delete('/products/:id', controller.deleteProduct);
 // Categories
 router.get('/categories', controller.getCategories);
 router.post('/categories', controller.createCategory);
-
+router.put('/categories/:id', controller.updateCategory);
+router.delete('/categories/:id',controller.deleteCategory);
 // Suppliers
 router.get('/suppliers', controller.getSuppliers);
 router.post('/suppliers', controller.createSupplier);
+router.put('/suppliers/:id', controller.updateSupplier);       // <-- ይህ መኖሩን አረጋግጥ
+router.delete('/suppliers/:id',controller.deleteSupplier);
 
 // Purchase Orders
 router.get('/purchase-orders', controller.getPurchases);

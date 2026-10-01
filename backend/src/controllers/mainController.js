@@ -409,6 +409,39 @@ exports.createCategory = async (req, res) => {
   }
 };
 
+exports.updateCategory = async (req, res) => {
+  try {
+    const updated = await Category.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Category አልተገኘም ወይም የማስተካከል መብት የለዎትም' });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// DELETE CATEGORY
+exports.deleteCategory = async (req, res) => {
+  try {
+    const category = await Category.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category አልተገኘም' });
+    }
+
+    res.json({ message: 'Category በተሳካ ሁኔታ ተሰርዟል' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
@@ -443,6 +476,39 @@ exports.createSupplier = async (req, res) => {
     const newSupplier = new Supplier({ ...req.body, user: req.user.id });
     const saved = await newSupplier.save();
     res.status(201).json(saved);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateSupplier = async (req, res) => {
+  try {
+    const updated = await Supplier.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Supplier አልተገኘም ወይም የማስተካከል መብት የለዎትም' });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// DELETE SUPPLIER
+exports.deleteSupplier = async (req, res) => {
+  try {
+    const supplier = await Supplier.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+
+    if (!supplier) {
+      return res.status(404).json({ message: 'Supplier አልተገኘም' });
+    }
+
+    res.json({ message: 'Supplier በተሳካ ሁኔታ ተሰርዟል' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
