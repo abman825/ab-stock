@@ -1,23 +1,22 @@
 const jwt = require('jsonwebtoken');
 
-const authMiddleware = (req, res, next) => {
-  // Token ከ Header ላይ መቀበል
-  const authHeader = req.headers.authorization || req.headers.Authorization;
+module.exports = function (req, res, next) {
+  // 1. Token ከ Header ማግኘት
+  const token = req.header('Authorization')?.replace('Bearer ', '') || req.header('x-auth-token');
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'ምንም Token አልተላከም ወይም ፈቃድ የለዎትም (Unauthorized)' });
+  if (!token) {
+    return res.status(401).json({ message: 'Token አልተገኘም፣ የመግባት ፈቃድ የለዎትም!' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
-    // Token ማረጋገጫ (Secret Key ከ login ጋር ተመሳሳይ መሆን አለበት)
+    // 2. Token ማረጋገጥ
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
-    req.user = decoded; // የተጠቃሚውን መረጃ (id) በ req.user ውስጥ ማቀመጥ
+    
+    // 3. decoded የተቀበለውን ID በ req.user አድርጎ ማሳለፍ (ይህ መስመር በጣም ወሳኝ ነው!)
+    req.user = decoded; // ወይም req.user = { id: decoded.id };
+    
     next();
   } catch (err) {
-    return res.status(403).json({ message: 'ትክክለኛ ያልሆነ ወይም ጊዜው ያለፈበት Token (Invalid or expired token)' });
+    res.status(401).json({ message: 'ያልተvalid Token ነው!' });
   }
 };
-
-module.exports = authMiddleware;
