@@ -685,6 +685,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
               <span>{Number(todaySales.total || 0).toFixed(2)} Birr</span>
             </div>
 
+
             <button
               onClick={() => setIsSalesModalOpen(false)}
               style={{ width: '100%', marginTop: '15px', padding: '8px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
@@ -698,5 +699,4 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     </div>
   );
 }
-
 export default POS;
