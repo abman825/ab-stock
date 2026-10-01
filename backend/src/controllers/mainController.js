@@ -10,9 +10,9 @@ const Customer = require('../models/Customer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
+
 // ==================== 1. USER & AUTHENTICATION ====================
 
 exports.forgotPassword = async (req, res) => {
@@ -28,33 +28,31 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
     }
 
-    // 32-byte Token ማመንጨት እና Hash አድርጎ DB ውስጥ ማስቀምጥ
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // ለ 10 ደቂቃ የሚቆይ
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Resend HTTP API ተጠቅሞ ኢሜይል መላክ (Port/IPv6 Blocking ችግር የለበትም)
     await resend.emails.send({
-      from: 'onboarding@resend.dev', // በራሱ የ Resend ቴስቲንግ ኢሜይል ይልካል
+      from: 'onboarding@resend.dev',
       to: user.email,
       subject: 'Password Reset Request',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
           <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.name || ''}፣</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
+          <p>ሰላም ${user.fullName || user.username || ''}፤</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፦</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               የይለፍ ቃል ቀይር
             </a>
           </div>
           <p style="color: #666; font-size: 13px;">ይህ ሊንክ የሚያገለግለው ለ <strong>10 ደቂቃ</strong> ብቻ ነው።</p>
-          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ችላ ይበሉት።</p>
+          <p style="color: #999; font-size: 11px; margin-top: 20px;">እርስዎ ካልጠየቁ ይህንን መልዕክት ቸል ይበሉት።</p>
         </div>
       `
     });
@@ -71,6 +69,10 @@ exports.forgotPassword = async (req, res) => {
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'እባክዎን ሁሉንም አስፈላጊ መረጃዎች ያስገቡ!' });
+    }
 
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
@@ -98,7 +100,6 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-
     const loginInput = username || email;
 
     if (!loginInput || !password) {
@@ -106,10 +107,7 @@ exports.login = async (req, res) => {
     }
 
     const user = await User.findOne({
-      $or: [
-        { username: loginInput },
-        { email: loginInput }
-      ]
+      $or: [{ username: loginInput }, { email: loginInput }]
     });
 
     if (!user) {
@@ -121,7 +119,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
     }
 
-    const payload = { id: user._id, role: user.role };
+    const payload = { id: user._id };
     const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', {
       expiresIn: '7d'
     });
@@ -188,8 +186,6 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-
-
 // 7. RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
@@ -209,7 +205,7 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
 
     await user.save();
-    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል። አሁን መግባት ይችላሉ' });
+    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል፤ አሁን መግባት ይችላሉ' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -245,7 +241,7 @@ exports.updateProduct = async (req, res) => {
     );
 
     if (!updated) {
-      return res.status(404).json({ message: 'Product not found or unauthorized' });
+      return res.status(404).json({ message: 'ዕቃው አልተገኘም ወይም የማስተካከል ፈቃድ የለዎትም' });
     }
 
     res.json(updated);
@@ -257,18 +253,17 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
-    res.json({ message: 'Product deleted' });
+    res.json({ message: 'ዕቃው ተሰርዟል' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// FOR PRODUCTS BULK IMPORT
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
     if (!Array.isArray(products) || products.length === 0) {
-      return res.status(400).json({ message: 'አስፈላጊው የዳታ Array አልተላከም!' });
+      return res.status(400).json({ message: 'አስፈላጊው የዳታ ስብስብ (Array) አልተላከም!' });
     }
 
     const formattedProducts = products.map((prod) => ({
@@ -303,12 +298,11 @@ exports.createCategory = async (req, res) => {
   }
 };
 
-// FOR CATEGORIES BULK IMPORT
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
     if (!Array.isArray(categories) || categories.length === 0) {
-      return res.status(400).json({ message: 'አስፈላጊው የዳታ Array አልተላከም!' });
+      return res.status(400).json({ message: 'አስፈላጊው የዳታ ስብስብ (Array) አልተላከም!' });
     }
 
     const formattedCategories = categories.map((cat) => ({
@@ -422,12 +416,11 @@ exports.createOrder = async (req, res) => {
     const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማስገባት ያስፈልጋል' });
+      return res.status(400).json({ error: 'ቢያንስ አንድ ዕቃ ማስገባት ያስፈልጋል' });
     }
 
     let totalCostPrice = 0;
 
-    // 1. እቃዎቹን ማዘጋጀት እና የተገዙበትን ዋጋ (Cost Price) መደመር
     const processedItems = await Promise.all(
       items.map(async (item) => {
         const productId = item.productId || item._id || item.id;
@@ -446,7 +439,6 @@ exports.createOrder = async (req, res) => {
         const finalCost = Number(Number(exactCost || 0).toFixed(2));
         const quantity = Number(item.cartQty || item.quantity || 1);
 
-        // የዕቃዎቹን አጠቃላይ የተገዙበትን ዋጋ መደመር
         totalCostPrice += finalCost * quantity;
 
         return {
@@ -465,7 +457,6 @@ exports.createOrder = async (req, res) => {
     const safeDiscount = Number(Number(discountAmount || 0).toFixed(2));
     const safeGrandTotal = Number(Number(grandTotal || (safeSubtotal - safeDiscount)).toFixed(2));
 
-    // 2. ትክክለኛውን ትርፍ ማስላት (ቅናሹን በመቀነስ)
     const netProfit = Number((safeGrandTotal - totalCostPrice).toFixed(2));
 
     const order = new Order({
@@ -475,14 +466,13 @@ exports.createOrder = async (req, res) => {
       discountAmount: safeDiscount,
       grandTotal: safeGrandTotal,
       totalCost: totalCostPrice,
-      profit: netProfit, // ትርፉ በቀጥታ ቅናሹ ተቀንሶ ይመዘገባል
+      profit: netProfit,
       paymentMethod: paymentMethod || 'Cash',
       soldAtDate: soldAtDate || new Date().toISOString().split('T')[0]
     });
 
     const savedOrder = await order.save();
 
-    // 3. የስቶክ መጠን መቀነስ (Stock Reduction)
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
@@ -570,6 +560,7 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
   try {
@@ -618,30 +609,25 @@ exports.getAnalytics = async (req, res) => {
         }, 0) - Number(order.discountAmount || 0);
       }
 
-      // Total
       stats.totalSales += grandTotal;
       stats.totalProfit += orderProfit;
 
-      // Daily
       const orderDateStr = order.soldAtDate || orderDate.toISOString().split('T')[0];
       if (orderDateStr === todayStr || orderDate >= startOfToday) {
         stats.dailySales += grandTotal;
         stats.dailyProfit += orderProfit;
       }
 
-      // Weekly
       if (orderDate >= startOfWeek) {
         stats.weeklySales += grandTotal;
         stats.weeklyProfit += orderProfit;
       }
 
-      // Monthly
       if (orderDate >= startOfMonth) {
         stats.monthlySales += grandTotal;
         stats.monthlyProfit += orderProfit;
       }
 
-      // Yearly
       if (orderDate >= startOfYear) {
         stats.yearlySales += grandTotal;
         stats.yearlyProfit += orderProfit;

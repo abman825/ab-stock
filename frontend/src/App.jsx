@@ -11,7 +11,7 @@ import Settings from './components/Settings';
 import Login from './components/Login';
 import ReportsPage from './components/ReportsPage';
 import ResetPassword from './components/ResetPassword';
-import ActivityLog from './components/ActivityLog'; // <-- 1. Activity Log Component import ተደርጓል
+import ActivityLog from './components/ActivityLog';
 
 // 1. API Base URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -173,10 +173,12 @@ function App() {
     }
   };
 
+  // Logout ሲደረግ LocalStorage አጽድቶ ገጹን ሙሉ በሙሉ Reload ማድረግ
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    window.location.href = '/'; // ገጹን Reload በማድረግ የድሮ State እንዲጠፋ ያደርጋል
   };
 
   const handleNavClick = (tabId) => {
@@ -202,7 +204,7 @@ function App() {
     return <Login onLoginSuccess={(userData) => setUser(userData)} />;
   }
 
-  // Sidebar Menu Sections (2. Activity Logs በ INVENTORY ስር ተካቷል)
+  // Sidebar Menu Sections
   const menuSections = [
     { title: 'MAIN', items: [{ id: 'pos', label: 'Point of Sale' }] },
     { 
@@ -210,7 +212,7 @@ function App() {
       items: [
         { id: 'products', label: 'Products' }, 
         { id: 'categories', label: 'Categories' },
-        { id: 'activityLogs', label: '📋 Activity Logs' } // <-- Activity Log Sidebar Menu Item
+        { id: 'activityLogs', label: '📋 Activity Logs' }
       ] 
     },
     { title: 'PROCUREMENT', items: [{ id: 'suppliers', label: 'Suppliers' }, { id: 'purchases', label: 'Purchase Orders' }, { id: 'transfer', label: 'Transfer' }] },
@@ -248,7 +250,7 @@ function App() {
       <div style={{ 
         width: '240px', 
         height: '100vh', 
-        backgroundColor: '#1e293b', // Dark Silver Slate
+        backgroundColor: '#1e293b', 
         color: '#f8fafc', 
         padding: '15px 12px', 
         display: 'flex', 
@@ -418,7 +420,7 @@ function App() {
           )}
           {activeTab === 'products' && <Products products={products} refreshProducts={fetchProducts} />}
           {activeTab === 'categories' && <Categories categories={categories} refreshCategories={fetchCategories} />}
-          {activeTab === 'activityLogs' && <ActivityLog API_BASE_URL={API_BASE_URL} />} {/* <-- 3. ActivityLog Render ማድረግ */}
+          {activeTab === 'activityLogs' && <ActivityLog API_BASE_URL={API_BASE_URL} />}
           {activeTab === 'suppliers' && <Suppliers />}
           {activeTab === 'purchases' && <PurchaseOrders />}
           {activeTab === 'transfer' && <Transfer />}
@@ -456,7 +458,7 @@ function App() {
             position: 'relative'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>📹 የስርዓት አጠቃቀም Tutorial</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>📹 የስርዓቱ አጠቃቀም Tutorial</h3>
               <button 
                 onClick={() => setShowVideoModal(false)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
