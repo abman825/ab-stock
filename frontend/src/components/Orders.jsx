@@ -158,7 +158,7 @@ function Orders() {
               <th style={{ padding: '12px 15px' }}>QUANTITY</th>
               <th style={{ padding: '12px 15px' }}>PRICE</th>
               <th style={{ padding: '12px 15px' }}>SUBTOTAL</th>
-              <th style={{ padding: '12px 15px' }}>DISCOUNT %</th>
+              <th style={{ padding: '12px 15px' }}>DISCOUNT</th>
               <th style={{ padding: '12px 15px' }}>ORDER STATUS</th>
               <th style={{ padding: '12px 15px' }}>COMPLETED BY</th>
             </tr>
@@ -173,9 +173,14 @@ function Orders() {
             ) : (
               filteredOrders.map((order, idx) => {
                 const totalQty = order.items?.reduce((sum, item) => sum + (item.cartQty || item.quantity || 1), 0) || 1;
-                const productNames = order.items?.map(i => i.name || i.productName).join(', ') || 'N/A';
                 
-                // አንድ ዕቃ ብቻ ከሆነ ዋጋውን ያሳያል፤ ከአንድ በላይ ዕቃዎች በአንድ ላይ ከተሸጡ ግን `- -` ያደርጋል
+                // 🔥 አዲሱ አሰራር፡ ብዛታቸው ከ 1 በላይ ከሆነ name * qty (ምሳሌ፡ A * 2) አድርጎ ያሳያል
+                const productNames = order.items?.map(i => {
+                  const pName = i.name || i.productName || 'N/A';
+                  const qty = i.cartQty || i.quantity || 1;
+                  return qty > 1 ? `${pName} * ${qty}` : pName;
+                }).join(', ') || 'N/A';
+
                 const displayPrice = order.items && order.items.length === 1
                   ? `${order.items[0].price || 0} Birr`
                   : '- -';
@@ -198,7 +203,7 @@ function Orders() {
                       {order.subtotal || order.grandTotal || order.totalAmount || 0} Birr
                     </td>
                     <td style={{ padding: '12px 15px', color: '#495057' }}>
-                      {order.discountAmount || order.discount || 0}
+                      {order.discountAmount || order.discount || 0} Birr
                     </td>
                     <td style={{ padding: '12px 15px', color: '#198754', fontWeight: '500' }}>
                       {order.status || 'Completed'}
