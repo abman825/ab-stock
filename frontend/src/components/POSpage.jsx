@@ -172,7 +172,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         await onCompleteSale(orderPayload);
       } else {
         await axios.post(`${API_BASE_URL}/orders`, orderPayload, getAuthHeaders());
-        alert('ሽያጩ በተሳካ ሁኔታ ተጠናቋል!');
+        alert('ሽያጩ በተካካ ሁኔታ ተጠናቋል!');
         setCart([]);
       }
 
@@ -211,20 +211,49 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   return (
     <div style={{ padding: '20px', flex: 1, background: '#f4f6f8', fontFamily: 'sans-serif' }}>
       
-      {/* Top Header & Search Bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
+      {/* Top Header Section */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '12px', 
+          marginBottom: '20px', 
+          alignItems: 'center', 
+          justifyContent: 'space-between' 
+        }}
+      >
         
-        {/* Search & Categories Input */}
-        <div style={{ display: 'flex', gap: '10px', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #ced4da' }}>
+        {/* Search & Categories Box */}
+        <div 
+          className="search-cat-container"
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'row', 
+            gap: '10px', 
+            background: '#fff', 
+            padding: '6px 12px', 
+            borderRadius: '6px', 
+            border: '1px solid #ced4da', 
+            flex: '1 1 300px', 
+            minWidth: '220px', 
+            alignItems: 'center' 
+          }}
+        >
           <input
             type="text"
             placeholder="Search product name or category..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
-              if (showLowStockOnly) setShowLowStockOnly(false); // Reset low stock filter on manual search
+              if (showLowStockOnly) setShowLowStockOnly(false);
             }}
-            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '13px' }}
+            style={{ 
+              border: 'none', 
+              outline: 'none', 
+              width: '100%', 
+              fontSize: '13px', 
+              padding: '4px 0' 
+            }}
           />
           <select
             value={selectedCategory}
@@ -232,7 +261,20 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
               setSelectedCategory(e.target.value);
               if (showLowStockOnly) setShowLowStockOnly(false);
             }}
-            style={{ border: 'none', outline: 'none', fontSize: '13px', background: 'transparent', color: '#495057', cursor: 'pointer' }}
+            style={{ 
+              borderLeft: '1px solid #e0e0e0', 
+              borderTop: 'none', 
+              borderRight: 'none', 
+              borderBottom: 'none', 
+              outline: 'none', 
+              fontSize: '13px', 
+              background: 'transparent', 
+              color: '#495057', 
+              cursor: 'pointer', 
+              paddingLeft: '8px', 
+              maxWidth: '140px',
+              textOverflow: 'ellipsis' 
+            }}
           >
             <option value="All Categories">All Categories</option>
             {categories.map((cat) => (
@@ -243,49 +285,82 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           </select>
         </div>
 
-        {/* Today's Sales Card */}
-        <div
-          onClick={() => setIsSalesModalOpen(true)}
-          style={{ background: '#fff', padding: '10px 15px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Small Cards Container */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          
+          {/* Today's Sales Card */}
+          <div
+            onClick={() => setIsSalesModalOpen(true)}
+            style={{ 
+              background: '#fff', 
+              padding: '8px 12px', 
+              borderRadius: '6px', 
+              border: '1px solid #e0e0e0', 
+              cursor: 'pointer', 
+              minWidth: '130px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              gap: '10px'
+            }}
+          >
             <div>
-              <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: 'bold' }}>Today's Sales</div>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#212529' }}>
+              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Today's Sales</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#212529' }}>
                 {Number(todaySales.total || 0).toFixed(2)} Birr
               </div>
             </div>
-            <span style={{ background: '#e8f5e9', color: '#28a745', padding: '6px 10px', borderRadius: '6px', fontSize: '16px' }}>🛒</span>
+            <span style={{ background: '#e8f5e9', color: '#28a745', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>🛒</span>
           </div>
+
+          {/* Low Stock Items Card */}
+          <div 
+            onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+            style={{ 
+              background: showLowStockOnly ? '#ffebee' : '#fff', 
+              padding: '8px 12px', 
+              borderRadius: '6px', 
+              border: showLowStockOnly ? '2px solid #dc3545' : '1px solid #e0e0e0', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              cursor: 'pointer', 
+              minWidth: '130px',
+              gap: '10px'
+            }}
+            title="Click to toggle low stock products"
+          >
+            <div>
+              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                Low Stock {showLowStockOnly && '(Filtered)'}
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#dc3545' }}>
+                {lowStockCount}
+              </div>
+            </div>
+            <span style={{ background: '#ffebee', color: '#dc3545', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>⚠️</span>
+          </div>
+
         </div>
 
-        {/* Low Stock Items Card (Clickable to Filter) */}
-        <div 
-          onClick={() => setShowLowStockOnly(!showLowStockOnly)}
-          style={{ 
-            background: showLowStockOnly ? '#ffebee' : '#fff', 
-            padding: '10px 15px', 
-            borderRadius: '6px', 
-            border: showLowStockOnly ? '2px solid #dc3545' : '1px solid #e0e0e0', 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
-          title="Click to toggle low stock products"
-        >
-          <div>
-            <div style={{ fontSize: '11px', color: '#6c757d', fontWeight: 'bold' }}>
-              Low Stock Items {showLowStockOnly && '(Filtered)'}
-            </div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#dc3545' }}>
-              {lowStockCount}
-            </div>
-          </div>
-          <span style={{ background: '#ffebee', color: '#dc3545', padding: '6px 10px', borderRadius: '6px', fontSize: '16px' }}>⚠️</span>
-        </div>
       </div>
+
+      {/* Embedded Style for Mobile Responsive Layout adjustment */}
+      <style>{`
+        @media (max-width: 600px) {
+          .search-cat-container {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .search-cat-container select {
+            border-left: none !important;
+            border-top: 1px solid #e0e0e0 !important;
+            padding-left: 0 !important;
+            padding-top: 6px !important;
+            max-width: 100% !important;
+          }
+        }
+      `}</style>
 
       {/* Main Grid: Left Products - Right Cart */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '20px', height: 'calc(100vh - 160px)' }}>
