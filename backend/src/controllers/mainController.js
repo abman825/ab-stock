@@ -46,8 +46,8 @@ exports.forgotPassword = async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
           <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
-          <p>ሰላም ${user.fullName || user.username || ''}፣</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፡</p>
+          <p>ሰላም ${user.fullName || user.username || ''}፤</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፤</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               የይለፍ ቃል ቀይር
@@ -99,53 +99,44 @@ exports.register = async (req, res) => {
 };
 
 // LOGIN
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-
-// LOGIN
 exports.login = async (req, res) => {
   try {
-    const { username, password } = req.body; 
+    const { username, email, password } = req.body;
+    const loginInput = username || email;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: 'እባክዎን የተጠቃሚ ስም/ኢሜይል እና ፓስወርድ ያስገቡ!' });
+    if (!loginInput || !password) {
+      return res.status(400).json({ message: 'እባክዎን ትክክለኛ መረጃ ያስገቡ!' });
     }
 
-    // የተጠቃሚ ስም ወይም ኢሜይል መሆኑን በ $or ፈልጎ ያገኛል
     const user = await User.findOne({
-      $or: [
-        { username: username },
-        { email: username.toLowerCase() }
-      ]
+      $or: [{ username: loginInput }, { email: loginInput }]
     });
 
     if (!user) {
       return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
     }
 
-    // ፓስወርዱን ማረጋገጥ
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
     }
 
-    // JWT Token መስጠት
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secretkey', {
+    const payload = { id: user._id };
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', {
       expiresIn: '7d'
     });
 
+    const userData = user.toObject();
+    delete userData.password;
+
     res.json({
+      message: 'በተሳካ ሁኔታ ገብተዋል!',
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role
-      }
+      user: userData
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Login Error:', err);
+    res.status(500).json({ message: 'መግባት አልተቻለም!', error: err.message });
   }
 };
 
@@ -177,7 +168,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// CHANGE PASSWORD (ተስተካክሏል: Hash ይደረጋል)
+// CHANGE PASSWORD
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -188,8 +179,7 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt); 
+    user.password = newPassword; 
     await user.save();
 
     res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
@@ -199,42 +189,25 @@ exports.changePassword = async (req, res) => {
 };
 
 // RESET PASSWORD
-const crypto = require('crypto');
-const User = require('../models/User');
-
-// RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
-
-    if (!password) {
-      return res.status(400).json({ message: 'እባክዎን አዲስ ፓስወርድ ያስገቡ!' });
-    }
-
-    // 1. Token-ኡን Hash አድርጎ በዳታቤዝ ውስጥ መፈለግ
-    const resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(token)
-      .digest('hex');
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
     const user = await User.findOne({
       resetPasswordToken,
-      resetPasswordExpires: { $gt: Date.now() } // ቶከኑ ጊዜው እንዳላበቃ ማረጋገጥ
+      resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፎበታል ወይም ትክክል አይደለም!' });
+      return res.status(400).json({ message: 'ሊንኩ ጊዜው አልፏል ወይም ትክክለኛ አይደለም' });
     }
 
-    // 2. አዲሱን ፓስወርድ መስጠት (user.save() ሲደረግ በ User.js ላይ ያለው bcrypt በራሱ Hash ያደርገዋል)
-    user.password = password;
+    user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
-    await user.save(); 
-
-    res.json({ message: 'ፓስወርድዎ በትክክል ተቀይሯል! አሁን መግባት ይችላሉ።' });
+    await user.save();
+    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል፤ አሁን መግባት ይችላሉ' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -257,7 +230,6 @@ exports.createProduct = async (req, res) => {
     const newProduct = new Product(productData);
     const savedProduct = await newProduct.save();
 
-    // 🚀 Activity Log መመዝገቢያ
     await ActivityLog.create({
       action: 'ADD',
       productName: savedProduct.name,
@@ -271,95 +243,78 @@ exports.createProduct = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
-// UPDATE PRODUCT (ከቀደመው እና አዲሱ ቫልዩ ጋር ዝርዝር መረጃ የሚመዘግብ)
-// UPDATE PRODUCT (Edit Modal-er sob field-er track korbe)
+
+// UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
-    // 1. Purono product fetch kora
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
 
     if (!oldProduct) {
-      return res.status(404).json({ message: 'Product pawoa jayni ba edit korar permission nei' });
+      return res.status(404).json({ message: 'Product not found or permission denied' });
     }
 
-    // 2. Product update kora
     const updated = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       req.body,
       { new: true, runValidators: true }
     );
 
-    // 3. Shob gulo field-er poriborton track korar array
     const changes = [];
 
-    // Product Name
     if (req.body.name !== undefined && oldProduct.name !== req.body.name) {
       changes.push(`Name: '${oldProduct.name}' ➔ '${req.body.name}'`);
     }
 
-    // Category
     if (req.body.category !== undefined && oldProduct.category !== req.body.category) {
       changes.push(`Category: '${oldProduct.category}' ➔ '${req.body.category}'`);
     }
 
-    // Sale Price
     if (req.body.price !== undefined && Number(oldProduct.price) !== Number(req.body.price)) {
       changes.push(`Sale Price: ${oldProduct.price} Birr ➔ ${req.body.price} Birr`);
     }
 
-    // Product Type
     if (req.body.productType !== undefined && oldProduct.productType !== req.body.productType) {
       changes.push(`Product Type: '${oldProduct.productType}' ➔ '${req.body.productType}'`);
     }
 
-    // Bought Price
     if (req.body.boughtPrice !== undefined && Number(oldProduct.boughtPrice) !== Number(req.body.boughtPrice)) {
       changes.push(`Bought Price: ${oldProduct.boughtPrice} Birr ➔ ${req.body.boughtPrice} Birr`);
     }
 
-    // Stock Threshold
     if (req.body.stockThreshold !== undefined && Number(oldProduct.stockThreshold) !== Number(req.body.stockThreshold)) {
       changes.push(`Stock Threshold: ${oldProduct.stockThreshold} ➔ ${req.body.stockThreshold}`);
     }
 
-    // Specific Type
     if (req.body.specificType !== undefined && oldProduct.specificType !== req.body.specificType) {
       changes.push(`Type: '${oldProduct.specificType}' ➔ '${req.body.specificType}'`);
     }
 
-    // Is Syrup
     if (req.body.isSyrup !== undefined && Boolean(oldProduct.isSyrup) !== Boolean(req.body.isSyrup)) {
       changes.push(`Is Syrup: ${oldProduct.isSyrup ? 'Yes' : 'No'} ➔ ${req.body.isSyrup ? 'Yes' : 'No'}`);
     }
 
-    // In Store Qty
     if (req.body.inStoreQty !== undefined && Number(oldProduct.inStoreQty) !== Number(req.body.inStoreQty)) {
       changes.push(`In Store Qty: ${oldProduct.inStoreQty} ➔ ${req.body.inStoreQty}`);
     }
 
-    // In Shop Qty / Quantity
     const newQty = req.body.quantity !== undefined ? req.body.quantity : req.body.inShopQty;
     const oldQty = oldProduct.quantity !== undefined ? oldProduct.quantity : oldProduct.inShopQty;
     if (newQty !== undefined && Number(oldQty) !== Number(newQty)) {
       changes.push(`In Shop Qty: ${oldQty} ➔ ${newQty}`);
     }
 
-    // Invoice No
     if (req.body.invoiceNo !== undefined && oldProduct.invoiceNo !== req.body.invoiceNo) {
       changes.push(`Invoice No: '${oldProduct.invoiceNo || '-'}' ➔ '${req.body.invoiceNo}'`);
     }
 
-    // Expiration Date
     if (req.body.expirationDate !== undefined && oldProduct.expirationDate !== req.body.expirationDate) {
       changes.push(`Expiration Date: '${oldProduct.expirationDate || '-'}' ➔ '${req.body.expirationDate}'`);
     }
 
-    // Details message toiri kora
     const changeDetails = changes.length > 0 
       ? `Updated: ${changes.join(', ')}` 
       : 'Updated product info (No major fields changed)';
 
-    // 4. ActivityLog entry toiri kora
     await ActivityLog.create({
       action: 'EDIT',
       productName: updated.name,
@@ -373,13 +328,13 @@ exports.updateProduct = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
 // DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
 
     if (product) {
-      // 🚀 Activity Log መመዝገቢያ
       await ActivityLog.create({
         action: 'DELETE',
         productName: product.name,
@@ -410,7 +365,6 @@ exports.createProductsBulk = async (req, res) => {
 
     const savedProducts = await Product.insertMany(formattedProducts);
 
-    // 🚀 Activity Log መመዝገቢያ
     await ActivityLog.create({
       action: 'ADD',
       productName: 'Bulk Import',
@@ -425,7 +379,7 @@ exports.createProductsBulk = async (req, res) => {
   }
 };
 
-// GET ACTIVITY LOGS (ይህንን አዲስ ኤንድፖይንት እዚሁ ጨምርለት!)
+// GET ACTIVITY LOGS
 exports.getActivityLogs = async (req, res) => {
   try {
     const logs = await ActivityLog.find({ userId: req.user.id }).sort({ timestamp: -1 });
@@ -573,7 +527,7 @@ exports.createOrder = async (req, res) => {
     const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'ቢያንስ አንድ ዕቃ ማስገባት ያስፈልጋል' });
+      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማስገባት ያስፈልጋል' });
     }
 
     let totalCostPrice = 0;
