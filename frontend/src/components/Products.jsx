@@ -296,7 +296,7 @@ function Products() {
         alert('የምርት መረጃው ተሻሽሏል!');
       } else {
         await axios.post(`${API_BASE_URL}/products`, payload, config);
-        alert('አዲስ ምርት በበጥቃሉ ተመዝግቧል!');
+        alert('አዲስ ምርት በጥሩ ሁኔታ ተመዝግቧል!');
       }
 
       handleCloseModal();

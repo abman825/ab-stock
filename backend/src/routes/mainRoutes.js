@@ -25,6 +25,9 @@ router.post('/forgot-password', controller.forgotPassword);
 // ==========================================
 router.use(authMiddleware);
 
+// Activity Logs Route (የነበረውን 404 ኤረር የሚያስተክለው አዲስ መስመር)
+router.get('/activity-logs', controller.getActivityLogs);
+
 // Bulk Import Routes
 if (controller.createProductsBulk) {
   router.post('/products/bulk', controller.createProductsBulk);

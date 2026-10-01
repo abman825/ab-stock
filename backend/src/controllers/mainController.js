@@ -6,6 +6,7 @@ const PurchaseOrder = require('../models/PurchaseOrders');
 const Transfer = require('../models/Transfer');
 const Order = require('../models/Order');
 const Customer = require('../models/Customer');
+const ActivityLog = require('../models/ActivityLog');
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -224,17 +225,29 @@ exports.getProducts = async (req, res) => {
   }
 };
 
+// CREATE PRODUCT
 exports.createProduct = async (req, res) => {
   try {
     const productData = { ...req.body, user: req.user.id };
     const newProduct = new Product(productData);
     const savedProduct = await newProduct.save();
+
+    // 🚀 Activity Log መመዝገቢያ
+    await ActivityLog.create({
+      action: 'ADD',
+      productName: savedProduct.name,
+      details: `Added new product ${savedProduct.name} with price ${savedProduct.price || 0}`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
+
     res.status(201).json(savedProduct);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
+// UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
     const updated = await Product.findOneAndUpdate(
@@ -244,8 +257,17 @@ exports.updateProduct = async (req, res) => {
     );
 
     if (!updated) {
-      return res.status(404).json({ message: 'ዕቃው አልተገኘም ወይም የማስተካከል ፈቃድ የለዎትም' });
+      return res.status(404).json({ message: 'እቃው አልተገኘም ወይም የማስተካከል ፈቃድ የለዎትም' });
     }
+
+    // 🚀 Activity Log መመዝገቢያ
+    await ActivityLog.create({
+      action: 'EDIT',
+      productName: updated.name,
+      details: `Updated product details for ${updated.name}`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
 
     res.json(updated);
   } catch (err) {
@@ -253,15 +275,29 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
+// DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
-    await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
-    res.json({ message: 'ዕቃው ተሰርዟል' });
+    const product = await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+
+    if (product) {
+      // 🚀 Activity Log መመዝገቢያ
+      await ActivityLog.create({
+        action: 'DELETE',
+        productName: product.name,
+        details: `Deleted product ${product.name}`,
+        userId: req.user.id,
+        employeeName: req.user.username || req.user.fullName || 'User'
+      });
+    }
+
+    res.json({ message: 'እቃው ተሰርዟል' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// BULK CREATE PRODUCTS
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
@@ -275,7 +311,27 @@ exports.createProductsBulk = async (req, res) => {
     }));
 
     const savedProducts = await Product.insertMany(formattedProducts);
+
+    // 🚀 Activity Log መመዝገቢያ
+    await ActivityLog.create({
+      action: 'ADD',
+      productName: 'Bulk Import',
+      details: `Imported ${savedProducts.length} products in bulk`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
+
     res.status(201).json(savedProducts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET ACTIVITY LOGS (ይህንን አዲስ ኤንድፖይንት እዚሁ ጨምርለት!)
+exports.getActivityLogs = async (req, res) => {
+  try {
+    const logs = await ActivityLog.find({ userId: req.user.id }).sort({ timestamp: -1 });
+    res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
