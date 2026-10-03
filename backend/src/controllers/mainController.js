@@ -257,7 +257,7 @@ exports.createProduct = async (req, res) => {
       quantity: quantity || 0,
       invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       expiryDate,
-      businessType: businessType || 'general',
+      businessType: businessType || 0,
       batchNumber,
       supplier,
       location
