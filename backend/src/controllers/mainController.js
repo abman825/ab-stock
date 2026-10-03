@@ -15,7 +15,21 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ==================== 1. USER & AUTHENTICATION ====================
-
+const normalizeBusinessType = (type) => {
+  if (!type) return 'pharmacy';
+  const strType = String(type).trim().toLowerCase();
+  
+  if (
+    strType === 'building' || 
+    strType === 'building_materials' || 
+    strType === 'buildingmaterials' ||
+    strType === 'hinza'
+  ) {
+    return 'building_materials';
+  }
+  
+  return 'pharmacy';
+};
 // FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
   try {
