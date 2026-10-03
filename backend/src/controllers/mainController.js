@@ -214,12 +214,9 @@ exports.resetPassword = async (req, res) => {
 };
 
 
+// ==================== 2. PRODUCTS CONTROLLER ====================
 
-// ==================== PRODUCTS CONTROLLER ====================
-
-// 1. አዲስ ምርት መፍጠር (Create Product)
-// backend/src/controllers/mainController.js
-
+// CREATE PRODUCT
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -230,7 +227,7 @@ exports.createProduct = async (req, res) => {
       price,
       stockThreshold,
       specificType,
-      unit, // <--- ከ req.body መጣ[cite: 7]
+      unit,
       isSyrup,
       inStoreQty,
       quantity,
@@ -240,24 +237,27 @@ exports.createProduct = async (req, res) => {
       batchNumber,
       supplier,
       location
-    } = req.body; //[cite: 7]
+    } = req.body;
+
+    // businessType 'general' ከተላከ ወይም ባዶ ከሆነ default 'pharmacy' ይሆናል
+    const validBusinessType = (businessType && businessType !== 'general') ? businessType : 'pharmacy';
 
     const newProduct = new Product({
-      user: req.user.id, //[cite: 7]
-      name, //[cite: 7]
-      category: category || 'General', //[cite: 7]
-      productType: productType || 'Stock', //[cite: 7]
-      boughtPrice: boughtPrice || 0, //[cite: 7]
-      price, //[cite: 7]
-      stockThreshold: stockThreshold || 0, //[cite: 7]
-      specificType: specificType || '', //[cite: 7]
-      unit: unit || req.body.selectUnit || '', // <--- እዚህ ጋር DB Schema ላይ ላለው unit Assignment ይሰጠዋል[cite: 6, 7]
+      user: req.user.id,
+      name,
+      category: category || 'General',
+      productType: productType || 'Stock',
+      boughtPrice: boughtPrice || 0,
+      price,
+      stockThreshold: stockThreshold || 0,
+      specificType: specificType || '',
+      unit: unit || req.body.selectUnit || '',
       isSyrup: isSyrup || false,
       inStoreQty: inStoreQty || 0,
       quantity: quantity || 0,
       invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       expiryDate,
-      businessType: businessType || 0,
+      businessType: validBusinessType,
       batchNumber,
       supplier,
       location
@@ -271,18 +271,15 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// backend/src/controllers/mainController.js
-
+// GET PRODUCTS
 exports.getProducts = async (req, res) => {
   try {
-    const { businessType } = req.query; // ከ Query String ይቀበላል
+    const { businessType } = req.query;
 
     let query = { user: req.user.id };
 
-    // businessType ከተላከ ዳታውን ከፍሎ እንዲያመጣ
     if (businessType) {
       if (businessType === 'pharmacy') {
-        // Pharmacy ከሆነ የሕንፃ መሣሪያ ያልሆኑትን ወይም ለፋርማሲ የተመዘገቡትን ብቻ ያመጣል
         query.businessType = 'pharmacy';
       } else if (
         businessType === 'building' || 
@@ -291,6 +288,9 @@ exports.getProducts = async (req, res) => {
       ) {
         query.businessType = 'building_materials';
       }
+    } else {
+      // Default ሆኖ ከተጠየቀ የ ፋርማሲ ምርቶችን ብቻ ይዞ ይመጣል
+      query.businessType = 'pharmacy';
     }
 
     const products = await Product.find(query).sort({ createdAt: -1 });
@@ -425,6 +425,7 @@ exports.createProductsBulk = async (req, res) => {
 
     const formattedProducts = products.map((prod) => ({
       ...prod,
+      businessType: prod.businessType || 'pharmacy',
       user: req.user.id
     }));
 
@@ -454,19 +455,38 @@ exports.getActivityLogs = async (req, res) => {
   }
 };
 
+
 // ==================== 3. CATEGORIES ====================
+
+// GET CATEGORIES (በ businessType Filter የተደረገ)
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ user: req.user.id });
+    const businessType = req.query.businessType || 'pharmacy';
+
+    const categories = await Category.find({ 
+      user: req.user.id,
+      businessType: businessType
+    }).sort({ createdAt: -1 });
+
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// CREATE CATEGORY
 exports.createCategory = async (req, res) => {
   try {
-    const newCategory = new Category({ ...req.body, user: req.user.id });
+    const { categoryId, name, businessType, productsCount } = req.body;
+
+    const newCategory = new Category({
+      categoryId,
+      name,
+      productsCount: productsCount || 0,
+      businessType: businessType || 'pharmacy',
+      user: req.user.id
+    });
+
     const saved = await newCategory.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -474,6 +494,7 @@ exports.createCategory = async (req, res) => {
   }
 };
 
+// UPDATE CATEGORY
 exports.updateCategory = async (req, res) => {
   try {
     const updated = await Category.findOneAndUpdate(
@@ -507,6 +528,7 @@ exports.deleteCategory = async (req, res) => {
   }
 };
 
+// BULK CREATE CATEGORIES
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
@@ -516,6 +538,7 @@ exports.createCategoriesBulk = async (req, res) => {
 
     const formattedCategories = categories.map((cat) => ({
       ...cat,
+      businessType: cat.businessType || 'pharmacy',
       user: req.user.id
     }));
 
@@ -525,6 +548,7 @@ exports.createCategoriesBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ==================== 4. SUPPLIERS ====================
 exports.getSuppliers = async (req, res) => {
@@ -579,6 +603,7 @@ exports.deleteSupplier = async (req, res) => {
   }
 };
 
+
 // ==================== 5. PURCHASE ORDERS ====================
 exports.getPurchases = async (req, res) => {
   try {
@@ -623,6 +648,7 @@ exports.createPurchase = async (req, res) => {
   }
 };
 
+
 // ==================== 6. TRANSFERS ====================
 exports.getTransfers = async (req, res) => {
   try {
@@ -642,6 +668,7 @@ exports.createTransfer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ==================== 7. ORDERS (POS & SALES) ====================
 exports.getOrders = async (req, res) => {
@@ -783,6 +810,7 @@ exports.getTodaySalesSummary = async (req, res) => {
   }
 };
 
+
 // ==================== 8. CUSTOMERS ====================
 exports.getCustomers = async (req, res) => {
   try {
@@ -802,6 +830,7 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
