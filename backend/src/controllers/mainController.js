@@ -444,16 +444,62 @@ exports.createProductsBulk = async (req, res) => {
   }
 };
 
-// GET ACTIVITY LOGS
+// ==================== GET ACTIVITY LOGS ====================
+// በ businessType ፊልተር በማድረግ የቅርብ ጊዜዎቹን የተግባር እንቅስቃሴዎች ያመጣል
 exports.getActivityLogs = async (req, res) => {
   try {
-    const logs = await ActivityLog.find({ userId: req.user.id }).sort({ timestamp: -1 });
-    res.json(logs);
+    const { businessType } = req.query;
+
+    let query = { userId: req.user.id };
+
+    // businessType ከተላከ በዛ መሰረት ፊልተር ያደርጋል
+    if (businessType) {
+      if (businessType === 'pharmacy') {
+        query.businessType = 'pharmacy';
+      } else if (
+        businessType === 'building' || 
+        businessType === 'building_materials' || 
+        businessType === 'buildingMaterials'
+      ) {
+        query.businessType = 'building_materials';
+      }
+    } else {
+      // Default ሆኖ ከተጠየቀ የ ፋርማሲ እንቅስቃሴዎችን ያመጣል
+      query.businessType = 'pharmacy';
+    }
+
+    const logs = await ActivityLog.find(query)
+      .populate('userId', 'fullName username email')
+      .sort({ timestamp: -1, createdAt: -1 });
+
+    res.status(200).json(logs);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error fetching activity logs:', err);
+    res.status(500).json({ message: 'የእንቅስቃሴ መዝገቦችን ማምጣት አልተቻለም', error: err.message });
   }
 };
 
+// ==================== CREATE ACTIVITY LOG (HELPER) ====================
+// በሌሎች Controller-ዎች (ለምሳሌ Product Create, Edit, Delete) ውስጥ ለመጥራት የሚያገለግል Helper Function
+exports.logActivity = async ({ action, productName, details, userId, employeeName, businessType }) => {
+  try {
+    const validBusinessType = (businessType && businessType !== 'general') ? businessType : 'pharmacy';
+
+    const newLog = new ActivityLog({
+      action: action ? action.toUpperCase() : 'INFO',
+      productName: productName || '-',
+      details: details || '',
+      userId: userId,
+      employeeName: employeeName || 'System User',
+      businessType: validBusinessType,
+      timestamp: new Date()
+    });
+
+    await newLog.save();
+  } catch (err) {
+    console.error('Error recording activity log:', err.message);
+  }
+};
 // ==================== 3. CATEGORIES ====================
 exports.getCategories = async (req, res) => {
   try {
