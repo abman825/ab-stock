@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ProductModal from './ProductModal';
 
-// Base URL setup
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
@@ -12,7 +12,10 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Authorization Header
+  const [businessType, setBusinessType] = useState(
+    localStorage.getItem('businessType') || 'pharmacy'
+  );
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -21,10 +24,8 @@ function Products() {
     };
   };
 
-  // State for Editing
   const [editingId, setEditingId] = useState(null);
 
-  // Form State
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -33,6 +34,7 @@ function Products() {
     productType: 'Stock',
     stockThreshold: '',
     specificType: '',
+    unit: '',
     isSyrup: false,
     inStoreQty: 0,
     quantity: 0,
@@ -40,12 +42,21 @@ function Products() {
     expiryDate: ''
   });
 
-  // Fetch Products & Categories
+  useEffect(() => {
+    const handleModeChange = () => {
+      const currentMode = localStorage.getItem('businessType') || 'pharmacy';
+      setBusinessType(currentMode);
+    };
+
+    window.addEventListener('businessTypeChanged', handleModeChange);
+    return () => window.removeEventListener('businessTypeChanged', handleModeChange);
+  }, []);
+
   const fetchData = async () => {
     try {
       const config = { headers: getAuthHeaders() };
       const [resProducts, resCategories] = await Promise.all([
-        axios.get(`${API_BASE_URL}/products`, config),
+        axios.get(`${API_BASE_URL}/products`, config), // Backend Schema ላይ businessType ስለሌለ በቀጥታ products መጥራት ይሻላል
         axios.get(`${API_BASE_URL}/categories`, config)
       ]);
 
@@ -65,9 +76,8 @@ function Products() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [businessType]);
 
-  // CSV Import Handler
   const handleImportCSV = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -102,7 +112,8 @@ function Products() {
               expiryDate: validExpiryDate,
               stockThreshold: Number(cleanValues[9]) || 0,
               specificType: cleanValues[10] || '',
-              isSyrup: cleanValues[11] === 'true' || cleanValues[11] === 'Yes'
+              unit: cleanValues[11] || '',
+              isSyrup: cleanValues[12] === 'true' || cleanValues[12] === 'Yes'
             });
           }
         }
@@ -111,21 +122,20 @@ function Products() {
           await axios.post(`${API_BASE_URL}/products/bulk`, importedProducts, {
             headers: getAuthHeaders()
           });
-          alert('CSV በጅምላ ገብቷል!');
+          alert('CSV file imported successfully!');
           fetchData();
         } else {
-          alert('በ CSV ፋይሉ ውስጥ ትክክለኛ መረጃ አልተገኘም!');
+          alert('No valid data found in CSV file!');
         }
       } catch (err) {
         console.error('Error importing CSV:', err.response ? err.response.data : err.message);
-        alert(`CSV በማስገባት ላይ ስህተት ተፈጽሟል: ${err.response?.data?.message || 'Server Error (500)'}`);
+        alert(`CSV import failed: ${err.response?.data?.message || 'Server Error'}`);
       }
       e.target.value = null;
     };
     reader.readAsText(file);
   };
 
-  // Edit Click Handler
   const handleEditClick = (product) => {
     setEditingId(product._id);
     
@@ -139,9 +149,10 @@ function Products() {
       category: product.category || (categories.length > 0 ? categories[0].name : 'General'),
       productType: product.productType || 'Stock',
       boughtPrice: product.boughtPrice !== undefined ? product.boughtPrice : '',
-      price: product.price || '',
+      price: product.price || product.salePrice || '',
       stockThreshold: product.stockThreshold !== undefined ? product.stockThreshold : '',
       specificType: product.specificType || product.type || '',
+      unit: product.unit || '', // Backend schema ላይ ባለው መሠረት[cite: 6]
       isSyrup: product.isSyrup || false,
       inStoreQty: product.inStoreQty || product.inStore || 0,
       quantity: product.quantity || product.inShop || 0,
@@ -151,7 +162,6 @@ function Products() {
     setShowModal(true);
   };
 
-  // Modal Close & Reset
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
@@ -163,6 +173,7 @@ function Products() {
       price: '',
       stockThreshold: '',
       specificType: '',
+      unit: '',
       isSyrup: false,
       inStoreQty: 0,
       quantity: 0,
@@ -171,7 +182,6 @@ function Products() {
     });
   };
 
-  // Filter Logic
   const filteredProducts = products.filter((p) => {
     const qty = p.quantity ?? p.inShop ?? 0;
     const matchesSearch = p.name ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
@@ -183,49 +193,68 @@ function Products() {
     return true;
   });
 
-  // Delete Product
   const handleDelete = async (id) => {
-    if (window.confirm('ይህንን ምርት ለማጥፋት እርግጠኛ ነዎት?')) {
+    if (window.confirm('Are you sure you want to delete this product?')) {
       try {
         await axios.delete(`${API_BASE_URL}/products/${id}`, {
           headers: getAuthHeaders()
         });
-        alert('ምርቱ በትክክል ተሰርዟል!');
+        alert('Product deleted successfully!');
         fetchData();
       } catch (err) {
         console.error('Error deleting product:', err);
-        alert('ምርቱን ማጥፋት አልተቻለም!');
+        alert('Failed to delete product!');
       }
     }
   };
 
-  // Export CSV
   const handleExport = () => {
     if (!filteredProducts || filteredProducts.length === 0) {
-      alert('የሚወጣ (Export የሚደረግ) ምርት የለም!');
+      alert('No products available to export!');
       return;
     }
 
-    const headers = ["Name", "Category", "Product Type", "Specific Type", "Is Syrup", "Bought Price", "Sale Price", "Stock Threshold", "In Store", "In Shop", "Invoice #", "Expiry Date"];
+    const isBuilding = businessType === 'building' || businessType === 'building_materials';
+
+    const headers = isBuilding
+      ? ["Name", "Category", "Product Type", "Material Type", "Unit", "Bought Price", "Sale Price", "Stock Threshold", "In Store", "In Shop", "Invoice #"]
+      : ["Name", "Category", "Product Type", "Specific Type", "Is Syrup", "Bought Price", "Sale Price", "Stock Threshold", "In Store", "In Shop", "Invoice #", "Expiry Date"];
     
     const csvRows = [
       headers.join(','),
       ...filteredProducts.map((p) => {
         const exp = p.expiryDate || p.expirationDate ? new Date(p.expiryDate || p.expirationDate).toLocaleDateString() : 'N/A';
-        return [
-          `"${p.name || ''}"`,
-          `"${p.category || ''}"`,
-          `"${p.productType || 'Stock'}"`,
-          `"${p.specificType || p.type || ''}"`,
-          p.isSyrup ? 'Yes' : 'No',
-          p.boughtPrice || 0,
-          p.price || 0,
-          p.stockThreshold || 0,
-          p.inStoreQty || p.inStore || 0,
-          p.quantity || p.inShop || 0,
-          `"${p.invoiceNo || ''}"`,
-          `"${exp}"`
-        ].join(',');
+        
+        if (isBuilding) {
+          return [
+            `"${p.name || ''}"`,
+            `"${p.category || ''}"`,
+            `"${p.productType || 'Stock'}"`,
+            `"${p.specificType || p.type || ''}"`,
+            `"${p.unit || ''}"`,
+            p.boughtPrice || 0,
+            p.price || p.salePrice || 0,
+            p.stockThreshold || 0,
+            p.inStoreQty || p.inStore || 0,
+            p.quantity || p.inShop || 0,
+            `"${p.invoiceNo || ''}"`
+          ].join(',');
+        } else {
+          return [
+            `"${p.name || ''}"`,
+            `"${p.category || ''}"`,
+            `"${p.productType || 'Stock'}"`,
+            `"${p.specificType || p.type || ''}"`,
+            p.isSyrup ? 'Yes' : 'No',
+            p.boughtPrice || 0,
+            p.price || p.salePrice || 0,
+            p.stockThreshold || 0,
+            p.inStoreQty || p.inStore || 0,
+            p.quantity || p.inShop || 0,
+            `"${p.invoiceNo || ''}"`,
+            `"${exp}"`
+          ].join(',');
+        }
       })
     ];
 
@@ -241,22 +270,21 @@ function Products() {
     document.body.removeChild(link);
   };
 
-  // Form Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name || formData.name.trim() === '') {
-      alert('እባክዎን Product Name ያስገቡ!');
+      alert('Please enter product name!');
       return;
     }
 
     if (!formData.category || formData.category.trim() === '') {
-      alert('እባክዎን Category ይምረጡ!');
+      alert('Please select a category!');
       return;
     }
 
     if (formData.boughtPrice === '' || Number(formData.boughtPrice) < 0) {
-      alert('እባክዎን ትክክለኛ የገዢ ዋጋ (Bought Price) ያስገቡ!');
+      alert('Please enter a valid bought price!');
       return;
     }
 
@@ -265,38 +293,34 @@ function Products() {
         ? Number(formData.stockThreshold) 
         : 0;
 
+      // Controller በሚጠብቀው መልኩ Payload ማዘጋጀት[cite: 7]
       const payload = {
         name: formData.name.trim(),
         category: formData.category,
         productType: formData.productType,
-        specificType: formData.specificType || 'Other',
-        type: formData.specificType || 'Other',
+        specificType: formData.specificType || '',
+        unit: formData.unit || '', // Controller unit ን በግልጽ ይቀበላል[cite: 7]
         isSyrup: Boolean(formData.isSyrup),
         boughtPrice: Number(formData.boughtPrice),
         price: Number(formData.price),
-        salePrice: Number(formData.price),
         stockThreshold: isNaN(parsedThreshold) ? 0 : parsedThreshold,
         inStoreQty: Number(formData.inStoreQty) || 0,
-        inStore: Number(formData.inStoreQty) || 0,
         quantity: Number(formData.quantity) || 0,
-        inShop: Number(formData.quantity) || 0,
         invoiceNo: formData.invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
       };
 
-      // Handle Expiration Date properly
       if (formData.expiryDate && formData.expiryDate.trim() !== '') {
         payload.expiryDate = new Date(formData.expiryDate).toISOString();
-        payload.expirationDate = payload.expiryDate;
       }
 
       const config = { headers: getAuthHeaders() };
 
       if (editingId) {
         await axios.put(`${API_BASE_URL}/products/${editingId}`, payload, config);
-        alert('የምርት መረጃው ተሻሽሏል!');
+        alert('Product updated successfully!');
       } else {
         await axios.post(`${API_BASE_URL}/products`, payload, config);
-        alert('አዲስ ምርት በጥሩ ሁኔታ ተመዝግቧል!');
+        alert('Product saved successfully!');
       }
 
       handleCloseModal();
@@ -304,14 +328,15 @@ function Products() {
     } catch (err) {
       console.error('Error saving product:', err.response ? err.response.data : err.message);
       const serverMsg = err.response?.data?.message || err.response?.data?.error || JSON.stringify(err.response?.data);
-      alert(`ምርቱን መመዝገብ አልተቻለም: ${serverMsg || 'Server Validation Error'}`);
+      alert(`Failed to save product: ${serverMsg || 'Server Error'}`);
     }
   };
+
+  const isBuilding = businessType === 'building' || businessType === 'building_materials';
 
   return (
     <div style={{ padding: '15px', flex: 1, background: '#f8f9fa', boxSizing: 'border-box', width: '100%' }}>
       
-      {/* Responsive Styles Injection */}
       <style>{`
         .products-header {
           display: flex;
@@ -359,21 +384,6 @@ function Products() {
           font-size: 12px;
           min-width: 850px;
         }
-        .form-grid-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-        .modal-content {
-          background: #fff;
-          padding: 20px;
-          border-radius: 12px;
-          width: 100%;
-          max-width: 480px;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-sizing: border-box;
-        }
 
         @media (max-width: 600px) {
           .products-header {
@@ -399,15 +409,17 @@ function Products() {
             width: 100%;
             justify-content: space-between;
           }
-          .form-grid-2 {
-            grid-template-columns: 1fr;
-          }
         }
       `}</style>
 
       {/* Top Header */}
       <div className="products-header">
-        <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Product Management</h2>
+        <div>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Product Management</h2>
+          <span style={{ fontSize: '11px', color: '#0d6efd', fontWeight: 'bold', textTransform: 'uppercase' }}>
+            {isBuilding ? '🏗️ Building Materials Mode' : '💊 Pharmacy Mode'}
+          </span>
+        </div>
         
         <div className="header-actions">
           <label style={{ 
@@ -441,6 +453,7 @@ function Products() {
                 price: '',
                 stockThreshold: '',
                 specificType: '',
+                unit: '',
                 isSyrup: false,
                 inStoreQty: 0,
                 quantity: 0,
@@ -494,20 +507,29 @@ function Products() {
               <th style={{ padding: '10px' }}>NAME</th>
               <th style={{ padding: '10px' }}>CATEGORY</th>
               <th style={{ padding: '10px' }}>PROD TYPE</th>
-              <th style={{ padding: '10px' }}>TYPE</th>
+              
+              {isBuilding ? (
+                <>
+                  <th style={{ padding: '10px' }}>MATERIAL TYPE</th>
+                  <th style={{ padding: '10px' }}>UNIT</th>
+                </>
+              ) : (
+                <th style={{ padding: '10px' }}>SPECIFIC TYPE</th>
+              )}
+
               <th style={{ padding: '10px' }}>SALE PRICE</th>
               <th style={{ padding: '10px' }}>BOUGHT PRICE</th>
               <th style={{ padding: '10px' }}>IN STORE</th>
               <th style={{ padding: '10px' }}>IN SHOP</th>
               <th style={{ padding: '10px' }}>INVOICE #</th>
-              <th style={{ padding: '10px' }}>EXPIRY DATE</th>
+              {!isBuilding && <th style={{ padding: '10px' }}>EXPIRY DATE</th>}
               <th style={{ padding: '10px' }}>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+                <td colSpan={isBuilding ? "11" : "10"} style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
                   No products found.
                 </td>
               </tr>
@@ -520,19 +542,36 @@ function Products() {
                     <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>{p.name}</td>
                     <td style={{ padding: '8px 10px' }}>{p.category}</td>
                     <td style={{ padding: '8px 10px' }}>{p.productType || 'Stock'}</td>
-                    <td style={{ padding: '8px 10px' }}>{p.specificType || p.type || 'N/A'}</td>
-                    <td style={{ padding: '8px 10px' }}>{p.price || p.salePrice} Birr</td>
+                    
+                    {isBuilding ? (
+                      <>
+                        <td style={{ padding: '8px 10px', color: '#0d6efd', fontWeight: '500' }}>
+                          {p.specificType || 'N/A'}
+                        </td>
+                        <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>
+                          {p.unit || '-'}
+                        </td>
+                      </>
+                    ) : (
+                      <td style={{ padding: '8px 10px' }}>{p.specificType || 'N/A'}</td>
+                    )}
+
+                    <td style={{ padding: '8px 10px' }}>{p.price} Birr</td>
                     <td style={{ padding: '8px 10px', color: '#28a745', fontWeight: 'bold' }}>{p.boughtPrice ? `${p.boughtPrice} Birr` : '0 Birr'}</td>
-                    <td style={{ padding: '8px 10px' }}>{p.inStoreQty ?? p.inStore ?? 0}</td>
+                    <td style={{ padding: '8px 10px' }}>{p.inStoreQty ?? 0}</td>
                     <td style={{ padding: '8px 10px' }}>
                       <span style={{ background: qty < (p.stockThreshold || 5) ? '#f8d7da' : '#d1e7dd', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
                         {qty}
                       </span>
                     </td>
                     <td style={{ padding: '8px 10px', color: '#6c757d' }}>{p.invoiceNo || 'N/A'}</td>
-                    <td style={{ padding: '8px 10px', color: exp ? '#fd7e14' : '#6c757d', fontWeight: exp ? 'bold' : 'normal' }}>
-                      {exp ? new Date(exp).toLocaleDateString() : 'N/A'}
-                    </td>
+                    
+                    {!isBuilding && (
+                      <td style={{ padding: '8px 10px', color: exp ? '#fd7e14' : '#6c757d', fontWeight: exp ? 'bold' : 'normal' }}>
+                        {exp ? new Date(exp).toLocaleDateString() : 'N/A'}
+                      </td>
+                    )}
+
                     <td style={{ padding: '8px 10px', display: 'flex', gap: '5px' }}>
                       <button
                         onClick={() => handleEditClick(p)}
@@ -565,141 +604,18 @@ function Products() {
         </button>
       </div>
 
-      {/* Add / Edit Product Modal */}
-      {showModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
-          <div className="modal-content">
-            <h3 style={{ textAlign: 'center', marginBottom: '15px' }}>
-              {editingId ? 'Edit Product' : 'Add New Product'}
-            </h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              
-              {/* Product Name */}
-              <div>
-                <label style={{ fontSize: '11px', color: '#6c757d' }}>Product Name *</label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-              </div>
+      {/* Modal */}
+      <ProductModal
+        showModal={showModal}
+        editingId={editingId}
+        formData={formData}
+        setFormData={setFormData}
+        categories={categories}
+        businessType={businessType}
+        handleCloseModal={handleCloseModal}
+        handleSubmit={handleSubmit}
+      />
 
-              {/* Category */}
-              <div>
-                <label style={{ fontSize: '11px', color: '#6c757d' }}>Category *</label>
-                <select
-                  required
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
-                >
-                  {categories.length === 0 ? (
-                    <option value="General">General</option>
-                  ) : (
-                    categories.map((cat) => (
-                      <option key={cat._id || cat.id} value={cat.name}>
-                        {cat.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              {/* Sale Price & Product Type */}
-              <div className="form-grid-2">
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>Sale Price *</label>
-                  <input type="number" required value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>Product Type *</label>
-                  <select
-                    value={formData.productType}
-                    onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
-                  >
-                    <option value="Stock">Stock</option>
-                    <option value="Service">Service</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Bought Price & Stock Threshold */}
-              <div className="form-grid-2">
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>Bought Price (Birr) *</label>
-                  <input type="number" required value={formData.boughtPrice} onChange={(e) => setFormData({ ...formData, boughtPrice: e.target.value })} placeholder="Required" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>Stock Threshold (optional)</label>
-                  <input type="number" value={formData.stockThreshold} onChange={(e) => setFormData({ ...formData, stockThreshold: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-                </div>
-              </div>
-
-              {/* Specific Type Dropdown */}
-              <div>
-                <label style={{ fontSize: '11px', color: '#6c757d' }}>Type (optional)</label>
-                <select
-                  value={formData.specificType}
-                  onChange={(e) => setFormData({ ...formData, specificType: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
-                >
-                  <option value="">Select Type</option>
-                  <option value="Syrup">Syrup</option>
-                  <option value="Suspension">Suspension</option>
-                  <option value="Tablet">Tablet</option>
-                  <option value="Powder">Powder</option>
-                  <option value="Cream">Cream</option>
-                  <option value="Ointment">Ointment</option>
-                  <option value="Medical Device">Medical Device</option>
-                  <option value="Capsule">Capsule</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              {/* Is This Syrup Checkbox */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="checkbox"
-                  id="isSyrup"
-                  checked={formData.isSyrup}
-                  onChange={(e) => setFormData({ ...formData, isSyrup: e.target.checked })}
-                />
-                <label htmlFor="isSyrup" style={{ fontSize: '12px', color: '#6c757d', cursor: 'pointer' }}>Is This Syrup</label>
-              </div>
-
-              {/* In Store & In Shop Quantities */}
-              <div className="form-grid-2">
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>In Store Qty</label>
-                  <input type="number" value={formData.inStoreQty} onChange={(e) => setFormData({ ...formData, inStoreQty: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>In Shop Qty *</label>
-                  <input type="number" required value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-                </div>
-              </div>
-
-              {/* Invoice & Expiration Date */}
-              <div className="form-grid-2">
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>Invoice # (Optional)</label>
-                  <input type="text" placeholder="INV-XXXXX" value={formData.invoiceNo} onChange={(e) => setFormData({ ...formData, invoiceNo: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6c757d' }}>Expiration Date</label>
-                  <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }} />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={handleCloseModal} style={{ background: '#6c757d', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Close</button>
-                <button type="submit" style={{ background: '#0d6efd', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                  {editingId ? 'Update Product' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

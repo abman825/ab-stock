@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  // የመዘገበውን ተጠቃሚ ለመለየት (Multi-User Support)
+  // የመዝጋቢውን ተጠቃሚ ለመለየት (Multi-User Support)
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -14,6 +14,7 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   stockThreshold: { type: Number, default: 0 },
   specificType: { type: String, default: '' },
+  unit: { type: String }, 
   isSyrup: { type: Boolean, default: false },
   inStoreQty: { type: Number, default: 0 },
   quantity: { type: Number, required: true, default: 0 },

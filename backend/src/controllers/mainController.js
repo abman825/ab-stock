@@ -213,34 +213,69 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// ==================== 2. PRODUCTS ====================
-exports.getProducts = async (req, res) => {
+
+
+// ==================== PRODUCTS CONTROLLER ====================
+
+// 1. አዲስ ምርት መፍጠር (Create Product)
+// backend/src/controllers/mainController.js
+
+exports.createProduct = async (req, res) => {
   try {
-    const products = await Product.find({ user: req.user.id }); 
-    res.json(products);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const {
+      name,
+      category,
+      productType,
+      boughtPrice,
+      price,
+      stockThreshold,
+      specificType,
+      unit, // <--- ከ req.body መጣ[cite: 7]
+      isSyrup,
+      inStoreQty,
+      quantity,
+      invoiceNo,
+      expiryDate,
+      batchNumber,
+      supplier,
+      location
+    } = req.body; //[cite: 7]
+
+    const newProduct = new Product({
+      user: req.user.id, //[cite: 7]
+      name, //[cite: 7]
+      category: category || 'General', //[cite: 7]
+      productType: productType || 'Stock', //[cite: 7]
+      boughtPrice: boughtPrice || 0, //[cite: 7]
+      price, //[cite: 7]
+      stockThreshold: stockThreshold || 0, //[cite: 7]
+      specificType: specificType || '', //[cite: 7]
+      unit: unit || req.body.selectUnit || '', // <--- እዚህ ጋር DB Schema ላይ ላለው unit Assignment ይሰጠዋል[cite: 6, 7]
+      isSyrup: isSyrup || false,
+      inStoreQty: inStoreQty || 0,
+      quantity: quantity || 0,
+      invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      expiryDate,
+      batchNumber,
+      supplier,
+      location
+    });
+
+    const savedProduct = await newProduct.save();
+    res.status(201).json(savedProduct);
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// CREATE PRODUCT
-exports.createProduct = async (req, res) => {
+// 2. ሁሉንም ምርቶች ማምጣት (Get All Products)
+exports.getProducts = async (req, res) => {
   try {
-    const productData = { ...req.body, user: req.user.id };
-    const newProduct = new Product(productData);
-    const savedProduct = await newProduct.save();
-
-    await ActivityLog.create({
-      action: 'ADD',
-      productName: savedProduct.name,
-      details: `Added new product ${savedProduct.name} with price ${savedProduct.price || 0}`,
-      userId: req.user.id,
-      employeeName: req.user.username || req.user.fullName || 'User'
-    });
-
-    res.status(201).json(savedProduct);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+    const products = await Product.find({ user: req.user.id }).sort({ createdAt: -1 });
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json({ message: "ምርቶችን ማምጣት አልተቻለም", error: error.message });
   }
 };
 
@@ -287,6 +322,14 @@ exports.updateProduct = async (req, res) => {
 
     if (req.body.specificType !== undefined && oldProduct.specificType !== req.body.specificType) {
       changes.push(`Type: '${oldProduct.specificType}' ➔ '${req.body.specificType}'`);
+    }
+
+    if (req.body.unit !== undefined && oldProduct.unit !== req.body.unit) {
+      changes.push(`Unit: '${oldProduct.unit || '-'}' ➔ '${req.body.unit}'`);
+    }
+
+    if (req.body.businessType !== undefined && oldProduct.businessType !== req.body.businessType) {
+      changes.push(`Business Type: '${oldProduct.businessType}' ➔ '${req.body.businessType}'`);
     }
 
     if (req.body.isSyrup !== undefined && Boolean(oldProduct.isSyrup) !== Boolean(req.body.isSyrup)) {
@@ -344,7 +387,7 @@ exports.deleteProduct = async (req, res) => {
       });
     }
 
-    res.json({ message: 'እቃው ተሰርዟል' });
+    res.json({ message: 'Product deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -355,7 +398,7 @@ exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
     if (!Array.isArray(products) || products.length === 0) {
-      return res.status(400).json({ message: 'አስፈላጊው የዳታ ስብስብ (Array) አልተላከም!' });
+      return res.status(400).json({ message: 'Data array is required for bulk creation!' });
     }
 
     const formattedProducts = products.map((prod) => ({

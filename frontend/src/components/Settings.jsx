@@ -13,6 +13,11 @@ function Settings() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
 
+  // የንግድ ዓይነት State (በነባሪነት ከ localStorage ወይም pharmacy ይጀምራል)
+  const [businessType, setBusinessType] = useState(
+    localStorage.getItem('businessType') || 'pharmacy'
+  );
+
   const [profileData, setProfileData] = useState({
     username: '',
     fullName: '',
@@ -35,7 +40,7 @@ function Settings() {
     };
   };
 
-  // የፕሮፋይል መረጃን ከባክኤንድ የመቀበል ሥራ
+  // የፕሮፋይል መረጃን ከባክኤንድ መቀበል
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -50,6 +55,12 @@ function Settings() {
             phone: res.data.phone || '',
             role: res.data.role || 'User'
           });
+
+          // በዳታቤዝ ውስጥ የተቀመጠ የንግድ ዓይነት ካለ መጫን
+          if (res.data.businessType) {
+            setBusinessType(res.data.businessType);
+            localStorage.setItem('businessType', res.data.businessType);
+          }
         }
       } catch (err) {
         console.error('የተጠቃሚ መረጃን መጫን አልተቻለም:', err);
@@ -66,13 +77,13 @@ function Settings() {
     setLoading(true);
 
     try {
-      const res = await axios.put(
+      await axios.put(
         `${API_BASE_URL}/auth/update-profile`,
         profileData,
         { headers: getAuthHeaders() }
       );
 
-      setMessage({ type: 'success', text: 'ፕሮፋይልዎ በተሳካ ሁኔታ ተዘምኗል!' });
+      setMessage({ type: 'success', text: 'ፕሮፋይሎ በቴሳካ ሁኔታ ተዘምኗል!' });
       
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...storedUser, ...profileData }));
@@ -85,6 +96,27 @@ function Settings() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // የንግድ ዓይነት (Business Mode) መቀየሪያ
+  const handleSaveBusinessType = async (type) => {
+    setBusinessType(type);
+    localStorage.setItem('businessType', type);
+    
+    // በስርዓቱ ውስጥ ለውጡ እንዲታወቅ Event Dispatch እናደርጋለን
+    window.dispatchEvent(new Event('businessTypeChanged'));
+
+    try {
+      await axios.put(
+        `${API_BASE_URL}/auth/update-profile`,
+        { businessType: type },
+        { headers: getAuthHeaders() }
+      );
+      setMessage({ type: 'success', text: 'የንግድ ዓይነት በስኬት ተቀይሯል!' });
+    } catch (err) {
+      console.error('Business mode update error:', err);
+      setMessage({ type: 'success', text: 'የንግድ ዓይነት በአካባቢው (Locally) ተቀይሯል!' });
     }
   };
 
@@ -104,14 +136,14 @@ function Settings() {
     }
 
     if (passwordData.newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'አዲሱ ፓስወርድ ቢያንስ 6 ቁምፊዎች (Characters) መሆን አለበት!' });
+      setMessage({ type: 'error', text: 'አዲሱ ፓስወርድ ቢያንስ 6 ፊደላት/ቁጥሮች መሆን አለበት!' });
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await axios.put(
+      await axios.put(
         `${API_BASE_URL}/auth/change-password`,
         {
           currentPassword: passwordData.currentPassword,
@@ -120,7 +152,7 @@ function Settings() {
         { headers: getAuthHeaders() }
       );
 
-      setMessage({ type: 'success', text: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!' });
+      setMessage({ type: 'success', text: 'ፓስወርዶ በተሳካ ሁኔታ ተቀይሯል!' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       console.error(err);
@@ -144,7 +176,7 @@ function Settings() {
           margin: 0 auto;
         }
         .settings-sidebar {
-          width: 220px;
+          width: 240px;
           display: flex;
           flex-direction: column;
           gap: 8px;
@@ -173,6 +205,20 @@ function Settings() {
           cursor: pointer;
           transition: all 0.2s ease;
         }
+        .mode-card {
+          border: 2px solid #e9ecef;
+          border-radius: 10px;
+          padding: 20px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+        .mode-card.active {
+          border-color: #0d6efd;
+          background-color: #f0f7ff;
+        }
         @media (max-width: 768px) {
           .settings-container {
             flex-direction: column;
@@ -197,7 +243,7 @@ function Settings() {
           የአካውንት ማስተካከያ (Account Settings)
         </h2>
         <p style={{ fontSize: '13px', color: '#6c757d', margin: 0 }}>
-          የግል መረጃዎን እና የደህንነት ቅንብሮችን እዚህ ያስተካክሉ።
+          የግል መረጃዎን፣ የንግድ ዓይነትዎን እና የደህንነት ቅንብሮችን እዚህ ያስተካክሉ።
         </p>
       </div>
 
@@ -220,6 +266,19 @@ function Settings() {
 
           <button
             className="tab-button"
+            onClick={() => { setActiveTab('businessMode'); setMessage({ type: '', text: '' }); }}
+            style={{
+              backgroundColor: activeTab === 'businessMode' ? '#0d6efd' : '#ffffff',
+              color: activeTab === 'businessMode' ? '#ffffff' : '#495057',
+              boxShadow: activeTab === 'businessMode' ? '0 2px 6px rgba(13,110,253,0.3)' : 'none',
+              border: activeTab === 'businessMode' ? 'none' : '1px solid #dee2e6'
+            }}
+          >
+            🏢 የንግድ ዓይነት (Business Mode)
+          </button>
+
+          <button
+            className="tab-button"
             onClick={() => { setActiveTab('security'); setMessage({ type: '', text: '' }); }}
             style={{
               backgroundColor: activeTab === 'security' ? '#0d6efd' : '#ffffff',
@@ -232,7 +291,7 @@ function Settings() {
           </button>
         </div>
 
-        {/* የዋናው ይዘት ቦታ (Main Content Area) */}
+        {/* ዋናው ይዘት ቦታ (Main Content Area) */}
         <div className="settings-content">
           
           {/* የስኬት ወይም የስህተት መልዕክት ማሳያ */}
@@ -335,13 +394,57 @@ function Settings() {
                     opacity: loading ? 0.7 : 1
                   }}
                 >
-                  {loading ? 'በማስቀመጥ ላይ...' : 'ለወጦችን አስቀምጥ'}
+                  {loading ? 'በማስቀመጥ ላይ...' : 'ለዉጦችን አስቀምጥ'}
                 </button>
               </form>
             </div>
           )}
 
-          {/* 2. የፓስወርድ እና ደህንነት ታብ */}
+          {/* 2. የንግድ ዓይነት (Business Mode) ታብ */}
+          {activeTab === 'businessMode' && (
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
+                የንግድ ዓይነት መምረጫ (Business System Mode)
+              </h3>
+              <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
+                የሚሰሩበትን የንግድ ዘርፍ ይምረጡ። በምርጫዎ መሠረት የዕቃዎች መመዝገቢያ ፎርም እና ገጾች በራሳቸው የተቀየራሉ።
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div
+                  className={`mode-card ${businessType === 'pharmacy' ? 'active' : ''}`}
+                  onClick={() => handleSaveBusinessType('pharmacy')}
+                >
+                  <span style={{ fontSize: '28px' }}>💊</span>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#212529' }}>
+                      ፋርማሲ (Pharmacy / Medicine)
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
+                      የመድኃኒት ማልቀቂያ ቀን (Expiry Date)፣ የሲሮፕ/ታብሌት ዓይነት እና ልዩ መድኃኒት መግለጫዎችን ያካተተ ቅጽ።
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className={`mode-card ${businessType === 'building' ? 'active' : ''}`}
+                  onClick={() => handleSaveBusinessType('building')}
+                >
+                  <span style={{ fontSize: '28px' }}>🏗️</span>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#212529' }}>
+                      ሕንፃ መሣሪያ (Building Materials)
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
+                      የመደብ ዓይነት (Material Type)፣ የክፍያ/መለኪያ Unit (በካሬ፣ በሜትር፣ በኪሎ፣ በቁጥር) የሚያካትት ቅጽ።
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3. የይለፍ ቃል እና ደህንነት ታብ */}
           {activeTab === 'security' && (
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
