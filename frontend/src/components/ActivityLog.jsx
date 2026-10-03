@@ -11,7 +11,7 @@ import {
   AlertCircle 
 } from 'lucide-react';
 
-function ActivityLog({ API_BASE_URL }) {
+function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,6 +24,7 @@ function ActivityLog({ API_BASE_URL }) {
       const baseUrl = API_BASE_URL || 'http://localhost:5000/api';
       
       const res = await axios.get(`${baseUrl}/activity-logs`, {
+        params: { businessType },
         headers: { Authorization: token ? `Bearer ${token}` : '' }
       });
       setLogs(res.data);
@@ -36,7 +37,7 @@ function ActivityLog({ API_BASE_URL }) {
 
   useEffect(() => {
     fetchLogs();
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, businessType]);
 
   // Action Badges Color Helper
   const getBadgeStyle = (action) => {
@@ -55,16 +56,30 @@ function ActivityLog({ API_BASE_URL }) {
     }
   };
 
-  // Filter Logic
+  // Filter Logic (Search + Action Filter + BusinessType Check)
   const filteredLogs = logs.filter((log) => {
+    // 1. BusinessType Filter Verification
+    if (log.businessType && log.businessType !== businessType) {
+      return false;
+    }
+
     const employee = (log.employeeName || log.userId?.name || log.userId?.username || '').toLowerCase();
     const product = (log.productName || '').toLowerCase();
     const details = (log.details || '').toLowerCase();
     const action = (log.action || '').toLowerCase();
     const search = searchTerm.toLowerCase();
 
-    const matchesSearch = employee.includes(search) || product.includes(search) || details.includes(search) || action.includes(search);
-    const matchesAction = selectedAction === 'ALL' || log.action?.toUpperCase() === selectedAction;
+    const matchesSearch = 
+      employee.includes(search) || 
+      product.includes(search) || 
+      details.includes(search) || 
+      action.includes(search);
+
+    const matchesAction = 
+      selectedAction === 'ALL' || 
+      log.action?.toUpperCase() === selectedAction ||
+      (selectedAction === 'CREATE' && log.action?.toUpperCase() === 'ADD') ||
+      (selectedAction === 'EDIT' && log.action?.toUpperCase() === 'UPDATE');
 
     return matchesSearch && matchesAction;
   });
@@ -77,10 +92,10 @@ function ActivityLog({ API_BASE_URL }) {
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ClipboardList style={{ color: '#2563eb' }} size={22} />
-            Employee Activity Logs
+            የሰራተኞች እንቅስቃሴ መዝገብ (Activity Logs)
           </h2>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-            Track real-time actions performed by system users
+            በስርዓቱ ላይ በተጠቃሚዎች የተከናወኑ ተግባራትን በቅጽበት ይከታተሉ ({businessType === 'building_materials' ? 'ሕንፃ መሣሪያ' : 'ፋርማሲ'})
           </p>
         </div>
 
@@ -104,7 +119,7 @@ function ActivityLog({ API_BASE_URL }) {
           onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Refresh
+          አድስ (Refresh)
         </button>
       </div>
 
@@ -114,7 +129,7 @@ function ActivityLog({ API_BASE_URL }) {
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input 
             type="text" 
-            placeholder="Search by employee, product, or details..."
+            placeholder="በሰራተኛ ስም፣ በምርት ወይም በዝርዝር መረጃ ፈልግ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -145,10 +160,10 @@ function ActivityLog({ API_BASE_URL }) {
               outline: 'none'
             }}
           >
-            <option value="ALL">All Actions</option>
-            <option value="CREATE">CREATE / ADD</option>
-            <option value="EDIT">EDIT / UPDATE</option>
-            <option value="DELETE">DELETE</option>
+            <option value="ALL">ሁሉም ተግባራት (All Actions)</option>
+            <option value="CREATE">አዲስ የተጨመሩ (CREATE / ADD)</option>
+            <option value="EDIT">የተሻሻሉ (EDIT / UPDATE)</option>
+            <option value="DELETE">የተሰረዙ (DELETE)</option>
           </select>
         </div>
       </div>
@@ -158,11 +173,11 @@ function ActivityLog({ API_BASE_URL }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
-              <th style={{ padding: '12px 16px' }}>Date & Time</th>
-              <th style={{ padding: '12px 16px' }}>Employee</th>
-              <th style={{ padding: '12px 16px' }}>Action</th>
-              <th style={{ padding: '12px 16px' }}>Product</th>
-              <th style={{ padding: '12px 16px' }}>Details</th>
+              <th style={{ padding: '12px 16px' }}>ቀን እና ሰዓት</th>
+              <th style={{ padding: '12px 16px' }}>ሰራተኛ</th>
+              <th style={{ padding: '12px 16px' }}>ተግባር (Action)</th>
+              <th style={{ padding: '12px 16px' }}>ምርት</th>
+              <th style={{ padding: '12px 16px' }}>ዝርዝር መረጃ</th>
             </tr>
           </thead>
           <tbody>
@@ -171,7 +186,7 @@ function ActivityLog({ API_BASE_URL }) {
               [1, 2, 3, 4].map((idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td colSpan="5" style={{ padding: '16px', color: '#94a3b8', textAlign: 'center' }}>
-                    Loading log details...
+                    መረጃው በመጫን ላይ ነው...
                   </td>
                 </tr>
               ))
@@ -181,8 +196,8 @@ function ActivityLog({ API_BASE_URL }) {
                 <td colSpan="5" style={{ padding: '40px 20px', textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#94a3b8' }}>
                     <AlertCircle size={32} strokeWidth={1.5} />
-                    <span style={{ fontSize: '14px', fontWeight: '500' }}>No activity logs found</span>
-                    <span style={{ fontSize: '12px' }}>Try clearing your search or filter criteria</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500' }}>ምንም አይነት የAktiviteti መዝገብ አልተገኘም</span>
+                    <span style={{ fontSize: '12px' }}>እባክዎን የፍለጋ ወይም የፊልተር መመዘኛዎን ይቀይሩ</span>
                   </div>
                 </td>
               </tr>
@@ -209,7 +224,7 @@ function ActivityLog({ API_BASE_URL }) {
                     <td style={{ padding: '12px 16px', fontWeight: '600', color: '#1e293b' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <User size={14} style={{ color: '#64748b' }} />
-                        {log.employeeName || log.userId?.name || log.userId?.username || 'Unknown'}
+                        {log.employeeName || log.userId?.fullName || log.userId?.username || 'ያልታወቀ'}
                       </span>
                     </td>
 
