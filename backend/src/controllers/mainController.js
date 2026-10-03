@@ -15,7 +15,21 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ==================== 1. USER & AUTHENTICATION ====================
-
+const normalizeBusinessType = (type) => {
+  if (!type) return 'pharmacy';
+  const strType = String(type).trim().toLowerCase();
+  
+  if (
+    strType === 'building' || 
+    strType === 'building_materials' || 
+    strType === 'buildingmaterials' ||
+    strType === 'hinza'
+  ) {
+    return 'building_materials';
+  }
+  
+  return 'pharmacy';
+};
 // FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
   try {
@@ -218,8 +232,6 @@ exports.resetPassword = async (req, res) => {
 // ==================== PRODUCTS CONTROLLER ====================
 
 // 1. አዲስ ምርት መፍጠር (Create Product)
-// backend/src/controllers/mainController.js
-
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -230,7 +242,7 @@ exports.createProduct = async (req, res) => {
       price,
       stockThreshold,
       specificType,
-      unit, // <--- ከ req.body መጣ[cite: 7]
+      unit,
       isSyrup,
       inStoreQty,
       quantity,
@@ -240,30 +252,43 @@ exports.createProduct = async (req, res) => {
       batchNumber,
       supplier,
       location
-    } = req.body; //[cite: 7]
+    } = req.body;
+
+    // businessType ን Normalize ማድረግ
+    const targetBusinessType = normalizeBusinessType(businessType);
 
     const newProduct = new Product({
-      user: req.user.id, //[cite: 7]
-      name, //[cite: 7]
-      category: category || 'General', //[cite: 7]
-      productType: productType || 'Stock', //[cite: 7]
-      boughtPrice: boughtPrice || 0, //[cite: 7]
-      price, //[cite: 7]
-      stockThreshold: stockThreshold || 0, //[cite: 7]
-      specificType: specificType || '', //[cite: 7]
-      unit: unit || req.body.selectUnit || '', // <--- እዚህ ጋር DB Schema ላይ ላለው unit Assignment ይሰጠዋል[cite: 6, 7]
+      user: req.user.id,
+      name,
+      category: category || 'General',
+      productType: productType || 'Stock',
+      boughtPrice: boughtPrice || 0,
+      price: price || 0,
+      stockThreshold: stockThreshold || 0,
+      specificType: specificType || '',
+      unit: unit || req.body.selectUnit || '',
       isSyrup: isSyrup || false,
       inStoreQty: inStoreQty || 0,
       quantity: quantity || 0,
       invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       expiryDate,
-      businessType: businessType || 0,
+      businessType: targetBusinessType, // 'pharmacy' ወይም 'building_materials'
       batchNumber,
       supplier,
       location
     });
 
     const savedProduct = await newProduct.save();
+
+    // Activity Log መመዝገብ
+    await ActivityLog.create({
+      action: 'ADD',
+      productName: savedProduct.name,
+      details: `Created product ${savedProduct.name} under ${targetBusinessType}`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
+
     res.status(201).json(savedProduct);
   } catch (error) {
     console.error("Error creating product:", error);
@@ -271,26 +296,16 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// backend/src/controllers/mainController.js
-
+// 2. ምርቶችን ማምጣት (Get Products)
 exports.getProducts = async (req, res) => {
   try {
-    const { businessType } = req.query; // ከ Query String ይቀበላል
+    const { businessType } = req.query;
 
     let query = { user: req.user.id };
 
-    // businessType ከተላከ ዳታውን ከፍሎ እንዲያመጣ
+    // businessType ከ query string ከተላከ ብቻ filter ያደርጋል
     if (businessType) {
-      if (businessType === 'pharmacy') {
-        // Pharmacy ከሆነ የሕንፃ መሣሪያ ያልሆኑትን ወይም ለፋርማሲ የተመዘገቡትን ብቻ ያመጣል
-        query.businessType = 'pharmacy';
-      } else if (
-        businessType === 'building' || 
-        businessType === 'building_materials' || 
-        businessType === 'buildingMaterials'
-      ) {
-        query.businessType = 'building_materials';
-      }
+      query.businessType = normalizeBusinessType(businessType);
     }
 
     const products = await Product.find(query).sort({ createdAt: -1 });
@@ -301,7 +316,7 @@ exports.getProducts = async (req, res) => {
   }
 };
 
-// UPDATE PRODUCT
+// 3. ምርት ማዘመን (Update Product)
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -310,9 +325,15 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found or permission denied' });
     }
 
+    // businessType በ update ወቅት ከተላከ normalize ይደረጋል
+    const updateData = { ...req.body };
+    if (updateData.businessType) {
+      updateData.businessType = normalizeBusinessType(updateData.businessType);
+    }
+
     const updated = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -350,8 +371,8 @@ exports.updateProduct = async (req, res) => {
       changes.push(`Unit: '${oldProduct.unit || '-'}' ➔ '${req.body.unit}'`);
     }
 
-    if (req.body.businessType !== undefined && oldProduct.businessType !== req.body.businessType) {
-      changes.push(`Business Type: '${oldProduct.businessType}' ➔ '${req.body.businessType}'`);
+    if (req.body.businessType !== undefined && oldProduct.businessType !== updateData.businessType) {
+      changes.push(`Business Type: '${oldProduct.businessType}' ➔ '${updateData.businessType}'`);
     }
 
     if (req.body.isSyrup !== undefined && Boolean(oldProduct.isSyrup) !== Boolean(req.body.isSyrup)) {
@@ -372,8 +393,8 @@ exports.updateProduct = async (req, res) => {
       changes.push(`Invoice No: '${oldProduct.invoiceNo || '-'}' ➔ '${req.body.invoiceNo}'`);
     }
 
-    if (req.body.expirationDate !== undefined && oldProduct.expirationDate !== req.body.expirationDate) {
-      changes.push(`Expiration Date: '${oldProduct.expirationDate || '-'}' ➔ '${req.body.expirationDate}'`);
+    if (req.body.expiryDate !== undefined && oldProduct.expiryDate !== req.body.expiryDate) {
+      changes.push(`Expiration Date: '${oldProduct.expiryDate || '-'}' ➔ '${req.body.expiryDate}'`);
     }
 
     const changeDetails = changes.length > 0 
@@ -394,7 +415,7 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// DELETE PRODUCT
+// 4. ምርት ማጥፋት (Delete Product)
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
@@ -415,7 +436,7 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// BULK CREATE PRODUCTS
+// 5. በጅምላ ምርቶችን መመዝገብ (Bulk Create Products)
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
@@ -425,7 +446,8 @@ exports.createProductsBulk = async (req, res) => {
 
     const formattedProducts = products.map((prod) => ({
       ...prod,
-      user: req.user.id
+      user: req.user.id,
+      businessType: normalizeBusinessType(prod.businessType)
     }));
 
     const savedProducts = await Product.insertMany(formattedProducts);
@@ -443,7 +465,6 @@ exports.createProductsBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 // ==================== GET ACTIVITY LOGS ====================
 // በ businessType ፊልተር በማድረግ የቅርብ ጊዜዎቹን የተግባር እንቅስቃሴዎች ያመጣል
 exports.getActivityLogs = async (req, res) => {
