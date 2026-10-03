@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  // የመዝጋቢውን ተጠቃሚ ለመለየት (Multi-User Support)
+  // የመዘገበውን ተጠቃሚ ለመለየት (Multi-User Support)
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -10,11 +10,19 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   category: { type: String, required: true, default: 'General' },
   productType: { type: String, enum: ['Stock', 'Service'], default: 'Stock' },
+  
+  // የንግድ ዓይነት ማለያ (Pharmacy / Building Materials)
+  businessType: { 
+    type: String, 
+    enum: ['pharmacy', 'building', 'building_materials'], 
+    default: 'pharmacy' 
+  },
+
   boughtPrice: { type: Number, default: 0 },
   price: { type: Number, required: true },
   stockThreshold: { type: Number, default: 0 },
   specificType: { type: String, default: '' },
-  unit: { type: String }, 
+  unit: { type: String },
   isSyrup: { type: Boolean, default: false },
   inStoreQty: { type: Number, default: 0 },
   quantity: { type: Number, required: true, default: 0 },

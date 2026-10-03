@@ -236,7 +236,7 @@ exports.createProduct = async (req, res) => {
       quantity,
       invoiceNo,
       expiryDate,
-      businessType
+      businessType,
       batchNumber,
       supplier,
       location

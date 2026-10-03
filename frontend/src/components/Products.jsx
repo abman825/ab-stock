@@ -12,9 +12,13 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
+  // 1. businessType አስቀድሞ መታወጅ አለበት
   const [businessType, setBusinessType] = useState(
     localStorage.getItem('businessType') || 'pharmacy'
   );
+
+  // 2. isBuilding ከ businessType በኋላ መምጣት አለበት
+  const isBuilding = businessType === 'building' || businessType === 'building_materials';
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -56,7 +60,7 @@ function Products() {
     try {
       const config = { headers: getAuthHeaders() };
       const [resProducts, resCategories] = await Promise.all([
-        axios.get(`${API_BASE_URL}/products`, config), // Backend Schema ላይ businessType ስለሌለ በቀጥታ products መጥራት ይሻላል
+        axios.get(`${API_BASE_URL}/products`, config),
         axios.get(`${API_BASE_URL}/categories`, config)
       ]);
 
@@ -113,7 +117,8 @@ function Products() {
               stockThreshold: Number(cleanValues[9]) || 0,
               specificType: cleanValues[10] || '',
               unit: cleanValues[11] || '',
-              isSyrup: cleanValues[12] === 'true' || cleanValues[12] === 'Yes'
+              isSyrup: cleanValues[12] === 'true' || cleanValues[12] === 'Yes',
+              businessType: businessType // CSV ሲገባም mode ይይዛል
             });
           }
         }
@@ -152,7 +157,7 @@ function Products() {
       price: product.price || product.salePrice || '',
       stockThreshold: product.stockThreshold !== undefined ? product.stockThreshold : '',
       specificType: product.specificType || product.type || '',
-      unit: product.unit || '', // Backend schema ላይ ባለው መሠረት[cite: 6]
+      unit: product.unit || '',
       isSyrup: product.isSyrup || false,
       inStoreQty: product.inStoreQty || product.inStore || 0,
       quantity: product.quantity || product.inShop || 0,
@@ -183,6 +188,18 @@ function Products() {
   };
 
   const filteredProducts = products.filter((p) => {
+    const currentMode = isBuilding ? 'building' : 'pharmacy';
+
+    if (p.businessType) {
+      if (p.businessType !== currentMode && !(isBuilding && p.businessType === 'building_materials')) return false;
+    } else {
+      if (isBuilding) {
+        if (p.isSyrup || p.expiryDate) return false;
+      } else {
+        if (p.unit && !p.expiryDate && !p.isSyrup) return false;
+      }
+    }
+
     const qty = p.quantity ?? p.inShop ?? 0;
     const matchesSearch = p.name ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
     if (!matchesSearch) return false;
@@ -190,6 +207,7 @@ function Products() {
     if (filter === 'In stock') return qty > 0;
     if (filter === 'Low stock') return qty > 0 && qty < (p.stockThreshold || 5);
     if (filter === 'Out of stock') return qty <= 0;
+
     return true;
   });
 
@@ -213,8 +231,6 @@ function Products() {
       alert('No products available to export!');
       return;
     }
-
-    const isBuilding = businessType === 'building' || businessType === 'building_materials';
 
     const headers = isBuilding
       ? ["Name", "Category", "Product Type", "Material Type", "Unit", "Bought Price", "Sale Price", "Stock Threshold", "In Store", "In Shop", "Invoice #"]
@@ -293,20 +309,20 @@ function Products() {
         ? Number(formData.stockThreshold) 
         : 0;
 
-      // Controller በሚጠብቀው መልኩ Payload ማዘጋጀት[cite: 7]
       const payload = {
         name: formData.name.trim(),
         category: formData.category,
         productType: formData.productType,
         specificType: formData.specificType || '',
-        unit: formData.unit || '', // Controller unit ን በግልጽ ይቀበላል[cite: 7]
+        unit: formData.unit || '',
         isSyrup: Boolean(formData.isSyrup),
         boughtPrice: Number(formData.boughtPrice),
         price: Number(formData.price),
         stockThreshold: isNaN(parsedThreshold) ? 0 : parsedThreshold,
         inStoreQty: Number(formData.inStoreQty) || 0,
         quantity: Number(formData.quantity) || 0,
-        invoiceNo: formData.invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+        invoiceNo: formData.invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+        businessType: businessType // 3. businessType እዚህ ጋር ወደ backend ይላካል!
       };
 
       if (formData.expiryDate && formData.expiryDate.trim() !== '') {
@@ -331,8 +347,6 @@ function Products() {
       alert(`Failed to save product: ${serverMsg || 'Server Error'}`);
     }
   };
-
-  const isBuilding = businessType === 'building' || businessType === 'building_materials';
 
   return (
     <div style={{ padding: '15px', flex: 1, background: '#f8f9fa', boxSizing: 'border-box', width: '100%' }}>
