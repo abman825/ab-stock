@@ -18,7 +18,6 @@ function Categories() {
     name: ''
   });
 
-  // Helper Function for Axios Headers with Authorization Token
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -28,11 +27,12 @@ function Categories() {
     };
   };
 
-  // Fetch categories
   const fetchCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`, getAuthHeaders());
-      setCategories(res.data);
+      // Filter clientside n'a bɛ waati dɔ la
+      const pharmacyOnly = res.data.filter(cat => !cat.businessType || cat.businessType === 'pharmacy');
+      setCategories(pharmacyOnly);
     } catch (err) {
       console.error('Error fetching categories:', err);
     }
@@ -58,7 +58,7 @@ function Categories() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('ይህንን ካቴጎሪ ለማጥፋት እርግጠኛ ነዎት?')) {
+    if (window.confirm('Yala i bɛ fɛ ka nin category bɔ yen wa?')) {
       try {
         await axios.delete(`${API_BASE_URL}/categories/${id}`, getAuthHeaders());
         fetchCategories();
@@ -72,10 +72,15 @@ function Categories() {
     e.preventDefault();
     try {
       const config = getAuthHeaders();
+      const payload = {
+        ...formData,
+        businessType: 'pharmacy' // Pharmacy dɔrɔn kama
+      };
+
       if (editingId) {
-        await axios.put(`${API_BASE_URL}/categories/${editingId}`, formData, config);
+        await axios.put(`${API_BASE_URL}/categories/${editingId}`, payload, config);
       } else {
-        await axios.post(`${API_BASE_URL}/categories`, formData, config);
+        await axios.post(`${API_BASE_URL}/categories`, payload, config);
       }
       handleCloseModal();
       fetchCategories();
@@ -84,7 +89,6 @@ function Categories() {
     }
   };
 
-  // CSV File Import Handler
   const handleCSVImport = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -94,30 +98,28 @@ function Categories() {
       skipEmptyLines: true,
       complete: async (results) => {
         try {
-          // Format data to match Category Schema
           const formattedCategories = results.data.map((item) => ({
             name: item.name || item.CategoryName || item.Name,
             categoryId: item.categoryId || item.CategoryId || Math.floor(1000 + Math.random() * 9000).toString(),
-            productsCount: Number(item.productsCount) || 0
+            productsCount: Number(item.productsCount) || 0,
+            businessType: 'pharmacy'
           })).filter(c => c.name);
 
           if (formattedCategories.length === 0) {
-            alert('በ CSV ፋይሉ ውስጥ ትክክለኛ የካቴጎሪ መረጃ አልተገኘም!');
+            alert('CSV kunnafoni te tinɛn!');
             return;
           }
 
-          // Send bulk insert request to Backend with Auth Headers
           await axios.post(`${API_BASE_URL}/categories/bulk`, formattedCategories, getAuthHeaders());
-          alert(`${formattedCategories.length} ካቴጎሪዎች በጥሩ ሁኔታ Import ሆነዋል!`);
+          alert(`${formattedCategories.length} categories donra ka ɲɛ!`);
           fetchCategories();
         } catch (err) {
           console.error('CSV Import Error:', err);
-          alert('Import በሚደረግበት ወቅት ስህተት ተፈጽሟል!');
+          alert('Fili kɛra import waati la!');
         }
       }
     });
 
-    // Reset file input
     e.target.value = '';
   };
 
@@ -128,12 +130,9 @@ function Categories() {
 
   return (
     <div style={{ padding: '20px', flex: 1, backgroundColor: '#f4f6f8' }}>
-      
-      {/* Header bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>Category Management</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>Pharmacy Category Management</h2>
         
-        {/* Search & Action Buttons */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="text"
@@ -169,7 +168,6 @@ function Categories() {
             + Add Category
           </button>
 
-          {/* Hidden CSV Input File */}
           <input
             type="file"
             accept=".csv"
@@ -193,12 +191,11 @@ function Categories() {
               gap: '4px'
             }}
           >
-            📥 Import
+            Import
           </button>
         </div>
       </div>
 
-      {/* Main Table */}
       <div style={{ backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
           <thead>
@@ -258,7 +255,6 @@ function Categories() {
         </table>
       </div>
 
-      {/* Modal Dialog */}
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '6px', width: '380px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
@@ -282,7 +278,7 @@ function Categories() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Cosmetics"
+                  placeholder="e.g. Syrup, Tablet"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   style={{ width: '100%', padding: '7px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}

@@ -17,6 +17,11 @@ const categorySchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  businessType: {
+    type: String,
+    enum: ['pharmacy', 'building_materials'],
+    default: 'pharmacy'
+  },
   productsCount: {
     type: Number,
     default: 0
