@@ -11,14 +11,19 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   
-  // New state: Filter low stock items when low stock card is clicked
+  // Business Type State (Defaults to 'pharmacy' or active user/stored setting)
+  const [selectedBusinessType, setSelectedBusinessType] = useState(() => {
+    return localStorage.getItem('selectedBusinessType') || 'pharmacy';
+  });
+
+  // Filter low stock items state
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   // Today's Sales State
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
-  // Cart Form State - Updated for % and Fixed Birr discount
+  // Cart Form State
   const [discountValue, setDiscountValue] = useState(0);
   const [discountType, setDiscountType] = useState('percent'); // 'percent' or 'fixed'
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -36,14 +41,14 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     };
   };
 
-  // Fetch Data from Backend API
+  // Fetch Data from Backend API filtered by Business Type
   const fetchData = async () => {
     try {
       const config = getAuthHeaders();
 
       const [prodRes, catRes, salesRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/products`, config),
-        axios.get(`${API_BASE_URL}/categories`, config),
+        axios.get(`${API_BASE_URL}/products?businessType=${selectedBusinessType}`, config),
+        axios.get(`${API_BASE_URL}/categories?businessType=${selectedBusinessType}`, config),
         axios.get(`${API_BASE_URL}/orders/today-summary`, config).catch(() => ({ data: { cash: 0, bank: 0, telebirr: 0, total: 0 } }))
       ]);
 
@@ -51,13 +56,13 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       if (catRes.data) setCategories(catRes.data);
       if (salesRes.data) setTodaySales(salesRes.data);
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('Error fetching POS data:', err);
     }
   };
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedBusinessType]);
 
   // Add Item to Cart
   const addToCart = (product) => {
@@ -126,7 +131,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     setCart(cart.filter((item) => (item._id || item.id) !== id));
   };
 
-  // Cart Calculations with Decimal Precision
+  // Cart Calculations
   const subtotalRaw = cart.reduce(
     (sum, item) => sum + (Number(item.customPrice || item.price || 0) * item.cartQty),
     0
@@ -134,7 +139,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
   const subtotal = Number(subtotalRaw.toFixed(2));
 
-  // Discount Logic for both Percent and Fixed Birr
   let calculatedDiscountBirr = 0;
   if (discountType === 'percent') {
     calculatedDiscountBirr = (subtotal * Number(discountValue || 0)) / 100;
@@ -142,7 +146,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     calculatedDiscountBirr = Number(discountValue || 0);
   }
 
-  // Ensure discount doesn't exceed subtotal
   const discountBirr = Number(Math.min(calculatedDiscountBirr, subtotal).toFixed(2));
   const grandTotal = Number(Math.max(0, subtotal - discountBirr).toFixed(2));
 
@@ -183,7 +186,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     }
   };
 
-  // Helper function to check if item is low stock
+  // Helper function for Low Stock
   const isProductLowStock = (p) => {
     const qty = p.quantity ?? p.stock ?? 0;
     const threshold = Number(p.stockThreshold);
@@ -193,7 +196,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     return qty < 5;
   };
 
-  // Filter Products by Search, Category, and Low Stock filter flag
+  // Filter Products by Search, Category, and Low Stock
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name
       ? p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -205,7 +208,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     return matchesSearch && matchesCategory && matchesLowStock;
   });
 
-  // Calculate Low Stock Items Count
   const lowStockCount = products.filter(isProductLowStock).length;
 
   return (
@@ -285,9 +287,32 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           </select>
         </div>
 
-        {/* Small Cards Container */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        {/* Business Type Switcher & Stat Cards */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           
+          {/* Business Type Filter Select */}
+          <select
+            value={selectedBusinessType}
+            onChange={(e) => {
+              setSelectedBusinessType(e.target.value);
+              localStorage.setItem('selectedBusinessType', e.target.value);
+            }}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #0d6efd',
+              background: '#0d6efd',
+              color: '#fff',
+              fontWeight: 'bold',
+              fontSize: '12px',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            <option value="pharmacy" style={{ background: '#fff', color: '#333' }}>🏥 Pharmacy</option>
+            <option value="building_materials" style={{ background: '#fff', color: '#333' }}>🏗️ Building Materials</option>
+          </select>
+
           {/* Today's Sales Card */}
           <div
             onClick={() => setIsSalesModalOpen(true)}
@@ -345,7 +370,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
       </div>
 
-      {/* Embedded Style for Mobile Responsive Layout adjustment */}
       <style>{`
         @media (max-width: 600px) {
           .search-cat-container {
@@ -369,7 +393,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         <div style={{ overflowY: 'auto', paddingRight: '5px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>
-              {showLowStockOnly ? 'Low Stock Products' : 'Products'}
+              {showLowStockOnly ? 'Low Stock Products' : 'Products'} ({selectedBusinessType === 'pharmacy' ? 'Pharmacy' : 'Building Materials'})
             </h3>
             {showLowStockOnly && (
               <button 
@@ -384,7 +408,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px' }}>
             {filteredProducts.length === 0 ? (
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#6c757d' }}>
-                No products found.
+                No products found for {selectedBusinessType === 'pharmacy' ? 'Pharmacy' : 'Building Materials'}.
               </div>
             ) : (
               filteredProducts.map((product) => {
@@ -407,7 +431,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                       position: 'relative'
                     }}
                   >
-                    {/* Low Stock Warning Marker */}
                     {isLowStock && (
                       <span 
                         style={{
@@ -436,12 +459,10 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
                     <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#333' }}>{product.name}</div>
                     
-                    {/* Quantity Indicator */}
                     <div style={{ fontSize: '10px', color: isLowStock ? '#dc3545' : '#6c757d', fontWeight: isLowStock ? 'bold' : 'normal', marginBottom: '2px' }}>
                       Qty: {qty} {isLowStock && '⚠️'}
                     </div>
 
-                    {/* Expiration Date Indicator */}
                     <div style={{ fontSize: '10px', color: expDate ? '#fd7e14' : '#adb5bd', fontWeight: '500', marginBottom: '8px' }}>
                       Exp: {expDate ? new Date(expDate).toLocaleDateString() : 'N/A'}
                     </div>
@@ -478,7 +499,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
               
-              {/* Scrollable Items Container */}
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                 {cart.map((item) => {
                   const itemId = item._id || item.id;
@@ -496,7 +516,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                         <button onClick={() => removeFromCart(itemId)} style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✖</button>
                       </div>
 
-                      {/* Qty Counter */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <button onClick={() => updateQty(itemId, -1)} style={{ border: '1px solid #ccc', background: '#fff', width: '22px', height: '22px', borderRadius: '3px', cursor: 'pointer' }}>-</button>
@@ -506,7 +525,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                         <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{itemTotal.toFixed(2)} Birr</span>
                       </div>
 
-                      {/* Dates Section */}
                       <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                         <div style={{ flex: 1 }}>
                           <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Sold at</label>
@@ -531,10 +549,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                 })}
               </div>
 
-              {/* Fixed Bottom Checkout Section */}
               <div style={{ borderTop: '2px dashed #dee2e6', paddingTop: '10px', marginTop: 'auto' }}>
-                
-                {/* Discount Input with Toggle (% or Birr) */}
                 <div>
                   <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Discount</label>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -546,7 +561,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                       style={{ width: '70px', padding: '4px', fontSize: '11px', border: '1px solid #ced4da', borderRadius: '4px' }}
                     />
                     
-                    {/* Discount Type Toggle */}
                     <div style={{ display: 'flex', border: '1px solid #ced4da', borderRadius: '4px', overflow: 'hidden' }}>
                       <button
                         type="button"
@@ -584,7 +598,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   </div>
                 </div>
 
-                {/* Summary Totals */}
                 <div style={{ marginTop: '10px', fontSize: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
                     <span>Subtotal:</span>
@@ -600,7 +613,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   </div>
                 </div>
 
-                {/* Payment Method Selector */}
                 <div style={{ marginTop: '10px' }}>
                   <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>Payment Method</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
@@ -626,7 +638,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   </div>
                 </div>
 
-                {/* Complete Sale Button */}
                 <button
                   onClick={handleCheckout}
                   disabled={loading}
@@ -685,7 +696,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
               <span>{Number(todaySales.total || 0).toFixed(2)} Birr</span>
             </div>
 
-
             <button
               onClick={() => setIsSalesModalOpen(false)}
               style={{ width: '100%', marginTop: '15px', padding: '8px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
@@ -699,4 +709,5 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     </div>
   );
 }
+
 export default POS;
