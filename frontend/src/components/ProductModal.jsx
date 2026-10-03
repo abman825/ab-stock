@@ -12,7 +12,7 @@ function ProductModal({
 }) {
   if (!showModal) return null;
 
-  // Business Type 'building' ወይም 'building_materials' መሆኑን ወይም default መሆኑን ማረጋገጫ
+  // Mode-ኡ Building መሆኑን ማረጋገጫ Check (strtolower ወይም ማጣሪያ)
   const isBuildingMode = 
     businessType === 'building' || 
     businessType === 'building_materials' || 
@@ -112,56 +112,76 @@ function ProductModal({
             </div>
           </div>
 
-          {/* Unit & Material/Specific Type Fields */}
-          <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '11px', color: '#6c757d' }}>Unit (ለ Store/Shop) *</label>
-              <select
-                required
-                value={formData.unit || ''}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
-              >
-                <option value="">-- Select Unit --</option>
-                <option value="Kg">Kg</option>
-                <option value="Meter">Meter</option>
-                <option value="Sq.m">Sq.m</option>
-                <option value="Quintal">Quintal</option>
-                <option value="Packet">Packet</option>
-                <option value="Set">Set</option>
-                <option value="Liter">Liter</option>
-                <option value="Box">Box</option>
-                <option value="Roll">Roll</option>
-                <option value="Pcs">Pcs</option>
-              </select>
-            </div>
+          {/* 1. BUILDING MATERIALS MODE ከሆነ የሚታዩት ብቻ */}
+          {isBuildingMode ? (
+            <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '11px', color: '#6c757d' }}>Unit *</label>
+                <select
+                  required
+                  value={formData.unit || ''}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
+                >
+                  <option value="">-- Select Unit --</option>
+                  <option value="Kg">Kg</option>
+                  <option value="Meter">Meter</option>
+                  <option value="Sq.m">Sq.m</option>
+                  <option value="Quintal">Quintal</option>
+                  <option value="Packet">Packet</option>
+                  <option value="Set">Set</option>
+                  <option value="Liter">Liter</option>
+                  <option value="Box">Box</option>
+                  <option value="Roll">Roll</option>
+                  <option value="Pcs">Pcs</option>
+                </select>
+              </div>
 
-            <div>
-              <label style={{ fontSize: '11px', color: '#6c757d' }}>Material Type (optional)</label>
-              <select
-                value={formData.specificType || ''}
-                onChange={(e) => setFormData({ ...formData, specificType: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
-              >
-                <option value="">Select Type</option>
-                <option value="Cement">Cement</option>
-                <option value="Iron Bar">Iron Bar</option>
-                <option value="Roofing Sheet">Roofing Sheet</option>
-                <option value="Pipes">Pipes</option>
-                <option value="Paint">Paint</option>
-                <option value="Plywood">Plywood</option>
-                <option value="Nails">Nails</option>
-                <option value="Plumbing">Plumbing</option>
-                <option value="Sanitary">Sanitary</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Other">Other</option>
-              </select>
+              <div>
+                <label style={{ fontSize: '11px', color: '#6c757d' }}>Material Type (optional)</label>
+                <select
+                  value={formData.specificType || ''}
+                  onChange={(e) => setFormData({ ...formData, specificType: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
+                >
+                  <option value="">Select Type</option>
+                  <option value="Cement">Cement</option>
+                  <option value="Iron Bar">Iron Bar</option>
+                  <option value="Roofing Sheet">Roofing Sheet</option>
+                  <option value="Pipes">Pipes</option>
+                  <option value="Paint">Paint</option>
+                  <option value="Plywood">Plywood</option>
+                  <option value="Nails">Nails</option>
+                  <option value="Plumbing">Plumbing</option>
+                  <option value="Sanitary">Sanitary</option>
+                  <option value="Electrical">Electrical</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
             </div>
-          </div>
-
-          {/* Pharmacy specific fields (በ pharmacy mode ብቻ የሚታዩ) */}
-          {!isBuildingMode && (
+          ) : (
+            /* 2. PHARMACY MODE ከሆነ የሚታዩት ብቻ */
             <>
+              <div>
+                <label style={{ fontSize: '11px', color: '#6c757d' }}>Type (optional)</label>
+                <select
+                  value={formData.specificType || ''}
+                  onChange={(e) => setFormData({ ...formData, specificType: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ced4da', boxSizing: 'border-box' }}
+                >
+                  <option value="">Select Type</option>
+                  <option value="Syrup">Syrup</option>
+                  <option value="Suspension">Suspension</option>
+                  <option value="Tablet">Tablet</option>
+                  <option value="Powder">Powder</option>
+                  <option value="Cream">Cream</option>
+                  <option value="Ointment">Ointment</option>
+                  <option value="Medical Device">Medical Device</option>
+                  <option value="Capsule">Capsule</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="checkbox"

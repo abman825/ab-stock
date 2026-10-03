@@ -236,6 +236,7 @@ exports.createProduct = async (req, res) => {
       quantity,
       invoiceNo,
       expiryDate,
+      businessType
       batchNumber,
       supplier,
       location
@@ -256,6 +257,7 @@ exports.createProduct = async (req, res) => {
       quantity: quantity || 0,
       invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       expiryDate,
+      businessType: businessType || 'general',
       batchNumber,
       supplier,
       location
@@ -269,13 +271,33 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// 2. ሁሉንም ምርቶች ማምጣት (Get All Products)
+// backend/src/controllers/mainController.js
+
 exports.getProducts = async (req, res) => {
   try {
-    const products = await Product.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const { businessType } = req.query; // ከ Query String ይቀበላል
+
+    let query = { user: req.user.id };
+
+    // businessType ከተላከ ዳታውን ከፍሎ እንዲያመጣ
+    if (businessType) {
+      if (businessType === 'pharmacy') {
+        // Pharmacy ከሆነ የሕንፃ መሣሪያ ያልሆኑትን ወይም ለፋርማሲ የተመዘገቡትን ብቻ ያመጣል
+        query.businessType = 'pharmacy';
+      } else if (
+        businessType === 'building' || 
+        businessType === 'building_materials' || 
+        businessType === 'buildingMaterials'
+      ) {
+        query.businessType = 'building_materials';
+      }
+    }
+
+    const products = await Product.find(query).sort({ createdAt: -1 });
     res.status(200).json(products);
   } catch (error) {
-    res.status(500).json({ message: "ምርቶችን ማምጣት አልተቻለም", error: error.message });
+    console.error("Error fetching products:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
