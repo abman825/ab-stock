@@ -19,12 +19,24 @@ function Orders() {
 
   useEffect(() => {
     fetchOrders();
+
+    // Mode መቀየሪያ Event ማዳመጫ (ለፋርማሲ እና ህንፃ መሳርያ መቀያየሪያ)
+    const handleModeChange = () => fetchOrders();
+    window.addEventListener('storage', handleModeChange);
+    window.addEventListener('businessTypeChanged', handleModeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleModeChange);
+      window.removeEventListener('businessTypeChanged', handleModeChange);
+    };
   }, []);
 
-  // Fetch Orders from Backend
+  // Fetch Orders from Backend (Filtered by active businessType)
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/orders`, {
+      const currentBusinessType = localStorage.getItem('businessType') || 'pharmacy';
+      
+      const res = await fetch(`${API_BASE_URL}/orders?businessType=${currentBusinessType}`, {
         headers: getAuthHeaders()
       });
       const data = await res.json();
@@ -49,7 +61,10 @@ function Orders() {
       let orderDate = '';
       
       if (rawDate) {
-        orderDate = new Date(rawDate).toISOString().split('T')[0];
+        // soldAtDate YYYY-MM-DD ከሆነ ቀጥታ መውሰድ፣ ድንገት ISO String ከሆነ በ Split መለየት
+        orderDate = typeof rawDate === 'string' && rawDate.includes('T') 
+          ? rawDate.split('T')[0] 
+          : rawDate.substring(0, 10);
       }
       
       matchesDate = orderDate === selectedDate;
@@ -134,7 +149,7 @@ function Orders() {
           {/* Search Box */}
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search by ID or product name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -157,9 +172,9 @@ function Orders() {
               <th style={{ padding: '12px 15px' }}>PRODUCT</th>
               <th style={{ padding: '12px 15px' }}>QUANTITY</th>
               <th style={{ padding: '12px 15px' }}>PRICE</th>
-              <th style={{ padding: '12px 15px' }}>SUBTOTAL</th>
+              <th style={{ padding: '12px 15px' }}>GRAND TOTAL</th>
               <th style={{ padding: '12px 15px' }}>DISCOUNT</th>
-              <th style={{ padding: '12px 15px' }}>ORDER STATUS</th>
+              <th style={{ padding: '12px 15px' }}>PAYMENT</th>
               <th style={{ padding: '12px 15px' }}>COMPLETED BY</th>
             </tr>
           </thead>
@@ -174,7 +189,6 @@ function Orders() {
               filteredOrders.map((order, idx) => {
                 const totalQty = order.items?.reduce((sum, item) => sum + (item.cartQty || item.quantity || 1), 0) || 1;
                 
-                // 🔥 አዲሱ አሰራር፡ ብዛታቸው ከ 1 በላይ ከሆነ name * qty (ምሳሌ፡ A * 2) አድርጎ ያሳያል
                 const productNames = order.items?.map(i => {
                   const pName = i.name || i.productName || 'N/A';
                   const qty = i.cartQty || i.quantity || 1;
@@ -183,12 +197,16 @@ function Orders() {
 
                 const displayPrice = order.items && order.items.length === 1
                   ? `${order.items[0].price || 0} Birr`
-                  : '- -';
+                  : 'Multiple';
+
+                const userName = typeof order.user === 'object' 
+                  ? (order.user?.name || order.user?.username || 'N/A')
+                  : (order.completedBy || 'N/A');
 
                 return (
                   <tr key={order._id || idx} style={{ borderBottom: '1px solid #f1f3f5' }}>
                     <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#495057' }}>
-                      {order.orderId || order._id?.substring(0, 8) || `1152${idx}`}
+                      {order.orderId || (order._id ? order._id.substring(order._id.length - 6).toUpperCase() : `ORD-${idx + 1}`)}
                     </td>
                     <td style={{ padding: '12px 15px', color: '#495057' }}>
                       {productNames}
@@ -199,17 +217,17 @@ function Orders() {
                     <td style={{ padding: '12px 15px', color: '#495057' }}>
                       {displayPrice}
                     </td>
-                    <td style={{ padding: '12px 15px', color: '#495057', fontWeight: '500' }}>
-                      {order.subtotal || order.grandTotal || order.totalAmount || 0} Birr
+                    <td style={{ padding: '12px 15px', color: '#28a745', fontWeight: 'bold' }}>
+                      {order.grandTotal || order.subtotal || 0} Birr
                     </td>
-                    <td style={{ padding: '12px 15px', color: '#495057' }}>
-                      {order.discountAmount || order.discount || 0} Birr
+                    <td style={{ padding: '12px 15px', color: '#dc3545' }}>
+                      {order.discountAmount || 0} Birr
                     </td>
                     <td style={{ padding: '12px 15px', color: '#198754', fontWeight: '500' }}>
-                      {order.status || 'Completed'}
+                      {order.paymentMethod || 'Cash'}
                     </td>
                     <td style={{ padding: '12px 15px', color: '#495057' }}>
-                      {order.completedBy || order.user?.name || 'N/A'}
+                      {userName}
                     </td>
                   </tr>
                 );

@@ -11,17 +11,21 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   
-  // New state: Filter low stock items when low stock card is clicked
+  // Low stock filter toggle
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   // Today's Sales State
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
-  // Cart Form State - Updated for % and Fixed Birr discount
+  // Cart Form State
   const [discountValue, setDiscountValue] = useState(0);
   const [discountType, setDiscountType] = useState('percent'); // 'percent' or 'fixed'
   const [paymentMethod, setPaymentMethod] = useState('Cash');
+
+  // Business Mode Check
+  const rawType = localStorage.getItem('businessType') || 'pharmacy';
+  const isBuildingMode = rawType.toLowerCase().includes('building');
 
   // Default Today's Date (YYYY-MM-DD)
   const todayDateString = new Date().toISOString().split('T')[0];
@@ -41,37 +45,53 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     try {
       const config = getAuthHeaders();
 
+      let currentBusinessType = rawType.toLowerCase().includes('building') 
+        ? 'building_materials' 
+        : 'pharmacy';
+
       const [prodRes, catRes, salesRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/products`, config),
-        axios.get(`${API_BASE_URL}/categories`, config),
-        axios.get(`${API_BASE_URL}/orders/today-summary`, config).catch(() => ({ data: { cash: 0, bank: 0, telebirr: 0, total: 0 } }))
+        axios.get(`${API_BASE_URL}/products?businessType=${currentBusinessType}`, config),
+        axios.get(`${API_BASE_URL}/categories?businessType=${currentBusinessType}`, config),
+        axios.get(`${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, config)
+          .catch(() => ({ data: { cash: 0, bank: 0, telebirr: 0, total: 0 } }))
       ]);
 
       if (prodRes.data) setProducts(prodRes.data);
       if (catRes.data) setCategories(catRes.data);
       if (salesRes.data) setTodaySales(salesRes.data);
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('Error fetching POS data:', err);
     }
   };
 
   useEffect(() => {
     fetchData();
+
+    const handleModeChange = () => fetchData();
+    window.addEventListener('storage', handleModeChange);
+    window.addEventListener('businessTypeChanged', handleModeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleModeChange);
+      window.removeEventListener('businessTypeChanged', handleModeChange);
+    };
   }, []);
 
   // Add Item to Cart
   const addToCart = (product) => {
-    const stockQty = product.quantity ?? product.stock ?? 0;
+    const stockQty = product.quantity ?? product.inShop ?? product.stock ?? 0;
     if (stockQty <= 0) {
-      alert('እቃው አልቋል (Out of Stock)');
+      alert('Out of Stock!');
       return;
     }
 
-    const existingIndex = cart.findIndex((item) => (item._id || item.id) === (product._id || product.id));
+    const productId = product._id || product.id;
+    const existingIndex = cart.findIndex((item) => (item._id || item.id) === productId);
+
     if (existingIndex > -1) {
       const updatedCart = [...cart];
       if (updatedCart[existingIndex].cartQty + 1 > stockQty) {
-        alert('በስቶክ ላይ ካለው መጠን በላይ መጨመር አይቻልም');
+        alert('Stock limit exceeded!');
         return;
       }
       updatedCart[existingIndex].cartQty += 1;
@@ -81,7 +101,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         ...cart,
         {
           ...product,
-          productId: product._id || product.id,
+          productId: productId,
           cartQty: 1,
           customPrice: product.price,
           soldAtDate: todayDateString,
@@ -99,9 +119,9 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           const itemId = item._id || item.id;
           if (itemId === id) {
             const newQty = item.cartQty + delta;
-            const stockQty = item.quantity ?? item.stock ?? 999;
+            const stockQty = item.quantity ?? item.inShop ?? item.stock ?? 999;
             if (newQty > stockQty) {
-              alert('በስቶክ ላይ ካለው መጠን በላይ መጨመር አይቻልም');
+              alert('Stock limit exceeded!');
               return item;
             }
             return newQty > 0 ? { ...item, cartQty: newQty } : null;
@@ -126,7 +146,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     setCart(cart.filter((item) => (item._id || item.id) !== id));
   };
 
-  // Cart Calculations with Decimal Precision
+  // Cart Calculations
   const subtotalRaw = cart.reduce(
     (sum, item) => sum + (Number(item.customPrice || item.price || 0) * item.cartQty),
     0
@@ -134,7 +154,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
   const subtotal = Number(subtotalRaw.toFixed(2));
 
-  // Discount Logic for both Percent and Fixed Birr
   let calculatedDiscountBirr = 0;
   if (discountType === 'percent') {
     calculatedDiscountBirr = (subtotal * Number(discountValue || 0)) / 100;
@@ -142,22 +161,25 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     calculatedDiscountBirr = Number(discountValue || 0);
   }
 
-  // Ensure discount doesn't exceed subtotal
   const discountBirr = Number(Math.min(calculatedDiscountBirr, subtotal).toFixed(2));
   const grandTotal = Number(Math.max(0, subtotal - discountBirr).toFixed(2));
 
   // Checkout Handler
   const handleCheckout = async () => {
     if (cart.length === 0) {
-      alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
+      alert('Cart is empty!');
       return;
     }
 
     try {
+      let currentBusinessType = rawType.toLowerCase().includes('building') ? 'building_materials' : 'pharmacy';
+
       const orderPayload = {
         items: cart.map(item => ({
           ...item,
-          price: Number(Number(item.customPrice || item.price || 0).toFixed(2))
+          product: item.productId || item._id,
+          price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
+          quantity: item.cartQty
         })),
         subtotal: subtotal,
         discountType: discountType,
@@ -165,6 +187,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         discountAmount: discountBirr,
         grandTotal: grandTotal,
         paymentMethod: paymentMethod,
+        businessType: currentBusinessType,
         soldAtDate: todayDateString
       };
 
@@ -172,20 +195,20 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         await onCompleteSale(orderPayload);
       } else {
         await axios.post(`${API_BASE_URL}/orders`, orderPayload, getAuthHeaders());
-        alert('ሽያጩ በተካካ ሁኔታ ተጠናቋል!');
+        alert('Sale completed successfully!');
         setCart([]);
       }
 
       fetchData();
     } catch (err) {
       console.error('Checkout error:', err);
-      alert('ሽያጭ ማከናወን አልተቻለም! ከ Server ጋር መገናኘቱን ያረጋግጡ።');
+      alert('Checkout failed! Please check server connection.');
     }
   };
 
-  // Helper function to check if item is low stock
+  // Helper function for Low Stock check
   const isProductLowStock = (p) => {
-    const qty = p.quantity ?? p.stock ?? 0;
+    const qty = p.quantity ?? p.inShop ?? p.stock ?? 0;
     const threshold = Number(p.stockThreshold);
     if (!isNaN(threshold) && threshold > 0) {
       return qty < threshold;
@@ -193,7 +216,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     return qty < 5;
   };
 
-  // Filter Products by Search, Category, and Low Stock filter flag
+  // Filter Products
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name
       ? p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -205,7 +228,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     return matchesSearch && matchesCategory && matchesLowStock;
   });
 
-  // Calculate Low Stock Items Count
   const lowStockCount = products.filter(isProductLowStock).length;
 
   return (
@@ -345,7 +367,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
       </div>
 
-      {/* Embedded Style for Mobile Responsive Layout adjustment */}
       <style>{`
         @media (max-width: 600px) {
           .search-cat-container {
@@ -390,7 +411,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
               filteredProducts.map((product) => {
                 const productId = product._id || product.id;
                 const isAdded = cart.some((item) => (item._id || item.id) === productId);
-                const qty = product.quantity ?? product.stock ?? 0;
+                const qty = product.quantity ?? product.inShop ?? product.stock ?? 0;
                 
                 const isLowStock = isProductLowStock(product);
                 const expDate = product.expiryDate || product.expirationDate;
@@ -407,7 +428,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                       position: 'relative'
                     }}
                   >
-                    {/* Low Stock Warning Marker */}
                     {isLowStock && (
                       <span 
                         style={{
@@ -436,15 +456,21 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
                     <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#333' }}>{product.name}</div>
                     
-                    {/* Quantity Indicator */}
                     <div style={{ fontSize: '10px', color: isLowStock ? '#dc3545' : '#6c757d', fontWeight: isLowStock ? 'bold' : 'normal', marginBottom: '2px' }}>
-                      Qty: {qty} {isLowStock && '⚠️'}
+                      Qty: {qty} {isBuildingMode && product.unit ? `(${product.unit})` : ''} {isLowStock && '⚠️'}
                     </div>
 
-                    {/* Expiration Date Indicator */}
-                    <div style={{ fontSize: '10px', color: expDate ? '#fd7e14' : '#adb5bd', fontWeight: '500', marginBottom: '8px' }}>
-                      Exp: {expDate ? new Date(expDate).toLocaleDateString() : 'N/A'}
-                    </div>
+                    {!isBuildingMode && (
+                      <div style={{ fontSize: '10px', color: expDate ? '#fd7e14' : '#adb5bd', fontWeight: '500', marginBottom: '8px' }}>
+                        Exp: {expDate ? new Date(expDate).toLocaleDateString() : 'N/A'}
+                      </div>
+                    )}
+
+                    {isBuildingMode && (
+                      <div style={{ fontSize: '10px', color: '#0d6efd', fontWeight: '500', marginBottom: '8px' }}>
+                        Type: {product.specificType || 'N/A'}
+                      </div>
+                    )}
 
                     <button
                       onClick={() => addToCart(product)}
@@ -478,7 +504,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
               
-              {/* Scrollable Items Container */}
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                 {cart.map((item) => {
                   const itemId = item._id || item.id;
@@ -496,7 +521,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                         <button onClick={() => removeFromCart(itemId)} style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✖</button>
                       </div>
 
-                      {/* Qty Counter */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <button onClick={() => updateQty(itemId, -1)} style={{ border: '1px solid #ccc', background: '#fff', width: '22px', height: '22px', borderRadius: '3px', cursor: 'pointer' }}>-</button>
@@ -506,7 +530,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                         <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{itemTotal.toFixed(2)} Birr</span>
                       </div>
 
-                      {/* Dates Section */}
                       <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                         <div style={{ flex: 1 }}>
                           <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Sold at</label>
@@ -518,12 +541,14 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                           />
                         </div>
                         
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Exp Date</label>
-                          <div style={{ fontSize: '11px', padding: '3px 4px', background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '4px', color: itemExpDate ? '#fd7e14' : '#6c757d', fontWeight: 'bold' }}>
-                            {itemExpDate ? new Date(itemExpDate).toLocaleDateString() : 'N/A'}
+                        {!isBuildingMode && (
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Exp Date</label>
+                            <div style={{ fontSize: '11px', padding: '3px 4px', background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '4px', color: itemExpDate ? '#fd7e14' : '#6c757d', fontWeight: 'bold' }}>
+                              {itemExpDate ? new Date(itemExpDate).toLocaleDateString() : 'N/A'}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                     </div>
@@ -531,10 +556,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                 })}
               </div>
 
-              {/* Fixed Bottom Checkout Section */}
               <div style={{ borderTop: '2px dashed #dee2e6', paddingTop: '10px', marginTop: 'auto' }}>
-                
-                {/* Discount Input with Toggle (% or Birr) */}
                 <div>
                   <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>Discount</label>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -546,7 +568,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                       style={{ width: '70px', padding: '4px', fontSize: '11px', border: '1px solid #ced4da', borderRadius: '4px' }}
                     />
                     
-                    {/* Discount Type Toggle */}
                     <div style={{ display: 'flex', border: '1px solid #ced4da', borderRadius: '4px', overflow: 'hidden' }}>
                       <button
                         type="button"
@@ -584,7 +605,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   </div>
                 </div>
 
-                {/* Summary Totals */}
                 <div style={{ marginTop: '10px', fontSize: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
                     <span>Subtotal:</span>
@@ -600,7 +620,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   </div>
                 </div>
 
-                {/* Payment Method Selector */}
                 <div style={{ marginTop: '10px' }}>
                   <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>Payment Method</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
@@ -626,7 +645,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   </div>
                 </div>
 
-                {/* Complete Sale Button */}
                 <button
                   onClick={handleCheckout}
                   disabled={loading}

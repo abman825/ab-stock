@@ -213,7 +213,26 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+exports.getPOSProducts = async (req, res) => {
+  try {
+    const { businessType } = req.query;
 
+    let filter = { user: req.user.id };
+    if (businessType) {
+      filter.businessType = businessType;
+    }
+
+    // ከ `inShop: { $gt: 0 }` ይልቅ አጠቃላይ quantity ወይም inShop Check እንዲያደርግ
+    filter.$or = [
+      { inShop: { $gt: 0 } },       { quantity: {$gt: 0 } }
+    ];
+
+    const products = await Product.find(filter);
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // ==================== PRODUCTS CONTROLLER ====================
 
@@ -643,10 +662,17 @@ exports.createTransfer = async (req, res) => {
   }
 };
 
-// ==================== 7. ORDERS (POS & SALES) ====================
+//// ==================== 7. ORDERS (POS & SALES) ====================
 exports.getOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const { businessType } = req.query;
+
+    let filter = { user: req.user.id };
+    if (businessType) {
+      filter.businessType = businessType;
+    }
+
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -655,7 +681,7 @@ exports.getOrders = async (req, res) => {
 
 exports.createOrder = async (req, res) => {
   try {
-    const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate } = req.body;
+    const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate, businessType } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማስገባት ያስፈልጋል' });
@@ -710,7 +736,8 @@ exports.createOrder = async (req, res) => {
       totalCost: totalCostPrice,
       profit: netProfit,
       paymentMethod: paymentMethod || 'Cash',
-      soldAtDate: soldAtDate || new Date().toISOString().split('T')[0]
+      soldAtDate: soldAtDate || new Date().toISOString().split('T')[0],
+      businessType: businessType || req.user?.businessType || 'pharmacy'
     });
 
     const savedOrder = await order.save();
@@ -745,6 +772,7 @@ exports.createOrder = async (req, res) => {
 
 exports.getTodaySalesSummary = async (req, res) => {
   try {
+    const { businessType } = req.query;
     const todayStr = new Date().toISOString().split('T')[0];
 
     const startOfToday = new Date();
@@ -753,13 +781,19 @@ exports.getTodaySalesSummary = async (req, res) => {
     const endOfToday = new Date();
     endOfToday.setHours(23, 59, 59, 999);
 
-    const orders = await Order.find({
+    let filter = {
       user: req.user.id,
       $or: [
         { soldAtDate: todayStr },
-        { createdAt: { $gte: startOfToday,$lte: endOfToday } }
+        { createdAt: { $gte: startOfToday, $lte: endOfToday } }
       ]
-    });
+    };
+
+    if (businessType) {
+      filter.businessType = businessType;
+    }
+
+    const orders = await Order.find(filter);
 
     let cash = 0, bank = 0, telebirr = 0;
 
@@ -806,7 +840,14 @@ exports.createCustomer = async (req, res) => {
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id });
+    const { businessType } = req.query;
+
+    let filter = { user: req.user.id };
+    if (businessType) {
+      filter.businessType = businessType;
+    }
+
+    const orders = await Order.find(filter);
 
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];

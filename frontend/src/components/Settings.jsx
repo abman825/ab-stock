@@ -14,9 +14,10 @@ function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   // የንግድ ዓይነት State (በነባሪነት ከ localStorage ወይም pharmacy ይጀምራል)
-  const [businessType, setBusinessType] = useState(
-    localStorage.getItem('businessType') || 'pharmacy'
-  );
+  const [businessType, setBusinessType] = useState(() => {
+    const raw = localStorage.getItem('businessType') || 'pharmacy';
+    return raw.toLowerCase().includes('building') ? 'building_materials' : 'pharmacy';
+  });
 
   const [profileData, setProfileData] = useState({
     username: '',
@@ -48,18 +49,24 @@ function Settings() {
           headers: getAuthHeaders()
         });
         if (res.data) {
+          const userData = res.data.user || res.data;
+          
           setProfileData({
-            username: res.data.username || '',
-            fullName: res.data.fullName || res.data.name || '',
-            email: res.data.email || '',
-            phone: res.data.phone || '',
-            role: res.data.role || 'User'
+            username: userData.username || '',
+            fullName: userData.fullName || userData.name || '',
+            email: userData.email || '',
+            phone: userData.phone || '',
+            role: userData.role || 'User'
           });
 
           // በዳታቤዝ ውስጥ የተቀመጠ የንግድ ዓይነት ካለ መጫን
-          if (res.data.businessType) {
-            setBusinessType(res.data.businessType);
-            localStorage.setItem('businessType', res.data.businessType);
+          if (userData.businessType) {
+            const normalizedType = userData.businessType.toLowerCase().includes('building') 
+              ? 'building_materials' 
+              : 'pharmacy';
+            
+            setBusinessType(normalizedType);
+            localStorage.setItem('businessType', normalizedType);
           }
         }
       } catch (err) {
@@ -77,16 +84,18 @@ function Settings() {
     setLoading(true);
 
     try {
-      await axios.put(
+      const res = await axios.put(
         `${API_BASE_URL}/auth/update-profile`,
         profileData,
         { headers: getAuthHeaders() }
       );
 
-      setMessage({ type: 'success', text: 'ፕሮፋይሎ በቴሳካ ሁኔታ ተዘምኗል!' });
+      setMessage({ type: 'success', text: 'ፕሮፋይሎ በተሳካ ሁኔታ ተዘምኗል!' });
       
+      const updatedUser = res.data.user || res.data;
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      localStorage.setItem('user', JSON.stringify({ ...storedUser, ...profileData }));
+      
+      localStorage.setItem('user', JSON.stringify({ ...storedUser, ...updatedUser }));
 
     } catch (err) {
       console.error(err);
@@ -101,8 +110,10 @@ function Settings() {
 
   // የንግድ ዓይነት (Business Mode) መቀየሪያ
   const handleSaveBusinessType = async (type) => {
-    setBusinessType(type);
-    localStorage.setItem('businessType', type);
+    const normalizedType = type.toLowerCase().includes('building') ? 'building_materials' : 'pharmacy';
+    
+    setBusinessType(normalizedType);
+    localStorage.setItem('businessType', normalizedType);
     
     // በስርዓቱ ውስጥ ለውጡ እንዲታወቅ Event Dispatch እናደርጋለን
     window.dispatchEvent(new Event('businessTypeChanged'));
@@ -110,9 +121,14 @@ function Settings() {
     try {
       await axios.put(
         `${API_BASE_URL}/auth/update-profile`,
-        { businessType: type },
+        { businessType: normalizedType },
         { headers: getAuthHeaders() }
       );
+      
+      // Update local storage user object
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({ ...storedUser, businessType: normalizedType }));
+
       setMessage({ type: 'success', text: 'የንግድ ዓይነት በስኬት ተቀይሯል!' });
     } catch (err) {
       console.error('Business mode update error:', err);
@@ -427,8 +443,8 @@ function Settings() {
                 </div>
 
                 <div
-                  className={`mode-card ${businessType === 'building' ? 'active' : ''}`}
-                  onClick={() => handleSaveBusinessType('building')}
+                  className={`mode-card ${businessType === 'building_materials' ? 'active' : ''}`}
+                  onClick={() => handleSaveBusinessType('building_materials')}
                 >
                   <span style={{ fontSize: '28px' }}>🏗️</span>
                   <div>
