@@ -20,9 +20,13 @@ const transferSchema = new mongoose.Schema({
     required: true,
     enum: ['stock', 'pharmacy', 'store', 'shop']
   },
+   businessType: {
+    type: String,
+    enum: ['pharmacy', 'building_materials'],
+    default: 'pharmacy'
+  },
   transferredBy: {
     type: String,
-    default: 'rose18'
   },
   items: [
     {
