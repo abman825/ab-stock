@@ -15,21 +15,7 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ==================== 1. USER & AUTHENTICATION ====================
-const normalizeBusinessType = (type) => {
-  if (!type) return 'pharmacy';
-  const strType = String(type).trim().toLowerCase();
-  
-  if (
-    strType === 'building' || 
-    strType === 'building_materials' || 
-    strType === 'buildingmaterials' ||
-    strType === 'hinza'
-  ) {
-    return 'building_materials';
-  }
-  
-  return 'pharmacy';
-};
+
 // FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
   try {
@@ -228,10 +214,9 @@ exports.resetPassword = async (req, res) => {
 };
 
 
+// ==================== 2. PRODUCTS CONTROLLER ====================
 
-// ==================== PRODUCTS CONTROLLER ====================
-
-// 1. አዲስ ምርት መፍጠር (Create Product)
+// CREATE PRODUCT
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -254,8 +239,8 @@ exports.createProduct = async (req, res) => {
       location
     } = req.body;
 
-    // businessType ን Normalize ማድረግ
-    const targetBusinessType = normalizeBusinessType(businessType);
+    // businessType 'general' ከተላከ ወይም ባዶ ከሆነ default 'pharmacy' ይሆናል
+    const validBusinessType = (businessType && businessType !== 'general') ? businessType : 'pharmacy';
 
     const newProduct = new Product({
       user: req.user.id,
@@ -263,7 +248,7 @@ exports.createProduct = async (req, res) => {
       category: category || 'General',
       productType: productType || 'Stock',
       boughtPrice: boughtPrice || 0,
-      price: price || 0,
+      price,
       stockThreshold: stockThreshold || 0,
       specificType: specificType || '',
       unit: unit || req.body.selectUnit || '',
@@ -272,23 +257,13 @@ exports.createProduct = async (req, res) => {
       quantity: quantity || 0,
       invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       expiryDate,
-      businessType: targetBusinessType, // 'pharmacy' ወይም 'building_materials'
+      businessType: validBusinessType,
       batchNumber,
       supplier,
       location
     });
 
     const savedProduct = await newProduct.save();
-
-    // Activity Log መመዝገብ
-    await ActivityLog.create({
-      action: 'ADD',
-      productName: savedProduct.name,
-      details: `Created product ${savedProduct.name} under ${targetBusinessType}`,
-      userId: req.user.id,
-      employeeName: req.user.username || req.user.fullName || 'User'
-    });
-
     res.status(201).json(savedProduct);
   } catch (error) {
     console.error("Error creating product:", error);
@@ -296,16 +271,26 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// 2. ምርቶችን ማምጣት (Get Products)
+// GET PRODUCTS
 exports.getProducts = async (req, res) => {
   try {
     const { businessType } = req.query;
 
     let query = { user: req.user.id };
 
-    // businessType ከ query string ከተላከ ብቻ filter ያደርጋል
     if (businessType) {
-      query.businessType = normalizeBusinessType(businessType);
+      if (businessType === 'pharmacy') {
+        query.businessType = 'pharmacy';
+      } else if (
+        businessType === 'building' || 
+        businessType === 'building_materials' || 
+        businessType === 'buildingMaterials'
+      ) {
+        query.businessType = 'building_materials';
+      }
+    } else {
+      // Default ሆኖ ከተጠየቀ የ ፋርማሲ ምርቶችን ብቻ ይዞ ይመጣል
+      query.businessType = 'pharmacy';
     }
 
     const products = await Product.find(query).sort({ createdAt: -1 });
@@ -316,7 +301,7 @@ exports.getProducts = async (req, res) => {
   }
 };
 
-// 3. ምርት ማዘመን (Update Product)
+// UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -325,15 +310,9 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found or permission denied' });
     }
 
-    // businessType በ update ወቅት ከተላከ normalize ይደረጋል
-    const updateData = { ...req.body };
-    if (updateData.businessType) {
-      updateData.businessType = normalizeBusinessType(updateData.businessType);
-    }
-
     const updated = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
-      updateData,
+      req.body,
       { new: true, runValidators: true }
     );
 
@@ -371,8 +350,8 @@ exports.updateProduct = async (req, res) => {
       changes.push(`Unit: '${oldProduct.unit || '-'}' ➔ '${req.body.unit}'`);
     }
 
-    if (req.body.businessType !== undefined && oldProduct.businessType !== updateData.businessType) {
-      changes.push(`Business Type: '${oldProduct.businessType}' ➔ '${updateData.businessType}'`);
+    if (req.body.businessType !== undefined && oldProduct.businessType !== req.body.businessType) {
+      changes.push(`Business Type: '${oldProduct.businessType}' ➔ '${req.body.businessType}'`);
     }
 
     if (req.body.isSyrup !== undefined && Boolean(oldProduct.isSyrup) !== Boolean(req.body.isSyrup)) {
@@ -393,8 +372,8 @@ exports.updateProduct = async (req, res) => {
       changes.push(`Invoice No: '${oldProduct.invoiceNo || '-'}' ➔ '${req.body.invoiceNo}'`);
     }
 
-    if (req.body.expiryDate !== undefined && oldProduct.expiryDate !== req.body.expiryDate) {
-      changes.push(`Expiration Date: '${oldProduct.expiryDate || '-'}' ➔ '${req.body.expiryDate}'`);
+    if (req.body.expirationDate !== undefined && oldProduct.expirationDate !== req.body.expirationDate) {
+      changes.push(`Expiration Date: '${oldProduct.expirationDate || '-'}' ➔ '${req.body.expirationDate}'`);
     }
 
     const changeDetails = changes.length > 0 
@@ -415,7 +394,7 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// 4. ምርት ማጥፋት (Delete Product)
+// DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
@@ -436,7 +415,7 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// 5. በጅምላ ምርቶችን መመዝገብ (Bulk Create Products)
+// BULK CREATE PRODUCTS
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
@@ -446,8 +425,8 @@ exports.createProductsBulk = async (req, res) => {
 
     const formattedProducts = products.map((prod) => ({
       ...prod,
-      user: req.user.id,
-      businessType: normalizeBusinessType(prod.businessType)
+      businessType: prod.businessType || 'pharmacy',
+      user: req.user.id
     }));
 
     const savedProducts = await Product.insertMany(formattedProducts);
@@ -465,75 +444,49 @@ exports.createProductsBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// ==================== GET ACTIVITY LOGS ====================
-// በ businessType ፊልተር በማድረግ የቅርብ ጊዜዎቹን የተግባር እንቅስቃሴዎች ያመጣል
+
+// GET ACTIVITY LOGS
 exports.getActivityLogs = async (req, res) => {
   try {
-    const { businessType } = req.query;
-
-    let query = { userId: req.user.id };
-
-    // businessType ከተላከ በዛ መሰረት ፊልተር ያደርጋል
-    if (businessType) {
-      if (businessType === 'pharmacy') {
-        query.businessType = 'pharmacy';
-      } else if (
-        businessType === 'building' || 
-        businessType === 'building_materials' || 
-        businessType === 'buildingMaterials'
-      ) {
-        query.businessType = 'building_materials';
-      }
-    } else {
-      // Default ሆኖ ከተጠየቀ የ ፋርማሲ እንቅስቃሴዎችን ያመጣል
-      query.businessType = 'pharmacy';
-    }
-
-    const logs = await ActivityLog.find(query)
-      .populate('userId', 'fullName username email')
-      .sort({ timestamp: -1, createdAt: -1 });
-
-    res.status(200).json(logs);
+    const logs = await ActivityLog.find({ userId: req.user.id }).sort({ timestamp: -1 });
+    res.json(logs);
   } catch (err) {
-    console.error('Error fetching activity logs:', err);
-    res.status(500).json({ message: 'የእንቅስቃሴ መዝገቦችን ማምጣት አልተቻለም', error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// ==================== CREATE ACTIVITY LOG (HELPER) ====================
-// በሌሎች Controller-ዎች (ለምሳሌ Product Create, Edit, Delete) ውስጥ ለመጥራት የሚያገለግል Helper Function
-exports.logActivity = async ({ action, productName, details, userId, employeeName, businessType }) => {
-  try {
-    const validBusinessType = (businessType && businessType !== 'general') ? businessType : 'pharmacy';
 
-    const newLog = new ActivityLog({
-      action: action ? action.toUpperCase() : 'INFO',
-      productName: productName || '-',
-      details: details || '',
-      userId: userId,
-      employeeName: employeeName || 'System User',
-      businessType: validBusinessType,
-      timestamp: new Date()
-    });
-
-    await newLog.save();
-  } catch (err) {
-    console.error('Error recording activity log:', err.message);
-  }
-};
 // ==================== 3. CATEGORIES ====================
+
+// GET CATEGORIES (በ businessType Filter የተደረገ)
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ user: req.user.id });
+    const businessType = req.query.businessType || 'pharmacy';
+
+    const categories = await Category.find({ 
+      user: req.user.id,
+      businessType: businessType
+    }).sort({ createdAt: -1 });
+
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// CREATE CATEGORY
 exports.createCategory = async (req, res) => {
   try {
-    const newCategory = new Category({ ...req.body, user: req.user.id });
+    const { categoryId, name, businessType, productsCount } = req.body;
+
+    const newCategory = new Category({
+      categoryId,
+      name,
+      productsCount: productsCount || 0,
+      businessType: businessType || 'pharmacy',
+      user: req.user.id
+    });
+
     const saved = await newCategory.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -541,6 +494,7 @@ exports.createCategory = async (req, res) => {
   }
 };
 
+// UPDATE CATEGORY
 exports.updateCategory = async (req, res) => {
   try {
     const updated = await Category.findOneAndUpdate(
@@ -574,6 +528,7 @@ exports.deleteCategory = async (req, res) => {
   }
 };
 
+// BULK CREATE CATEGORIES
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
@@ -583,6 +538,7 @@ exports.createCategoriesBulk = async (req, res) => {
 
     const formattedCategories = categories.map((cat) => ({
       ...cat,
+      businessType: cat.businessType || 'pharmacy',
       user: req.user.id
     }));
 
@@ -592,6 +548,7 @@ exports.createCategoriesBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ==================== 4. SUPPLIERS ====================
 exports.getSuppliers = async (req, res) => {
@@ -646,6 +603,7 @@ exports.deleteSupplier = async (req, res) => {
   }
 };
 
+
 // ==================== 5. PURCHASE ORDERS ====================
 exports.getPurchases = async (req, res) => {
   try {
@@ -690,6 +648,7 @@ exports.createPurchase = async (req, res) => {
   }
 };
 
+
 // ==================== 6. TRANSFERS ====================
 exports.getTransfers = async (req, res) => {
   try {
@@ -709,6 +668,7 @@ exports.createTransfer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ==================== 7. ORDERS (POS & SALES) ====================
 exports.getOrders = async (req, res) => {
@@ -850,6 +810,7 @@ exports.getTodaySalesSummary = async (req, res) => {
   }
 };
 
+
 // ==================== 8. CUSTOMERS ====================
 exports.getCustomers = async (req, res) => {
   try {
@@ -869,6 +830,7 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
