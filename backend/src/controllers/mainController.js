@@ -14,7 +14,7 @@ const crypto = require('crypto');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== 1. USER & AUTHENTICATION ====================
 const normalizeBusinessType = (type) => {
   if (!type) return 'pharmacy';
   const strType = String(type).trim().toLowerCase();
@@ -30,9 +30,6 @@ const normalizeBusinessType = (type) => {
   
   return 'pharmacy';
 };
-
-// ==================== 1. USER & AUTHENTICATION ====================
-
 // FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
   try {
@@ -53,7 +50,7 @@ exports.forgotPassword = async (req, res) => {
 
     await user.save();
 
-    const frontendUrl = process.env.FRONTEND_URL || '[https://ab-stock.vercel.app](https://ab-stock.vercel.app)';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ab-stock.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     await resend.emails.send({
@@ -64,7 +61,7 @@ exports.forgotPassword = async (req, res) => {
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; border: 1px solid #eee; border-radius: 8px;">
           <h2 style="color: #0b5ed7; text-align: center;">የይለፍ ቃል መቀየሪያ</h2>
           <p>ሰላም ${user.fullName || user.username || ''}፤</p>
-          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ።</p>
+          <p>የይለፍ ቃልዎን ለመቀየር ጥያቄ አቅርበዋል። እባክዎን ከታች ያለውን ሊንክ ይጫኑ፤</p>
           <div style="text-align: center; margin: 25px 0;">
             <a href="${resetUrl}" target="_blank" style="background-color: #0b5ed7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               የይለፍ ቃል ቀይር
@@ -87,7 +84,7 @@ exports.forgotPassword = async (req, res) => {
 // REGISTER
 exports.register = async (req, res) => {
   try {
-    const { username, email, password, fullName, phone, businessType } = req.body;
+    const { username, email, password, fullName, phone } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ message: 'እባክዎን ሁሉንም አስፈላጊ መረጃዎች ያስገቡ!' });
@@ -103,8 +100,7 @@ exports.register = async (req, res) => {
       email,
       password,
       fullName: fullName || '',
-      phone: phone || '',
-      businessType: normalizeBusinessType(businessType)
+      phone: phone || ''
     });
 
     await newUser.save();
@@ -172,16 +168,11 @@ exports.getProfile = async (req, res) => {
 // UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, phone, email, username, businessType } = req.body;
-
-    const updateFields = { fullName, phone, email, username };
-    if (businessType) {
-      updateFields.businessType = normalizeBusinessType(businessType);
-    }
+    const { fullName, phone, email, username } = req.body;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      updateFields,
+      { fullName, phone, email, username },
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -237,7 +228,8 @@ exports.resetPassword = async (req, res) => {
 };
 
 
-// ==================== 2. PRODUCTS CONTROLLER ====================
+
+// ==================== PRODUCTS CONTROLLER ====================
 
 // 1. አዲስ ምርት መፍጠር (Create Product)
 exports.createProduct = async (req, res) => {
@@ -254,7 +246,6 @@ exports.createProduct = async (req, res) => {
       isSyrup,
       inStoreQty,
       quantity,
-      inShopQty,
       invoiceNo,
       expiryDate,
       businessType,
@@ -263,8 +254,8 @@ exports.createProduct = async (req, res) => {
       location
     } = req.body;
 
+    // businessType ን Normalize ማድረግ
     const targetBusinessType = normalizeBusinessType(businessType);
-    const finalQuantity = quantity !== undefined ? quantity : (inShopQty !== undefined ? inShopQty : 0);
 
     const newProduct = new Product({
       user: req.user.id,
@@ -278,10 +269,10 @@ exports.createProduct = async (req, res) => {
       unit: unit || req.body.selectUnit || '',
       isSyrup: isSyrup || false,
       inStoreQty: inStoreQty || 0,
-      quantity: finalQuantity,
+      quantity: quantity || 0,
       invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       expiryDate,
-      businessType: targetBusinessType,
+      businessType: targetBusinessType, // 'pharmacy' ወይም 'building_materials'
       batchNumber,
       supplier,
       location
@@ -289,13 +280,13 @@ exports.createProduct = async (req, res) => {
 
     const savedProduct = await newProduct.save();
 
+    // Activity Log መመዝገብ
     await ActivityLog.create({
       action: 'ADD',
       productName: savedProduct.name,
       details: `Created product ${savedProduct.name} under ${targetBusinessType}`,
       userId: req.user.id,
-      employeeName: req.user.username || req.user.fullName || 'User',
-      businessType: targetBusinessType
+      employeeName: req.user.username || req.user.fullName || 'User'
     });
 
     res.status(201).json(savedProduct);
@@ -312,6 +303,7 @@ exports.getProducts = async (req, res) => {
 
     let query = { user: req.user.id };
 
+    // businessType ከ query string ከተላከ ብቻ filter ያደርጋል
     if (businessType) {
       query.businessType = normalizeBusinessType(businessType);
     }
@@ -324,7 +316,7 @@ exports.getProducts = async (req, res) => {
   }
 };
 
-// 3. ምርት ማሻሻል (Update Product)
+// 3. ምርት ማዘመን (Update Product)
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -333,6 +325,7 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found or permission denied' });
     }
 
+    // businessType በ update ወቅት ከተላከ normalize ይደረጋል
     const updateData = { ...req.body };
     if (updateData.businessType) {
       updateData.businessType = normalizeBusinessType(updateData.businessType);
@@ -413,8 +406,7 @@ exports.updateProduct = async (req, res) => {
       productName: updated.name,
       details: changeDetails,
       userId: req.user.id,
-      employeeName: req.user.username || req.user.fullName || 'User',
-      businessType: updated.businessType || 'pharmacy'
+      employeeName: req.user.username || req.user.fullName || 'User'
     });
 
     res.json(updated);
@@ -434,8 +426,7 @@ exports.deleteProduct = async (req, res) => {
         productName: product.name,
         details: `Deleted product ${product.name}`,
         userId: req.user.id,
-        employeeName: req.user.username || req.user.fullName || 'User',
-        businessType: product.businessType || 'pharmacy'
+        employeeName: req.user.username || req.user.fullName || 'User'
       });
     }
 
@@ -466,8 +457,7 @@ exports.createProductsBulk = async (req, res) => {
       productName: 'Bulk Import',
       details: `Imported ${savedProducts.length} products in bulk`,
       userId: req.user.id,
-      employeeName: req.user.username || req.user.fullName || 'User',
-      businessType: formattedProducts[0]?.businessType || 'pharmacy'
+      employeeName: req.user.username || req.user.fullName || 'User'
     });
 
     res.status(201).json(savedProducts);
@@ -475,19 +465,28 @@ exports.createProductsBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-
-// ==================== ACTIVITY LOGS ====================
-
-// GET ACTIVITY LOGS
+// ==================== GET ACTIVITY LOGS ====================
+// በ businessType ፊልተር በማድረግ የቅርብ ጊዜዎቹን የተግባር እንቅስቃሴዎች ያመጣል
 exports.getActivityLogs = async (req, res) => {
   try {
     const { businessType } = req.query;
 
     let query = { userId: req.user.id };
 
+    // businessType ከተላከ በዛ መሰረት ፊልተር ያደርጋል
     if (businessType) {
-      query.businessType = normalizeBusinessType(businessType);
+      if (businessType === 'pharmacy') {
+        query.businessType = 'pharmacy';
+      } else if (
+        businessType === 'building' || 
+        businessType === 'building_materials' || 
+        businessType === 'buildingMaterials'
+      ) {
+        query.businessType = 'building_materials';
+      }
+    } else {
+      // Default ሆኖ ከተጠየቀ የ ፋርማሲ እንቅስቃሴዎችን ያመጣል
+      query.businessType = 'pharmacy';
     }
 
     const logs = await ActivityLog.find(query)
@@ -501,10 +500,11 @@ exports.getActivityLogs = async (req, res) => {
   }
 };
 
-// CREATE ACTIVITY LOG (HELPER)
+// ==================== CREATE ACTIVITY LOG (HELPER) ====================
+// በሌሎች Controller-ዎች (ለምሳሌ Product Create, Edit, Delete) ውስጥ ለመጥራት የሚያገለግል Helper Function
 exports.logActivity = async ({ action, productName, details, userId, employeeName, businessType }) => {
   try {
-    const validBusinessType = normalizeBusinessType(businessType);
+    const validBusinessType = (businessType && businessType !== 'general') ? businessType : 'pharmacy';
 
     const newLog = new ActivityLog({
       action: action ? action.toUpperCase() : 'INFO',
@@ -521,8 +521,6 @@ exports.logActivity = async ({ action, productName, details, userId, employeeNam
     console.error('Error recording activity log:', err.message);
   }
 };
-
-
 // ==================== 3. CATEGORIES ====================
 exports.getCategories = async (req, res) => {
   try {
@@ -561,6 +559,7 @@ exports.updateCategory = async (req, res) => {
   }
 };
 
+// DELETE CATEGORY
 exports.deleteCategory = async (req, res) => {
   try {
     const category = await Category.findOneAndDelete({ _id: req.params.id, user: req.user.id });
@@ -593,7 +592,6 @@ exports.createCategoriesBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 // ==================== 4. SUPPLIERS ====================
 exports.getSuppliers = async (req, res) => {
@@ -633,6 +631,7 @@ exports.updateSupplier = async (req, res) => {
   }
 };
 
+// DELETE SUPPLIER
 exports.deleteSupplier = async (req, res) => {
   try {
     const supplier = await Supplier.findOneAndDelete({ _id: req.params.id, user: req.user.id });
@@ -646,7 +645,6 @@ exports.deleteSupplier = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 // ==================== 5. PURCHASE ORDERS ====================
 exports.getPurchases = async (req, res) => {
@@ -692,7 +690,6 @@ exports.createPurchase = async (req, res) => {
   }
 };
 
-
 // ==================== 6. TRANSFERS ====================
 exports.getTransfers = async (req, res) => {
   try {
@@ -713,7 +710,6 @@ exports.createTransfer = async (req, res) => {
   }
 };
 
-
 // ==================== 7. ORDERS (POS & SALES) ====================
 exports.getOrders = async (req, res) => {
   try {
@@ -729,7 +725,7 @@ exports.createOrder = async (req, res) => {
     const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማሰገባት ያስፈልጋል' });
+      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማስገባት ያስፈልጋል' });
     }
 
     let totalCostPrice = 0;
@@ -854,7 +850,6 @@ exports.getTodaySalesSummary = async (req, res) => {
   }
 };
 
-
 // ==================== 8. CUSTOMERS ====================
 exports.getCustomers = async (req, res) => {
   try {
@@ -874,7 +869,6 @@ exports.createCustomer = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 // ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
 exports.getAnalytics = async (req, res) => {
