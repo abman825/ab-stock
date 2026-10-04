@@ -6,9 +6,18 @@ const API_BASE_URL = `${BASE_URL}/api`;
 function Transfer() {
   const [transfers, setTransfers] = useState([]);
   const [showModal, setShowModal] = useState(false);
+
+  // 1. businessType ምልላይ (pharmacy ወይ building_materials)
+  const [businessType, setBusinessType] = useState(
+    localStorage.getItem('businessType') || 'pharmacy'
+  );
+
+  const isBuilding = businessType === 'building' || businessType === 'building_materials' || businessType === 'buildingMaterials';
+  const currentBusinessType = isBuilding ? 'building_materials' : 'pharmacy';
+
   const [formData, setFormData] = useState({
-    from: 'stock',
-    to: 'pharmacy',
+    from: 'store',
+    to: 'shop',
     transferredBy: 'ab'
   });
 
@@ -21,30 +30,62 @@ function Transfer() {
     };
   };
 
-  // Backend Data Fetching
+  // 2. Mode እንተተቐይሩ ንክቕየር ምግባር
+  useEffect(() => {
+    const handleModeChange = () => {
+      const currentMode = localStorage.getItem('businessType') || 'pharmacy';
+      setBusinessType(currentMode);
+    };
+
+    window.addEventListener('businessTypeChanged', handleModeChange);
+    window.addEventListener('storage', handleModeChange);
+    return () => {
+      window.removeEventListener('businessTypeChanged', handleModeChange);
+      window.removeEventListener('storage', handleModeChange);
+    };
+  }, []);
+
+  // 3. ብ businessType መሰረት Transfers fetch ምግባር
   useEffect(() => {
     fetchTransfers();
-  }, []);
+  }, [businessType]);
 
   const fetchTransfers = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/transfers`, {
+      const res = await fetch(`${API_BASE_URL}/transfers?businessType=${currentBusinessType}`, {
         headers: getAuthHeaders()
       });
       const data = await res.json();
-      if (Array.isArray(data)) setTransfers(data);
+      
+      if (Array.isArray(data)) {
+        // Frontend filter (እንተደኣ Backend filter ዘይገበረ ኮይኑ)
+        const filtered = data.filter((item) => {
+          const type = (item.businessType || '').toLowerCase();
+          if (isBuilding) {
+            return type === 'building_materials' || type.includes('building');
+          }
+          return type === 'pharmacy' || type === '' || !item.businessType;
+        });
+        setTransfers(filtered);
+      }
     } catch (err) {
       console.error('Error fetching transfers:', err);
     }
   };
 
+  // 4. ብ active businessType መሰረት Transfer ምፍጣር
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        businessType: currentBusinessType
+      };
+
       const res = await fetch(`${API_BASE_URL}/transfers`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         setShowModal(false);
@@ -62,10 +103,13 @@ function Transfer() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#212529', margin: 0 }}>Product Transfer</h2>
+          <span style={{ fontSize: '11px', color: '#0d6efd', fontWeight: 'bold', textTransform: 'uppercase' }}>
+            {isBuilding ? '🏗️ Building Materials Mode' : '💊 Pharmacy Mode'}
+          </span>
           <p style={{ fontSize: '13px', color: '#6c757d', margin: '5px 0 0 0' }}>
-            Transfer products from store to shop (pharmacy) or from shop to store.<br />
+            Transfer products from store to shop or from shop to store.<br />
             <span style={{ fontSize: '12px', color: '#8c98a4' }}>
-              Products which are transferred from store to pharmacy will be added into your sale page.
+              Products which are transferred from store to shop will be added into your sale page.
             </span>
           </p>
         </div>
@@ -102,7 +146,7 @@ function Transfer() {
             {transfers.length === 0 ? (
               <tr>
                 <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-                  No transfer records found.
+                  No transfer records found for {isBuilding ? 'Building Materials' : 'Pharmacy'}.
                 </td>
               </tr>
             ) : (
@@ -125,7 +169,9 @@ function Transfer() {
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#fff', width: '400px', borderRadius: '8px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-            <h3 style={{ marginTop: 0, fontSize: '16px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>New Transfer</h3>
+            <h3 style={{ marginTop: 0, fontSize: '16px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+              New Transfer ({isBuilding ? 'Building Materials' : 'Pharmacy'})
+            </h3>
             
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '15px' }}>
@@ -135,9 +181,10 @@ function Transfer() {
                   onChange={(e) => setFormData({ ...formData, from: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
-                  <option value="stock">Stock</option>
-                  <option value="pharmacy">Pharmacy</option>
                   <option value="store">Store</option>
+                  <option value="stock">Stock</option>
+                  <option value="shop">Shop</option>
+                  <option value="pharmacy">Pharmacy</option>
                 </select>
               </div>
 
@@ -148,9 +195,10 @@ function Transfer() {
                   onChange={(e) => setFormData({ ...formData, to: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
+                  <option value="shop">Shop</option>
                   <option value="pharmacy">Pharmacy</option>
                   <option value="stock">Stock</option>
-                  <option value="shop">Shop</option>
+                  <option value="store">Store</option>
                 </select>
               </div>
 
