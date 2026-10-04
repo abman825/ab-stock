@@ -216,7 +216,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     return qty < 5;
   };
 
-  // Filter Products
+  // Filter Products (By Search, Category, Low Stock, AND Business Mode)
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name
       ? p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -225,10 +225,25 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       selectedCategory === 'All Categories' || p.category === selectedCategory;
     const matchesLowStock = showLowStockOnly ? isProductLowStock(p) : true;
 
-    return matchesSearch && matchesCategory && matchesLowStock;
+    // Filter strictly by Business Mode
+    const prodType = (p.businessType || p.businessMode || '').toLowerCase();
+    let matchesMode = true;
+    if (isBuildingMode) {
+      matchesMode = prodType.includes('building') || Boolean(p.materialType) || Boolean(p.unit);
+    } else {
+      matchesMode = prodType.includes('pharmacy') || Boolean(p.specificType) || Boolean(p.expiryDate);
+    }
+
+    return matchesSearch && matchesCategory && matchesLowStock && matchesMode;
   });
 
-  const lowStockCount = products.filter(isProductLowStock).length;
+  const lowStockCount = products.filter(p => {
+    const prodType = (p.businessType || p.businessMode || '').toLowerCase();
+    const matchesMode = isBuildingMode 
+      ? (prodType.includes('building') || Boolean(p.materialType) || Boolean(p.unit))
+      : (prodType.includes('pharmacy') || Boolean(p.specificType) || Boolean(p.expiryDate));
+    return matchesMode && isProductLowStock(p);
+  }).length;
 
   return (
     <div style={{ padding: '20px', flex: 1, background: '#f4f6f8', fontFamily: 'sans-serif' }}>
@@ -460,15 +475,17 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                       Qty: {qty} {isBuildingMode && product.unit ? `(${product.unit})` : ''} {isLowStock && '⚠️'}
                     </div>
 
+                    {/* Pharmacy Mode: Exp Date */}
                     {!isBuildingMode && (
                       <div style={{ fontSize: '10px', color: expDate ? '#fd7e14' : '#adb5bd', fontWeight: '500', marginBottom: '8px' }}>
                         Exp: {expDate ? new Date(expDate).toLocaleDateString() : 'N/A'}
                       </div>
                     )}
 
+                    {/* Building Mode: Unit & Material Type */}
                     {isBuildingMode && (
                       <div style={{ fontSize: '10px', color: '#0d6efd', fontWeight: '500', marginBottom: '8px' }}>
-                        Type: {product.specificType || 'N/A'}
+                        Unit: {product.unit || product.materialType || 'N/A'}
                       </div>
                     )}
 
@@ -513,7 +530,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
                   return (
                     <div key={itemId} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
                         <div>
                           <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{item.name}</div>
                           <div style={{ fontSize: '10px', color: '#6c757d' }}>{itemUnitPrice.toFixed(2)} Birr</div>
