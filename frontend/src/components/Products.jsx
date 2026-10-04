@@ -12,13 +12,13 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // 1. businessType አስቀድሞ መታወቅ አለበት
+  // 1. Business Mode State
   const [businessType, setBusinessType] = useState(
     localStorage.getItem('businessType') || 'pharmacy'
   );
 
-  // 2. isBuilding ከ businessType በኋላ መምጣት አለበት
   const isBuilding = businessType === 'building' || businessType === 'building_materials' || businessType === 'buildingMaterials';
+  const currentBusinessType = isBuilding ? 'building_materials' : 'pharmacy';
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -53,25 +53,40 @@ function Products() {
     };
 
     window.addEventListener('businessTypeChanged', handleModeChange);
-    return () => window.removeEventListener('businessTypeChanged', handleModeChange);
+    window.addEventListener('storage', handleModeChange);
+    return () => {
+      window.removeEventListener('businessTypeChanged', handleModeChange);
+      window.removeEventListener('storage', handleModeChange);
+    };
   }, []);
 
-  // 3. FIX: Fetch products based on current businessType
+  // 2. Fetch Products & Categories
   const fetchData = async () => {
     try {
       const config = { headers: getAuthHeaders() };
+      
       const [resProducts, resCategories] = await Promise.all([
-        axios.get(`${API_BASE_URL}/products?businessType=${businessType}`, config),
-        axios.get(`${API_BASE_URL}/categories`, config)
+        axios.get(`${API_BASE_URL}/products?businessType=${currentBusinessType}`, config),
+        axios.get(`${API_BASE_URL}/categories?businessType=${currentBusinessType}`, config)
       ]);
 
       setProducts(resProducts.data);
-      setCategories(resCategories.data);
 
-      if (resCategories.data.length > 0) {
+      // Strict client-side filter para kadagiti categories
+      const filteredCategories = resCategories.data.filter((cat) => {
+        const catType = (cat.businessType || '').toLowerCase();
+        if (isBuilding) {
+          return catType === 'building_materials' || catType.includes('building');
+        }
+        return catType === 'pharmacy' || catType === '' || !cat.businessType;
+      });
+
+      setCategories(filteredCategories);
+
+      if (filteredCategories.length > 0) {
         setFormData((prev) => ({
           ...prev,
-          category: prev.category || resCategories.data[0].name
+          category: prev.category || filteredCategories[0].name
         }));
       }
     } catch (err) {
@@ -119,7 +134,7 @@ function Products() {
               specificType: cleanValues[10] || '',
               unit: cleanValues[11] || '',
               isSyrup: cleanValues[12] === 'true' || cleanValues[12] === 'Yes',
-              businessType: businessType
+              businessType: currentBusinessType
             });
           }
         }
@@ -188,7 +203,7 @@ function Products() {
     });
   };
 
-  // 4. FIX: Filter products smoothly without logic conflict
+  // 3. Filter products
   const filteredProducts = products.filter((p) => {
     const qty = p.quantity ?? p.inShop ?? 0;
     const matchesSearch = p.name ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
@@ -312,7 +327,7 @@ function Products() {
         inStoreQty: Number(formData.inStoreQty) || 0,
         quantity: Number(formData.quantity) || 0,
         invoiceNo: formData.invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-        businessType: businessType
+        businessType: currentBusinessType
       };
 
       if (formData.expiryDate && formData.expiryDate.trim() !== '') {
@@ -615,7 +630,7 @@ function Products() {
         formData={formData}
         setFormData={setFormData}
         categories={categories}
-        businessType={businessType}
+        businessType={currentBusinessType}
         handleCloseModal={handleCloseModal}
         handleSubmit={handleSubmit}
       />
