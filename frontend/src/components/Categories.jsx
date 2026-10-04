@@ -18,6 +18,11 @@ function Categories() {
     name: ''
   });
 
+  // Business Mode dynamically detetct ማድረጊያ
+  const rawType = localStorage.getItem('businessType') || 'pharmacy';
+  const isBuildingMode = rawType.toLowerCase().includes('building');
+  const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -29,10 +34,24 @@ function Categories() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/categories`, getAuthHeaders());
-      // Filter clientside n'a bɛ waati dɔ la
-      const pharmacyOnly = res.data.filter(cat => !cat.businessType || cat.businessType === 'pharmacy');
-      setCategories(pharmacyOnly);
+      // API call query parameter ከ Category.js schema enum ('pharmacy', 'building_materials') ጋር የተጣጣመ ነው
+      const res = await axios.get(
+        `${API_BASE_URL}/categories?businessType=${currentBusinessType}`,
+        getAuthHeaders()
+      );
+
+      if (res.data) {
+        // Backend filtration ባይኖር እንኳን Strict Frontend Filtering logic
+        const filtered = res.data.filter(cat => {
+          const catType = (cat.businessType || '').toLowerCase();
+          if (isBuildingMode) {
+            return catType.includes('building') || catType === 'building_materials';
+          }
+          return catType.includes('pharmacy') || catType === '' || !cat.businessType;
+        });
+
+        setCategories(filtered);
+      }
     } catch (err) {
       console.error('Error fetching categories:', err);
     }
@@ -40,6 +59,16 @@ function Categories() {
 
   useEffect(() => {
     fetchCategories();
+
+    // App Mode ሲቀየር በራስ-ሰር ዳታውን Refresh ለማድረግ
+    const handleModeChange = () => fetchCategories();
+    window.addEventListener('storage', handleModeChange);
+    window.addEventListener('businessTypeChanged', handleModeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleModeChange);
+      window.removeEventListener('businessTypeChanged', handleModeChange);
+    };
   }, []);
 
   const handleEditClick = (cat) => {
@@ -58,7 +87,7 @@ function Categories() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Yala i bɛ fɛ ka nin category bɔ yen wa?')) {
+    if (window.confirm('Are you sure you want to delete this category?')) {
       try {
         await axios.delete(`${API_BASE_URL}/categories/${id}`, getAuthHeaders());
         fetchCategories();
@@ -74,7 +103,7 @@ function Categories() {
       const config = getAuthHeaders();
       const payload = {
         ...formData,
-        businessType: 'pharmacy' // Pharmacy dɔrɔn kama
+        businessType: currentBusinessType // Dynamic businessType assignment
       };
 
       if (editingId) {
@@ -102,20 +131,20 @@ function Categories() {
             name: item.name || item.CategoryName || item.Name,
             categoryId: item.categoryId || item.CategoryId || Math.floor(1000 + Math.random() * 9000).toString(),
             productsCount: Number(item.productsCount) || 0,
-            businessType: 'pharmacy'
+            businessType: currentBusinessType
           })).filter(c => c.name);
 
           if (formattedCategories.length === 0) {
-            alert('CSV kunnafoni te tinɛn!');
+            alert('CSV data is empty or invalid!');
             return;
           }
 
           await axios.post(`${API_BASE_URL}/categories/bulk`, formattedCategories, getAuthHeaders());
-          alert(`${formattedCategories.length} categories donra ka ɲɛ!`);
+          alert(`${formattedCategories.length} categories imported successfully!`);
           fetchCategories();
         } catch (err) {
           console.error('CSV Import Error:', err);
-          alert('Fili kɛra import waati la!');
+          alert('Error during import process!');
         }
       }
     });
@@ -131,7 +160,9 @@ function Categories() {
   return (
     <div style={{ padding: '20px', flex: 1, backgroundColor: '#f4f6f8' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>Pharmacy Category Management</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
+          {isBuildingMode ? 'Building Materials' : 'Pharmacy'} Category Management
+        </h2>
         
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
@@ -278,7 +309,7 @@ function Categories() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Syrup, Tablet"
+                  placeholder={isBuildingMode ? "e.g. Cement, Steel, Electrical" : "e.g. Syrup, Tablet"}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   style={{ width: '100%', padding: '7px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}

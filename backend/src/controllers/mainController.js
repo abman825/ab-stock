@@ -474,15 +474,28 @@ exports.getActivityLogs = async (req, res) => {
 };
 
 // ==================== 3. CATEGORIES ====================
+
+// GET ALL CATEGORIES (With businessType query filter)
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ user: req.user.id });
+    const { businessType } = req.query;
+    
+    // query object መገንባት
+    let query = { user: req.user.id };
+
+    // businessType ከቀረበ በዛ filter ያደርጋል
+    if (businessType) {
+      query.businessType = businessType;
+    }
+
+    const categories = await Category.find(query);
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// CREATE SINGLE CATEGORY
 exports.createCategory = async (req, res) => {
   try {
     const newCategory = new Category({ ...req.body, user: req.user.id });
@@ -493,6 +506,7 @@ exports.createCategory = async (req, res) => {
   }
 };
 
+// UPDATE CATEGORY
 exports.updateCategory = async (req, res) => {
   try {
     const updated = await Category.findOneAndUpdate(
@@ -502,7 +516,7 @@ exports.updateCategory = async (req, res) => {
     );
 
     if (!updated) {
-      return res.status(404).json({ message: 'Category አልተገኘም ወይም የማስተካከል መብት የለዎትም' });
+      return res.status(404).json({ message: 'Category አልተገኘም ወይም የማስተካከል መብት የሎትም' });
     }
 
     res.json(updated);
@@ -526,6 +540,7 @@ exports.deleteCategory = async (req, res) => {
   }
 };
 
+// BULK CREATE CATEGORIES (CSV Import)
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
@@ -544,7 +559,6 @@ exports.createCategoriesBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 // ==================== 4. SUPPLIERS ====================
 exports.getSuppliers = async (req, res) => {
   try {
