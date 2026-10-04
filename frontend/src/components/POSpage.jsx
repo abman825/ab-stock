@@ -45,9 +45,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     try {
       const config = getAuthHeaders();
 
-      let currentBusinessType = rawType.toLowerCase().includes('building') 
-        ? 'building_materials' 
-        : 'pharmacy';
+      let currentBusinessType = isBuildingMode ? 'building' : 'pharmacy';
 
       const [prodRes, catRes, salesRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/products?businessType=${currentBusinessType}`, config),
@@ -172,7 +170,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     }
 
     try {
-      let currentBusinessType = rawType.toLowerCase().includes('building') ? 'building_materials' : 'pharmacy';
+      let currentBusinessType = isBuildingMode ? 'building' : 'pharmacy';
 
       const orderPayload = {
         items: cart.map(item => ({
@@ -225,11 +223,11 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       selectedCategory === 'All Categories' || p.category === selectedCategory;
     const matchesLowStock = showLowStockOnly ? isProductLowStock(p) : true;
 
-    // Filter strictly by Business Mode
+    // Fixed Business Mode Filter check
     const prodType = (p.businessType || p.businessMode || '').toLowerCase();
     let matchesMode = true;
     if (isBuildingMode) {
-      matchesMode = prodType.includes('building') || Boolean(p.materialType) || Boolean(p.unit);
+      matchesMode = prodType.includes('building') || Boolean(p.materialType) || Boolean(p.unit) || (!p.specificType && !p.expiryDate);
     } else {
       matchesMode = prodType.includes('pharmacy') || Boolean(p.specificType) || Boolean(p.expiryDate);
     }
@@ -240,7 +238,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const lowStockCount = products.filter(p => {
     const prodType = (p.businessType || p.businessMode || '').toLowerCase();
     const matchesMode = isBuildingMode 
-      ? (prodType.includes('building') || Boolean(p.materialType) || Boolean(p.unit))
+      ? (prodType.includes('building') || Boolean(p.materialType) || Boolean(p.unit) || (!p.specificType && !p.expiryDate))
       : (prodType.includes('pharmacy') || Boolean(p.specificType) || Boolean(p.expiryDate));
     return matchesMode && isProductLowStock(p);
   }).length;
