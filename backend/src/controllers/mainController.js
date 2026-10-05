@@ -906,28 +906,46 @@ exports.getAnalytics = async (req, res) => {
   try {
     const { businessType } = req.query;
 
-    let filter = { user: req.user.id };
+    // 1. የ User filter ማዘጋጀት (user ወይም userId መሆኖን ያረጋግጣል)
+    let filter = {};
+    if (req.user && (req.user.id || req.user._id)) {
+      const userId = req.user.id || req.user._id;
+      filter.$or = [{ user: userId }, { userId: userId }];
+    }
+
+    // 2. የ Business Type filter ማዘጋጀት
     if (businessType) {
-      if (businessType === 'building' || businessType.includes('building')) {
+      const isBuilding = businessType === 'building' || businessType.includes('building');
+      
+      if (isBuilding) {
         filter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
       } else {
-        filter.businessType = 'pharmacy';
+        // pharmacy ከሆነ ወይም businessType ያልተገለጸላቸውን አብሮ ያመጣል
+        filter.$and = [
+          { businessType: { $in: ['pharmacy', null, undefined] } }
+        ];
       }
     }
 
+    // ኦርደሮቹን ከ Database ማምጣት
     const orders = await Order.find(filter);
 
     const now = new Date();
     const todayStr = getLocalTodayDate();
 
-    const startOfToday = new Date(now);
+    // የዛሬ መጀመሪያ (Local Time)
+    const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const startOfWeek = new Date(now);
+    // የሳምንቱ መጀመሪያ
+    const startOfWeek = new Date();
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
+    // የወሩ መጀመሪያ
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // የዓመቱ መጀመሪያ
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
     let stats = {
@@ -944,41 +962,48 @@ exports.getAnalytics = async (req, res) => {
     };
 
     orders.forEach((order) => {
+      // ቀን ማስተካከያ
       const orderDate = new Date(order.createdAt || order.soldAtDate);
-      const grandTotal = Number(order.grandTotal || order.subtotal || 0);
+      const grandTotal = Number(order.grandTotal || order.subtotal || order.total || 0);
 
+      // ትርፍ ማስላት
       let orderProfit = 0;
-      if (typeof order.profit === 'number') {
+      if (typeof order.profit === 'number' && !isNaN(order.profit)) {
         orderProfit = order.profit;
       } else if (order.items && Array.isArray(order.items)) {
         orderProfit = order.items.reduce((acc, item) => {
-          const sellPrice = Number(item.price || 0);
-          const cost = Number(item.costPrice !== undefined ? item.costPrice : (item.boughtPrice || 0));
+          const sellPrice = Number(item.price || item.customPrice || 0);
+          const cost = Number(item.boughtPrice ?? item.costPrice ?? 0);
           const qty = Number(item.cartQty || item.quantity || 1);
 
           return acc + (sellPrice - cost) * qty;
-        }, 0) - Number(order.discountAmount || 0);
+        }, 0) - Number(order.discountAmount || order.discountValue || 0);
       }
 
+      // አጠቃላይ (Total)
       stats.totalSales += grandTotal;
       stats.totalProfit += orderProfit;
 
+      // የቀን ማጣሪያ (String Date match ወይም JS Date match)
       const orderDateStr = order.soldAtDate || orderDate.toISOString().split('T')[0];
       if (orderDateStr === todayStr || orderDate >= startOfToday) {
         stats.dailySales += grandTotal;
         stats.dailyProfit += orderProfit;
       }
 
+      // የሳምንት
       if (orderDate >= startOfWeek) {
         stats.weeklySales += grandTotal;
         stats.weeklyProfit += orderProfit;
       }
 
+      // የወር
       if (orderDate >= startOfMonth) {
         stats.monthlySales += grandTotal;
         stats.monthlyProfit += orderProfit;
       }
 
+      // የዓመት
       if (orderDate >= startOfYear) {
         stats.yearlySales += grandTotal;
         stats.yearlyProfit += orderProfit;
@@ -988,6 +1013,6 @@ exports.getAnalytics = async (req, res) => {
     res.json(stats);
   } catch (err) {
     console.error('Error fetching analytics:', err);
-    res.status(500).json({ error: 'Server error in analytics' });
+    res.status(500).json({ error: 'Server error in analytics', details: err.message });
   }
 };
