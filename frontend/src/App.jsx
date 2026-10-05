@@ -60,29 +60,30 @@ function App() {
     }
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchProducts();
-      fetchCategories();
-      fetchTodaySalesSummary();
-    }
-  }, [user]);
+ useEffect(() => {
+  console.log("Current User:", user);
+  if (user) {
+    fetchProducts();
+    fetchCategories();
+    fetchTodaySalesSummary();
+  }
+}, [user]);
 
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/products`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data);
-      } else {
-        console.error("Products fetching failed:", res.status);
-      }
-    } catch (err) {
-      console.error("Error fetching products:", err);
+const fetchProducts = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/products`, {
+      headers: getAuthHeaders()
+    });
+    console.log("Products Status:", res.status);
+    if (res.ok) {
+      const data = await res.json();
+      console.log("Fetched Products:", data);
+      setProducts(data);
     }
-  };
+  } catch (err) {
+    console.error("Products Fetch Error:", err);
+  }
+};
 
   const fetchCategories = async () => {
     try {
