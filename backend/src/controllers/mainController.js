@@ -14,6 +14,15 @@ const crypto = require('crypto');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Helper function to get YYYY-MM-DD in local time
+const getLocalTodayDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // ==================== 1. USER & AUTHENTICATION ====================
 
 // FORGOT PASSWORD
@@ -213,18 +222,24 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+// GET POS PRODUCTS
 exports.getPOSProducts = async (req, res) => {
   try {
     const { businessType } = req.query;
 
     let filter = { user: req.user.id };
+    
     if (businessType) {
-      filter.businessType = businessType;
+      if (businessType === 'building' || businessType.includes('building')) {
+        filter.businessType = 'building_materials';
+      } else {
+        filter.businessType = 'pharmacy';
+      }
     }
 
-    // ከ `inShop: { $gt: 0 }` ይልቅ አጠቃላይ quantity ወይም inShop Check እንዲያደርግ
     filter.$or = [
-      { inShop: { $gt: 0 } },       { quantity: {$gt: 0 } }
+      { inShop: { $gt: 0 } },
+      { quantity: { $gt: 0 } }
     ];
 
     const products = await Product.find(filter);
@@ -234,11 +249,9 @@ exports.getPOSProducts = async (req, res) => {
   }
 };
 
-// ==================== PRODUCTS CONTROLLER ====================
+// ==================== 2. PRODUCTS CONTROLLER ====================
 
-// 1. አዲስ ምርት መፍጠር (Create Product)
-// backend/src/controllers/mainController.js
-
+// CREATE PRODUCT
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -249,7 +262,7 @@ exports.createProduct = async (req, res) => {
       price,
       stockThreshold,
       specificType,
-      unit, // <--- ከ req.body መጣ[cite: 7]
+      unit,
       isSyrup,
       inStoreQty,
       quantity,
@@ -259,24 +272,24 @@ exports.createProduct = async (req, res) => {
       batchNumber,
       supplier,
       location
-    } = req.body; //[cite: 7]
+    } = req.body;
 
     const newProduct = new Product({
-      user: req.user.id, //[cite: 7]
-      name, //[cite: 7]
-      category: category || 'General', //[cite: 7]
-      productType: productType || 'Stock', //[cite: 7]
-      boughtPrice: boughtPrice || 0, //[cite: 7]
-      price, //[cite: 7]
-      stockThreshold: stockThreshold || 0, //[cite: 7]
-      specificType: specificType || '', //[cite: 7]
-      unit: unit || req.body.selectUnit || '', // <--- እዚህ ጋር DB Schema ላይ ላለው unit Assignment ይሰጠዋል[cite: 6, 7]
+      user: req.user.id,
+      name,
+      category: category || 'General',
+      productType: productType || 'Stock',
+      boughtPrice: boughtPrice || 0,
+      price,
+      stockThreshold: stockThreshold || 0,
+      specificType: specificType || '',
+      unit: unit || req.body.selectUnit || '',
       isSyrup: isSyrup || false,
       inStoreQty: inStoreQty || 0,
       quantity: quantity || 0,
       invoiceNo: invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       expiryDate,
-      businessType: businessType || 0,
+      businessType: businessType || 'pharmacy',
       batchNumber,
       supplier,
       location
@@ -290,18 +303,15 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// backend/src/controllers/mainController.js
-
+// GET PRODUCTS
 exports.getProducts = async (req, res) => {
   try {
-    const { businessType } = req.query; // ከ Query String ይቀበላል
+    const { businessType } = req.query;
 
     let query = { user: req.user.id };
 
-    // businessType ከተላከ ዳታውን ከፍሎ እንዲያመጣ
     if (businessType) {
       if (businessType === 'pharmacy') {
-        // Pharmacy ከሆነ የሕንፃ መሣሪያ ያልሆኑትን ወይም ለፋርማሲ የተመዘገቡትን ብቻ ያመጣል
         query.businessType = 'pharmacy';
       } else if (
         businessType === 'building' || 
@@ -475,15 +485,12 @@ exports.getActivityLogs = async (req, res) => {
 
 // ==================== 3. CATEGORIES ====================
 
-// GET ALL CATEGORIES (With businessType query filter)
+// GET ALL CATEGORIES
 exports.getCategories = async (req, res) => {
   try {
     const { businessType } = req.query;
-    
-    // query object መገንባት
     let query = { user: req.user.id };
 
-    // businessType ከቀረበ በዛ filter ያደርጋል
     if (businessType) {
       query.businessType = businessType;
     }
@@ -540,7 +547,7 @@ exports.deleteCategory = async (req, res) => {
   }
 };
 
-// BULK CREATE CATEGORIES (CSV Import)
+// BULK CREATE CATEGORIES
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
@@ -559,6 +566,7 @@ exports.createCategoriesBulk = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // ==================== 4. SUPPLIERS ====================
 exports.getSuppliers = async (req, res) => {
   try {
@@ -588,7 +596,7 @@ exports.updateSupplier = async (req, res) => {
     );
 
     if (!updated) {
-      return res.status(404).json({ message: 'Supplier አልተገኘም ወይም የማስተካከል መብት የለዎትም' });
+      return res.status(404).json({ message: 'Supplier አልተገኘም ወይም የማስተካከል መብት የልዎትም' });
     }
 
     res.json(updated);
@@ -597,7 +605,6 @@ exports.updateSupplier = async (req, res) => {
   }
 };
 
-// DELETE SUPPLIER
 exports.deleteSupplier = async (req, res) => {
   try {
     const supplier = await Supplier.findOneAndDelete({ _id: req.params.id, user: req.user.id });
@@ -662,12 +669,10 @@ exports.getTransfers = async (req, res) => {
     const { businessType } = req.query;
     const filter = { user: req.user.id };
 
-    // businessType ከቀረበ Filter ማድረጊያ መጨመር
     if (businessType) {
       if (businessType === 'building_materials' || businessType.includes('building')) {
         filter.businessType = { $in: ['building_materials', 'building'] };
       } else {
-        // Pharmacy ከሆነ ወይም ባዶ/እስካሁን ያልተመደበ ከሆነ
         filter.$or = [
           { businessType: 'pharmacy' },
           { businessType: { $exists: false } },
@@ -703,14 +708,18 @@ exports.createTransfer = async (req, res) => {
   }
 };
 
-//// ==================== 7. ORDERS (POS & SALES) ====================
+// ==================== 7. ORDERS (POS & SALES) ====================
 exports.getOrders = async (req, res) => {
   try {
     const { businessType } = req.query;
 
     let filter = { user: req.user.id };
     if (businessType) {
-      filter.businessType = businessType;
+      if (businessType === 'building' || businessType.includes('building')) {
+        filter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
+      } else {
+        filter.businessType = 'pharmacy';
+      }
     }
 
     const orders = await Order.find(filter).sort({ createdAt: -1 });
@@ -725,7 +734,7 @@ exports.createOrder = async (req, res) => {
     const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate, businessType } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማስገባት ያስፈልጋል' });
+      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማሰገባት ያስፈልጋል' });
     }
 
     let totalCostPrice = 0;
@@ -768,6 +777,11 @@ exports.createOrder = async (req, res) => {
 
     const netProfit = Number((safeGrandTotal - totalCostPrice).toFixed(2));
 
+    let assignedBusinessType = businessType || req.user?.businessType || 'pharmacy';
+    if (assignedBusinessType === 'building') {
+      assignedBusinessType = 'building_materials';
+    }
+
     const order = new Order({
       user: req.user.id,
       items: processedItems,
@@ -777,8 +791,8 @@ exports.createOrder = async (req, res) => {
       totalCost: totalCostPrice,
       profit: netProfit,
       paymentMethod: paymentMethod || 'Cash',
-      soldAtDate: soldAtDate || new Date().toISOString().split('T')[0],
-      businessType: businessType || req.user?.businessType || 'pharmacy'
+      soldAtDate: soldAtDate || getLocalTodayDate(),
+      businessType: assignedBusinessType
     });
 
     const savedOrder = await order.save();
@@ -793,7 +807,8 @@ exports.createOrder = async (req, res) => {
           update: { 
             $inc: { 
               quantity: -qtyToDeduct, 
-              stock: -qtyToDeduct 
+              stock: -qtyToDeduct,
+              inShop: -qtyToDeduct
             } 
           }
         }
@@ -811,10 +826,11 @@ exports.createOrder = async (req, res) => {
   }
 };
 
+// TODAY SALES SUMMARY (ተስተካክሏል: Timezone እና Business Type ችግሮችን ይፈታል)
 exports.getTodaySalesSummary = async (req, res) => {
   try {
     const { businessType } = req.query;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayDate();
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -826,12 +842,16 @@ exports.getTodaySalesSummary = async (req, res) => {
       user: req.user.id,
       $or: [
         { soldAtDate: todayStr },
-        { createdAt: { $gte: startOfToday, $lte: endOfToday } }
+        { createdAt: { $gte: startOfToday,$lte: endOfToday } }
       ]
     };
 
     if (businessType) {
-      filter.businessType = businessType;
+      if (businessType === 'building' || businessType.includes('building')) {
+        filter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
+      } else {
+        filter.businessType = 'pharmacy';
+      }
     }
 
     const orders = await Order.find(filter);
@@ -878,20 +898,24 @@ exports.createCustomer = async (req, res) => {
   }
 };
 
-// ==================== 9. ANALYTICS (PROFIT CALCULATIONS) ====================
+// ==================== 9. ANALYTICS ====================
 exports.getAnalytics = async (req, res) => {
   try {
     const { businessType } = req.query;
 
     let filter = { user: req.user.id };
     if (businessType) {
-      filter.businessType = businessType;
+      if (businessType === 'building' || businessType.includes('building')) {
+        filter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
+      } else {
+        filter.businessType = 'pharmacy';
+      }
     }
 
     const orders = await Order.find(filter);
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = getLocalTodayDate();
 
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);

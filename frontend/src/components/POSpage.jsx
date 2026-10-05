@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Base URL setup with correct variable name
+// Base URL setup
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
@@ -23,12 +23,12 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [discountType, setDiscountType] = useState('percent'); // 'percent' or 'fixed'
   const [paymentMethod, setPaymentMethod] = useState('Cash');
 
-  // Business Mode Check (ተስተካክሏል: building_materials እንዲሆን)
+  // Business Mode Check
   const rawType = localStorage.getItem('businessType') || 'pharmacy';
   const isBuildingMode = rawType.toLowerCase().includes('building');
   const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
 
-  // Local Timezone Date Generator (ተስተካክሏል: Timezone Issue-ን ይፈታል)
+  // Local Timezone Date Generator
   const getLocalTodayDate = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -63,7 +63,14 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
       if (prodRes.data) setProducts(prodRes.data);
       if (catRes.data) setCategories(catRes.data);
-      if (salesRes.data) setTodaySales(salesRes.data);
+      if (salesRes.data) {
+        setTodaySales({
+          cash: salesRes.data.cash || 0,
+          bank: salesRes.data.bank || 0,
+          telebirr: salesRes.data.telebirr || 0,
+          total: salesRes.data.total || 0
+        });
+      }
     } catch (err) {
       console.error('Error fetching POS data:', err);
     }
@@ -180,8 +187,11 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       const orderPayload = {
         items: cart.map(item => ({
           ...item,
-          product: item.productId || item._id,
+          productId: item.productId || item._id,
+          productName: item.name || item.productName || '',
           price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
+          boughtPrice: item.boughtPrice || item.costPrice || 0,
+          cartQty: item.cartQty,
           quantity: item.cartQty
         })),
         subtotal: subtotal,
@@ -203,7 +213,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       }
 
       // Refresh Data (Sales Summary + Products Stock)
-      fetchData();
+      await fetchData();
     } catch (err) {
       console.error('Checkout error:', err);
       alert('Checkout failed! Please check server connection.');
@@ -378,7 +388,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                 {lowStockCount}
               </div>
             </div>
-            <span style={{ background: '#ffebee', color: '#dc3545', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>⚠️️</span>
+            <span style={{ background: '#ffebee', color: '#dc3545', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>⚠️</span>
           </div>
 
         </div>

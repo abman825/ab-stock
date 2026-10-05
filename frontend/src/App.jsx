@@ -116,36 +116,43 @@ function App() {
     }
   };
 
-  // የሽያጭ ማጠቃለያ ፋንክሽን
+  // የሽያጭ ማጠቃለያ ፋንክሽን (Order complete handler)
   const handleCompleteSale = async (saleDetails) => {
-    if (cart.length === 0) {
+    // POS ወይም POSpage የሚልክልንን Items አደራጅቶ መውሰድ
+    const itemsToProcess = saleDetails?.items || cart;
+
+    if (itemsToProcess.length === 0) {
       alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
       return;
     }
 
     setLoading(true);
     try {
-      const rawSubtotal = Number(saleDetails.subtotal || saleDetails.grandTotal || 0);
+      const rawSubtotal = Number(saleDetails.subtotal || 0);
       const rawDiscountAmount = Number(saleDetails.discountAmount || saleDetails.discount || 0);
-      const rawDiscountPercent = Number(saleDetails.discountPercent || 0);
+      const rawDiscountValue = Number(saleDetails.discountValue || saleDetails.discountPercent || 0);
 
       const subtotalVal = Number(rawSubtotal.toFixed(2));
       const discountVal = Number(rawDiscountAmount.toFixed(2));
-      const grandTotalVal = Number((subtotalVal - discountVal).toFixed(2));
+      const grandTotalVal = Number(saleDetails.grandTotal ?? Math.max(0, subtotalVal - discountVal).toFixed(2));
 
       const orderData = {
-        items: cart.map(item => ({
-          productId: item._id,
-          name: item.name,
+        items: itemsToProcess.map(item => ({
+          product: item.productId || item._id,
+          productId: item.productId || item._id,
+          name: item.name || item.productName || '',
           price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
-          boughtPrice: Number(Number(item.boughtPrice || 0).toFixed(2)),
-          cartQty: Number(item.cartQty || 1)
+          boughtPrice: Number(Number(item.boughtPrice || item.costPrice || 0).toFixed(2)),
+          cartQty: Number(item.cartQty || item.quantity || 1),
+          quantity: Number(item.cartQty || item.quantity || 1)
         })),
         subtotal: subtotalVal,
-        discountPercent: rawDiscountPercent,
+        discountType: saleDetails.discountType || 'percent',
+        discountValue: rawDiscountValue,
         discountAmount: discountVal,
         grandTotal: grandTotalVal,
         paymentMethod: saleDetails.paymentMethod || 'Cash',
+        businessType: saleDetails.businessType || localStorage.getItem('businessType') || 'pharmacy',
         soldAtDate: saleDetails.soldAtDate || new Date().toISOString().split('T')[0]
       };
 
@@ -156,13 +163,13 @@ function App() {
       });
 
       if (res.ok) {
-        alert('ሽያጩ በተከከለ ሁኔታ ተጠናቋል!');
+        alert('ሽያጩ በትክክለኛው ሁኔታ ተጠናቋል!');
         setCart([]);
         fetchProducts();
         fetchTodaySalesSummary();
       } else {
         const errData = await res.json();
-        alert(`ሽያጩ አልተሳካም: ${errData.message || errData.error}`);
+        alert(`ሽያጩ አልተሳካም: ${errData.message || errData.error || 'Server error'}`);
       }
     } catch (err) {
       console.error('Sale completion error:', err);
@@ -172,7 +179,7 @@ function App() {
     }
   };
 
-  // Logout ሲደረግ LocalStorage አፅድቆ ገጹን ሙሉ በሙሉ Reload ማድረግ
+  // Logout ሲደረግ LocalStorage አጽድቆ ገጹን ሙሉ በሙሉ Reload ማድረግ
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
