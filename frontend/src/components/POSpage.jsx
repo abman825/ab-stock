@@ -23,12 +23,21 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [discountType, setDiscountType] = useState('percent'); // 'percent' or 'fixed'
   const [paymentMethod, setPaymentMethod] = useState('Cash');
 
-  // Business Mode Check
+  // Business Mode Check (ተስተካክሏል: building_materials እንዲሆን)
   const rawType = localStorage.getItem('businessType') || 'pharmacy';
   const isBuildingMode = rawType.toLowerCase().includes('building');
+  const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
 
-  // Default Today's Date (YYYY-MM-DD)
-  const todayDateString = new Date().toISOString().split('T')[0];
+  // Local Timezone Date Generator (ተስተካክሏል: Timezone Issue-ን ይፈታል)
+  const getLocalTodayDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayDateString = getLocalTodayDate();
 
   // Helper Function for Axios Headers with Token
   const getAuthHeaders = () => {
@@ -44,8 +53,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const fetchData = async () => {
     try {
       const config = getAuthHeaders();
-
-      let currentBusinessType = isBuildingMode ? 'building' : 'pharmacy';
 
       const [prodRes, catRes, salesRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/products?businessType=${currentBusinessType}`, config),
@@ -73,7 +80,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       window.removeEventListener('storage', handleModeChange);
       window.removeEventListener('businessTypeChanged', handleModeChange);
     };
-  }, []);
+  }, [rawType]);
 
   // Add Item to Cart
   const addToCart = (product) => {
@@ -170,8 +177,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     }
 
     try {
-      let currentBusinessType = isBuildingMode ? 'building' : 'pharmacy';
-
       const orderPayload = {
         items: cart.map(item => ({
           ...item,
@@ -197,6 +202,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         setCart([]);
       }
 
+      // Refresh Data (Sales Summary + Products Stock)
       fetchData();
     } catch (err) {
       console.error('Checkout error:', err);
@@ -214,7 +220,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     return qty < 5;
   };
 
-  // Filter Products (By Search, Category, Low Stock, AND Business Mode)
+  // Filter Products
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name
       ? p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -223,7 +229,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       selectedCategory === 'All Categories' || p.category === selectedCategory;
     const matchesLowStock = showLowStockOnly ? isProductLowStock(p) : true;
 
-    // Fixed Business Mode Filter check
     const prodType = (p.businessType || p.businessMode || '').toLowerCase();
     let matchesMode = true;
     if (isBuildingMode) {
@@ -373,7 +378,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                 {lowStockCount}
               </div>
             </div>
-            <span style={{ background: '#ffebee', color: '#dc3545', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>⚠️</span>
+            <span style={{ background: '#ffebee', color: '#dc3545', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>⚠️️</span>
           </div>
 
         </div>
@@ -528,7 +533,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
                   return (
                     <div key={itemId} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '10px', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{item.name}</div>
                           <div style={{ fontSize: '10px', color: '#6c757d' }}>{itemUnitPrice.toFixed(2)} Birr</div>
