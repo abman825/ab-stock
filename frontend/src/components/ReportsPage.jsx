@@ -20,6 +20,13 @@ function ReportsPage() {
   });
   const [loading, setLoading] = useState(true);
 
+  // Business Type Checker
+  const getSelectedBusinessType = () => {
+    const rawType = localStorage.getItem('businessType') || 'pharmacy';
+    const isBuildingMode = rawType.toLowerCase().includes('building');
+    return isBuildingMode ? 'building_materials' : 'pharmacy';
+  };
+
   // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -29,24 +36,40 @@ function ReportsPage() {
     };
   };
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/reports/analytics`, {
-          headers: getAuthHeaders()
-        });
-        
-        if (res.data) {
-          setStats(res.data);
-        }
-      } catch (err) {
-        console.error('Error fetching analytics:', err);
-      } finally {
-        setLoading(false);
+  // Fetch Analytics Function
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const currentBusinessType = getSelectedBusinessType();
+      
+      // businessType query parameter ጨምረን እንልካለን
+      const res = await axios.get(
+        `${API_BASE_URL}/reports/analytics?businessType=${currentBusinessType}`, 
+        { headers: getAuthHeaders() }
+      );
+      
+      if (res.data) {
+        setStats(res.data);
       }
-    };
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchAnalytics();
+
+    // የንግድ አይነት ሲቀየር (Business Mode Switch) ወዲያውኑ ሪፖርቱን እንዲያድስ
+    const handleModeChange = () => fetchAnalytics();
+    window.addEventListener('storage', handleModeChange);
+    window.addEventListener('businessTypeChanged', handleModeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleModeChange);
+      window.removeEventListener('businessTypeChanged', handleModeChange);
+    };
   }, []);
 
   if (loading) {
@@ -65,7 +88,7 @@ function ReportsPage() {
     );
   }
 
-  // Cards Data Configuration (በአማርኛ)
+  // Cards Data Configuration
   const cardsData = [
     {
       title: 'የዛሬ (Daily)',
