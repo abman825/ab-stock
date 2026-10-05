@@ -19,6 +19,11 @@ const orderSchema = new mongoose.Schema({
     enum: ['Cash', 'Bank', 'Telebirr', 'cash', 'bank', 'telebirr'],
     default: 'Cash'
   },
+  businessType: { 
+    type: String, 
+    enum: ['pharmacy', 'building', 'building_materials'], 
+    default: 'pharmacy' 
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

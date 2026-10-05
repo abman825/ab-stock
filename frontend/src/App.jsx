@@ -101,21 +101,27 @@ const fetchProducts = async () => {
     }
   };
 
-  const fetchTodaySalesSummary = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/orders/today-summary`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTodaySales(data);
-      } else {
-        console.error("Sales summary fetching failed:", res.status);
-      }
-    } catch (err) {
-      console.error("Error fetching sales summary:", err);
+ const fetchTodaySalesSummary = async () => {
+  try {
+    const rawType = localStorage.getItem('businessType') || 'pharmacy';
+    const isBuildingMode = rawType.toLowerCase().includes('building');
+    const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
+
+    const res = await fetch(
+      `${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, 
+      { headers: getAuthHeaders() }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      setTodaySales(data);
+    } else {
+      console.error("Sales summary fetching failed:", res.status);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching sales summary:", err);
+  }
+};
 
   // የሽያጭ ማጠቃለያ ፋንክሽን (Order complete handler)
   const handleCompleteSale = async (saleDetails) => {

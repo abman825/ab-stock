@@ -830,16 +830,23 @@ exports.createOrder = async (req, res) => {
 exports.getTodaySalesSummary = async (req, res) => {
   try {
     const { businessType } = req.query;
-    const todayStr = getLocalTodayDate();
 
+    // የአሁኑን ቀን በ local YYYY-MM-DD ፎርማት ማዘጋጀት
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    // የዛሬ መጀመሪያ እና መጨረሻ ሰዓት
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
     const endOfToday = new Date();
     endOfToday.setHours(23, 59, 59, 999);
 
-    let filter = {
-      user: req.user.id,
+    // Filter ማዘጋጀት
+    const filter = {
       $or: [
         { soldAtDate: todayStr },
         { createdAt: { $gte: startOfToday,$lte: endOfToday } }
@@ -847,33 +854,29 @@ exports.getTodaySalesSummary = async (req, res) => {
     };
 
     if (businessType) {
-      if (businessType === 'building' || businessType.includes('building')) {
-        filter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
-      } else {
-        filter.businessType = 'pharmacy';
-      }
+      filter.businessType = businessType;
     }
 
     const orders = await Order.find(filter);
 
-    let cash = 0, bank = 0, telebirr = 0;
+    let cash = 0;
+    let bank = 0;
+    let telebirr = 0;
 
-    orders.forEach(order => {
-      const amount = Number(order.grandTotal || order.subtotal || 0);
-      const method = (order.paymentMethod || '').toLowerCase();
+    orders.forEach((order) => {
+      const amount = Number(order.grandTotal || order.total || 0);
+      const method = (order.paymentMethod || 'Cash').toLowerCase();
 
       if (method === 'cash') cash += amount;
       else if (method === 'bank') bank += amount;
       else if (method === 'telebirr') telebirr += amount;
     });
 
-    res.json({
-      cash,
-      bank,
-      telebirr,
-      total: cash + bank + telebirr
-    });
+    const total = cash + bank + telebirr;
+
+    res.json({ cash, bank, telebirr, total });
   } catch (err) {
+    console.error("Error calculating today's summary:", err);
     res.status(500).json({ error: err.message });
   }
 };
