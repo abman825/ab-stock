@@ -65,8 +65,9 @@ router.get('/reports/analytics', analyticsController.getAnalytics);
 const Order = require('../models/Order'); // የእንቅስቃሴ መዝገብህ Order.js ስለሆነ
 
 // GET Daily Sales & Profit History
-// GET Daily Sales & Profit History
-router.get('/reports/daily-history', async (req, res) => {
+// mainRoutes.js ውስጥ Reports & Analytics ከሚለው ስር፦
+router.get('/reports/analytics', analyticsController.getAnalytics);
+router.get('/reports/daily-history', analyticsController.getDailyHistory); // ይህንን ብቻ ጨምር
   try {
     const { businessType } = req.query;
 
