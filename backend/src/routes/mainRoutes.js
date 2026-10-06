@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-// AyrÄ±-ayrÄ± Controller-lÉ™rin Ã§aÄŸÄ±rÄ±lmasÄ±
+// Controller-ዎችን መጥራት
 const authController = require('../controllers/authController');
 const productController = require('../controllers/productController');
 const categoryController = require('../controllers/categoryController');
@@ -11,8 +11,6 @@ const transferController = require('../controllers/transferController');
 const orderController = require('../controllers/orderController');
 const customerController = require('../controllers/customerController');
 const analyticsController = require('../controllers/analyticsController');
-
-
 
 // Middleware
 const authMiddleware = require('../middleware/authMiddleware');
@@ -58,83 +56,8 @@ router.put('/change-password', authController.changePassword);
 
 // Reports & Analytics
 router.get('/reports/analytics', analyticsController.getAnalytics);
+router.get('/reports/daily-history', analyticsController.getDailyHistory);
 
-// GET Daily Sales & Profit History (ንግድ ከተጀመረበት ቀን ጀምሮ በየቀኑ አድርጎ የሚያወጣ)
-// mainRoutes.js ወይም routes/ ይዘት ውስጥ መጨመር ያለበት፡
-
-const Order = require('../models/Order'); // የእንቅስቃሴ መዝገብህ Order.js ስለሆነ
-
-// GET Daily Sales & Profit History
-// mainRoutes.js ውስጥ Reports & Analytics ከሚለው ስር፦
-router.get('/reports/analytics', analyticsController.getAnalytics);
-router.get('/reports/daily-history', analyticsController.getDailyHistory); // ይህንን ብቻ ጨምር
-  try {
-    const { businessType } = req.query;
-
-    let filter = {};
-    if (businessType) {
-      filter.businessType = businessType;
-    }
-
-    const dailyHistory = await Order.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-            day: { $dayOfMonth: "$createdAt" }
-          },
-          date: { $first: "$createdAt" },
-          totalSales: { 
-            $sum: { 
-              $ifNull: ["$grandTotal", { $ifNull: ["$totalAmount", { $ifNull: ["$totalPrice", "$price"] }] }] 
-            } 
-          },
-          totalProfit: { 
-            $sum: { 
-              $ifNull: ["$netProfit", { $ifNull: ["$totalProfit", "$profit"] }] 
-            } 
-          }
-        }
-      },
-      { $sort: { date: -1 } }
-    ]);
-
-    // ዳታው ባዶ ከሆነ ያለ ፊልተር ሁሉንም ለማምጣት ይሞክራል
-    if (dailyHistory.length === 0) {
-      const fallbackHistory = await Order.aggregate([
-        {
-          $group: {
-            _id: {
-              year: { $year: "$createdAt" },
-              month: { $month: "$createdAt" },
-              day: { $dayOfMonth: "$createdAt" }
-            },
-            date: { $first: "$createdAt" },
-            totalSales: { 
-              $sum: { 
-                $ifNull: ["$grandTotal", { $ifNull: ["$totalAmount", { $ifNull: ["$totalPrice", "$price"] }] }] 
-              } 
-            },
-            totalProfit: { 
-              $sum: { 
-                $ifNull: ["$netProfit", { $ifNull: ["$totalProfit", "$profit"] }] 
-              } 
-            }
-          }
-        },
-        { $sort: { date: -1 } }
-      ]);
-      return res.json(fallbackHistory);
-    }
-
-    res.json(dailyHistory);
-  } catch (error) {
-    console.error("Daily history fetch error:", error);
-    res.status(500).json({ message: "መረጃውን ማምጣት አልተቻለም" });
-  }
-});
 // Products
 router.get('/products', productController.getProducts);
 router.post('/products', productController.createProduct);
