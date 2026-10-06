@@ -5,15 +5,14 @@ import ProductModal from './ProductModal';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-// 3tu languages er dictionary translations
 const translations = {
   am: {
     title: "የምርቶች አስተዳደር",
-    buildingMode: "🏗️ የሕንፃ መሣሪያዎች ሁነታ",
-    pharmacyMode: "💊 የፋርማሲ ሁነታ",
+    buildingMode: "🏗️ የሕንፃ መሣሪያዎች ሁኔታ",
+    pharmacyMode: "💊 የፋርማሲ ሁኔታ",
     import: "📥 አስገባ (Import)",
     addProduct: "+ ምርት ጨምር",
-    searchPlaceholder: "ይፈልጉ...",
+    searchPlaceholder: "ፈልግ...",
     all: "ሁሉም",
     inStock: "ስቶክ ላይ ያለ",
     lowStock: "አነስተኛ ስቶክ",
@@ -21,9 +20,9 @@ const translations = {
     thName: "ስም",
     thCategory: "ምድብ",
     thProdType: "የምርት ዓይነት",
-    thMaterialType: "የቁሳቁስ ዓይነት",
-    thUnit: "ዩኒት",
-    thSpecificType: "የተወሰነ ዓይነት",
+    thMaterialType: "የዕቃ ዓይነት (Specific Type)",
+    thUnit: "ዩኒት (Unit)",
+    thSpecificType: "የዕቃ ዓይነት",
     thSalePrice: "የመሸጫ ዋጋ",
     thBoughtPrice: "የመግዣ ዋጋ",
     thInStore: "መጋዘን ውስጥ",
@@ -109,7 +108,7 @@ const translations = {
     thName: "NAME",
     thCategory: "CATEGORY",
     thProdType: "PROD TYPE",
-    thMaterialType: "MATERIAL TYPE",
+    thMaterialType: "SPECIFIC TYPE",
     thUnit: "UNIT",
     thSpecificType: "SPECIFIC TYPE",
     thSalePrice: "SALE PRICE",
@@ -142,7 +141,6 @@ const translations = {
 };
 
 function Products() {
-  // Language Persistence & Multi-language setup
   const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
   const t = translations[lang] || translations.am;
 
@@ -152,7 +150,6 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Business Mode State
   const [businessType, setBusinessType] = useState(
     localStorage.getItem('businessType') || 'pharmacy'
   );
@@ -210,7 +207,6 @@ function Products() {
     };
   }, []);
 
-  // Fetch Products & Categories
   const fetchData = async () => {
     try {
       const config = { headers: getAuthHeaders() };
@@ -352,7 +348,6 @@ function Products() {
     });
   };
 
-  // Filter products
   const filteredProducts = products.filter((p) => {
     const qty = p.quantity ?? p.inShop ?? 0;
     const matchesSearch = p.name ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
@@ -387,7 +382,7 @@ function Products() {
     }
 
     const headers = isBuilding
-      ? ["Name", "Category", "Product Type", "Material Type", "Unit", "Bought Price", "Sale Price", "Stock Threshold", "In Store", "In Shop", "Invoice #"]
+      ? ["Name", "Category", "Product Type", "Specific Type", "Unit", "Bought Price", "Sale Price", "Stock Threshold", "In Store", "In Shop", "Invoice #"]
       : ["Name", "Category", "Product Type", "Specific Type", "Is Syrup", "Bought Price", "Sale Price", "Stock Threshold", "In Store", "In Shop", "Invoice #", "Expiry Date"];
     
     const csvRows = [
@@ -502,7 +497,6 @@ function Products() {
     }
   };
 
-  // Dynamic filter tab labels mapping
   const filterTabLabels = {
     'All': t.all,
     'In stock': t.inStock,
