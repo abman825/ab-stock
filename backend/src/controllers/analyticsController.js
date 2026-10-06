@@ -1,11 +1,5 @@
 const Order = require('../models/Order');
-
-// Get YYYY-MM-DD in Ethiopian Local Timezone (UTC+3)
-const getLocalTodayDate = () => {
-  const now = new Date();
-  const local = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // Ethiopian Offset UTC+3
-  return local.toISOString().split('T')[0];
-};
+const { ethToGreg, gregToEth } = require('ethiopian-calendar-date-converter');
 
 exports.getAnalytics = async (req, res) => {
   try {
@@ -27,26 +21,35 @@ exports.getAnalytics = async (req, res) => {
 
     const orders = await Order.find(filter);
 
-    // Calculate dates in UTC+3 (Ethiopian Local Time)
+    // 1. የኢትዮጵያ UTC+3 ሰዓት ማስተካከያ (EAT Time Zone)
     const now = new Date();
     const localNow = new Date(now.getTime() + (3 * 60 * 60 * 1000));
 
-    // Daily Range
+    // የዛሬውን ቀን በኢትዮጵያ አቆጣጠር ማግኘት
+    const [ethYear, ethMonth, ethDay] = gregToEth(
+      localNow.getUTCFullYear(),
+      localNow.getUTCMonth() + 1,
+      localNow.getUTCDate()
+    );
+
+    // --- ሀ. የዛሬ ጅምር (Start of Today) ---
     const startOfToday = new Date(localNow);
     startOfToday.setUTCHours(0, 0, 0, 0);
 
-    // Weekly Range (Monday as Start of Week)
+    // --- ለ. የሳምንት ጅምር (Start of Week - ሰኞ በኢትዮጵያ ሰዓት) ---
     const startOfWeek = new Date(localNow);
-    const dayIndex = localNow.getUTCDay(); // 0 is Sun, 1 is Mon
+    const dayIndex = localNow.getUTCDay(); // 0 = እሁድ, 1 = ሰኞ
     const diffToMonday = (dayIndex === 0 ? -6 : 1 - dayIndex);
     startOfWeek.setUTCDate(localNow.getUTCDate() + diffToMonday);
     startOfWeek.setUTCHours(0, 0, 0, 0);
 
-    // Monthly Range
-    const startOfMonth = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), 1));
+    // --- ሐ. የኢትዮጵያ ወር ጅምር (Start of Ethiopian Month - 1ኛ ቀን) ---
+    const [gregStartYear, gregStartMonth, gregStartDay] = ethToGreg(ethYear, ethMonth, 1);
+    const startOfEthMonth = new Date(Date.UTC(gregStartYear, gregStartMonth - 1, gregStartDay, 0, 0, 0));
 
-    // Yearly Range
-    const startOfYear = new Date(Date.UTC(localNow.getUTCFullYear(), 0, 1));
+    // --- መ. የኢትዮጵያ ዓመት ጅምር (Start of Ethiopian Year - መስከረም 1) ---
+    const [gregYrStartYear, gregYrStartMonth, gregYrStartDay] = ethToGreg(ethYear, 1, 1);
+    const startOfEthYear = new Date(Date.UTC(gregYrStartYear, gregYrStartMonth - 1, gregYrStartDay, 0, 0, 0));
 
     let stats = {
       dailySales: 0, dailyProfit: 0,
@@ -54,13 +57,15 @@ exports.getAnalytics = async (req, res) => {
       monthlySales: 0, monthlyProfit: 0,
       yearlySales: 0, yearlyProfit: 0,
       totalSales: 0, totalProfit: 0,
-      weeklyBreakdown: Array(7).fill(0).map((_, i) => ({ sales: 0, profit: 0 })),
-      monthlyBreakdown: Array(4).fill(0).map((_, i) => ({ sales: 0, profit: 0 })),
-      yearlyBreakdown: Array(12).fill(0).map((_, i) => ({ sales: 0, profit: 0 }))
+      weeklyBreakdown: Array(7).fill(null).map(() => ({ sales: 0, profit: 0 })),
+      monthlyBreakdown: Array(5).fill(null).map(() => ({ sales: 0, profit: 0 })), // የኢትዮጵያ ወር እስከ 30 ቀን ስለሆነ 5 ሳምንታት ይኖሩታል
+      yearlyBreakdown: Array(13).fill(null).map(() => ({ sales: 0, profit: 0 }))  // ጳጉሜን ጨምሮ 13 ወራት
     };
 
     orders.forEach((order) => {
-      const orderDate = new Date(order.createdAt || order.soldAtDate);
+      const rawDate = new Date(order.createdAt || order.soldAtDate);
+      // Order Date ን ወደ ኢትዮጵያ UTC+3 አቆጣጠር መቀየር
+      const orderDate = new Date(rawDate.getTime() + (3 * 60 * 60 * 1000));
       const grandTotal = Number(order.grandTotal || order.subtotal || order.total || 0);
 
       let orderProfit = 0;
@@ -75,46 +80,58 @@ exports.getAnalytics = async (req, res) => {
         }, 0) - Number(order.discountAmount || order.discountValue || 0);
       }
 
-      // Total All-Time
       stats.totalSales += grandTotal;
       stats.totalProfit += orderProfit;
 
-      // Daily
+      // 1. የዛሬ (Daily)
       if (orderDate >= startOfToday) {
         stats.dailySales += grandTotal;
         stats.dailyProfit += orderProfit;
       }
 
-      // Weekly & Breakdown
+      // 2. የሳምንት (Weekly - ከሰኞ ጀምሮ)
       if (orderDate >= startOfWeek) {
         stats.weeklySales += grandTotal;
         stats.weeklyProfit += orderProfit;
 
-        const dayIdx = (orderDate.getUTCDay() + 6) % 7; // Monday = 0
+        const dayIdx = (orderDate.getUTCDay() + 6) % 7; // ሰኞ = 0
         if (stats.weeklyBreakdown[dayIdx]) {
           stats.weeklyBreakdown[dayIdx].sales += grandTotal;
           stats.weeklyBreakdown[dayIdx].profit += orderProfit;
         }
       }
 
-      // Monthly & Breakdown
-      if (orderDate >= startOfMonth) {
+      // 3. የኢትዮጵያ ወር (Monthly)
+      if (orderDate >= startOfEthMonth) {
         stats.monthlySales += grandTotal;
         stats.monthlyProfit += orderProfit;
 
-        const weekIdx = Math.min(Math.floor((orderDate.getUTCDate() - 1) / 7), 3);
+        // የትዕዛዙን የኢትዮጵያ ቀን ማግኘት
+        const [, , orderEthDay] = gregToEth(
+          orderDate.getUTCFullYear(),
+          orderDate.getUTCMonth() + 1,
+          orderDate.getUTCDate()
+        );
+
+        const weekIdx = Math.min(Math.floor((orderEthDay - 1) / 7), 4);
         if (stats.monthlyBreakdown[weekIdx]) {
           stats.monthlyBreakdown[weekIdx].sales += grandTotal;
           stats.monthlyBreakdown[weekIdx].profit += orderProfit;
         }
       }
 
-      // Yearly & Breakdown
-      if (orderDate >= startOfYear) {
+      // 4. የኢትዮጵያ ዓመት (Yearly - ከመስከረም 1 ጀምሮ)
+      if (orderDate >= startOfEthYear) {
         stats.yearlySales += grandTotal;
         stats.yearlyProfit += orderProfit;
 
-        const monthIdx = orderDate.getUTCMonth(); // 0 to 11
+        const [, orderEthMonth] = gregToEth(
+          orderDate.getUTCFullYear(),
+          orderDate.getUTCMonth() + 1,
+          orderDate.getUTCDate()
+        );
+
+        const monthIdx = orderEthMonth - 1; // መስከረም = 0, ጥቅምት = 1 ...
         if (stats.yearlyBreakdown[monthIdx]) {
           stats.yearlyBreakdown[monthIdx].sales += grandTotal;
           stats.yearlyBreakdown[monthIdx].profit += orderProfit;
@@ -123,6 +140,7 @@ exports.getAnalytics = async (req, res) => {
     });
 
     res.json(stats);
+
   } catch (err) {
     res.status(500).json({ error: 'Server error in analytics', details: err.message });
   }
