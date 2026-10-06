@@ -1,29 +1,53 @@
 const Product = require('../models/Product');
 const ActivityLog = require('../models/ActivityLog');
 
+// Helper function businessType normalize gochuuf
+const normalizeBusinessType = (type) => {
+  if (!type) return 'pharmacy';
+  const lower = type.toLowerCase();
+  if (lower === 'building' || lower === 'building_materials' || lower === 'buildingmaterials') {
+    return 'building_materials';
+  }
+  return 'pharmacy';
+};
+
+// 1. CREATE PRODUCT
 exports.createProduct = async (req, res) => {
   try {
+    const businessType = normalizeBusinessType(req.body.businessType);
+
     const newProduct = new Product({
       ...req.body,
       user: req.user.id,
+      businessType: businessType,
       invoiceNo: req.body.invoiceNo || `INV-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
     });
+
     const savedProduct = await newProduct.save();
+
+    // Activity Log Uumuu
+    await ActivityLog.create({
+      action: 'ADD',
+      productName: savedProduct.name,
+      details: `Product ${savedProduct.name} created`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
+
     res.status(201).json(savedProduct);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// 2. GET PRODUCTS
 exports.getProducts = async (req, res) => {
   try {
     const { businessType } = req.query;
     let query = { user: req.user.id };
 
     if (businessType) {
-      query.businessType = (businessType === 'building' || businessType === 'building_materials' || businessType === 'buildingMaterials')
-        ? 'building_materials'
-        : 'pharmacy';
+      query.businessType = normalizeBusinessType(businessType);
     }
 
     const products = await Product.find(query).sort({ createdAt: -1 });
@@ -33,31 +57,43 @@ exports.getProducts = async (req, res) => {
   }
 };
 
+// 3. GET POS PRODUCTS
 exports.getPOSProducts = async (req, res) => {
   try {
     const { businessType } = req.query;
-    let filter = { user: req.user.id };
     
+    let filter = {
+      user: req.user.id,
+      $or: [
+        { inStoreQty: { $gt: 0 } },         { quantity: {$gt: 0 } }
+      ]
+    };
+
     if (businessType) {
-      filter.businessType = (businessType === 'building' || businessType.includes('building')) ? 'building_materials' : 'pharmacy';
+      filter.businessType = normalizeBusinessType(businessType);
     }
 
-    filter.$or = [{ inShop: { $gt: 0 } }, { quantity: {$gt: 0 } }];
-    const products = await Product.find(filter);
+    const products = await Product.find(filter).sort({ name: 1 });
     res.json(products);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// 4. UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
     if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
 
+    let updateData = { ...req.body };
+    if (updateData.businessType) {
+      updateData.businessType = normalizeBusinessType(updateData.businessType);
+    }
+
     const updated = await Product.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -75,24 +111,30 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
+// 5. DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
-    if (product) {
-      await ActivityLog.create({
-        action: 'DELETE',
-        productName: product.name,
-        details: `Deleted product ${product.name}`,
-        userId: req.user.id,
-        employeeName: req.user.username || req.user.fullName || 'User'
-      });
+    
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
     }
+
+    await ActivityLog.create({
+      action: 'DELETE',
+      productName: product.name,
+      details: `Deleted product ${product.name}`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
+
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// 6. CREATE PRODUCTS BULK
 exports.createProductsBulk = async (req, res) => {
   try {
     const products = req.body;
@@ -100,7 +142,12 @@ exports.createProductsBulk = async (req, res) => {
       return res.status(400).json({ message: 'Data array is required!' });
     }
 
-    const formattedProducts = products.map((prod) => ({ ...prod, user: req.user.id }));
+    const formattedProducts = products.map((prod) => ({
+      ...prod,
+      user: req.user.id,
+      businessType: normalizeBusinessType(prod.businessType)
+    }));
+
     const savedProducts = await Product.insertMany(formattedProducts);
 
     await ActivityLog.create({
@@ -117,9 +164,10 @@ exports.createProductsBulk = async (req, res) => {
   }
 };
 
+// 7. GET ACTIVITY LOGS
 exports.getActivityLogs = async (req, res) => {
   try {
-    const logs = await ActivityLog.find({ userId: req.user.id }).sort({ timestamp: -1 });
+    const logs = await ActivityLog.find({ userId: req.user.id }).sort({ createdAt: -1, timestamp: -1 });
     res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
