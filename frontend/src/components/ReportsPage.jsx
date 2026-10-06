@@ -5,14 +5,14 @@ import axios from 'axios';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-// 3ቱ ቋንቋዎች የትርጉም መዝገብ (Translations)
+// Translations
 const translations = {
   am: {
     loading: "⏳ መረጃው እየተጫነ ነው...",
     pageTitle: "📊 የሽያጭ እና የትርፍ ሪፖርት",
-    pageDesc: "የንግድ እንቅስቃሴዎን፣ አጠቃላይ ሽያጭዎን እና ትርፍዎን እዚህ ይከታተሉ።",
-    pharmacyBadge: "💊 የፋርማሲ ሁነታ",
-    buildingBadge: "🏗️ የሕንፃ መሣሪያ ሁነታ",
+    pageDesc: "የንግድ እንቅስቃሴዎን፣ አጠቃላይ ሽያጭዎን እና ትርፍዎን እዚህ ይከታተሉ፡፡",
+    pharmacyBadge: "💊 የፋርማሲ ሁኔታ",
+    buildingBadge: "🏗️ የሕንፃ መሣሪያ ሁኔታ",
     daily: "የዛሬ (Daily)",
     weekly: "የዚህ ሳምንት",
     monthly: "የዚህ ወር",
@@ -20,10 +20,15 @@ const translations = {
     sales: "ሽያጭ",
     profit: "ትርፍ",
     loss: "ከሰራ",
-    totalSales: "የሁልጊዜ አጠቃላይ ሽያጭ",
+    totalSales: "ሁልጊዜ አጠቃላይ ሽያጭ",
     totalProfit: "አጠቃላይ ትርፍ",
     totalLoss: "አጠቃላይ ከሰራ",
-    birr: "ብር"
+    birr: "ብር",
+    breakdownTitleWeek: "የዚህ ሳምንት ዝርዝር (ቀን 1 - ቀን 7)",
+    breakdownTitleMonth: "የዚህ ወር ዝርዝር (ሳምንት 1 - ሳምንት 4)",
+    breakdownTitleYear: "የዚህ ዓመት ዝርዝር (የ12 ወራት)",
+    close: "ዘጋ (Close)",
+    period: "ክፍለ ጊዜ"
   },
   om: {
     loading: "⏳ Odeeffannoon fe'amaa jira...",
@@ -41,7 +46,12 @@ const translations = {
     totalSales: "Gurgurtaa Waliigalaa",
     totalProfit: "Bu'aa Waliigalaa",
     totalLoss: "Kasaaraa Waliigalaa",
-    birr: "Birr"
+    birr: "Birr",
+    breakdownTitleWeek: "Tarree Torban Kanaa (Guyyaa 1 - 7)",
+    breakdownTitleMonth: "Tarree Ji'a Kanaa (Torban 1 - 4)",
+    breakdownTitleYear: "Tarree Waggaa Kanaa (Ji'ooota 12)",
+    close: "Cufi (Close)",
+    period: "Yeroo"
   },
   en: {
     loading: "⏳ Loading analytics data...",
@@ -59,12 +69,16 @@ const translations = {
     totalSales: "All-Time Total Sales",
     totalProfit: "Total Profit",
     totalLoss: "Total Loss",
-    birr: "Birr"
+    birr: "Birr",
+    breakdownTitleWeek: "This Week Breakdown (Day 1 - Day 7)",
+    breakdownTitleMonth: "This Month Breakdown (Week 1 - Week 4)",
+    breakdownTitleYear: "This Year Breakdown (12 Months)",
+    close: "Close",
+    period: "Period"
   }
 };
 
 function ReportsPage() {
-  // Multi-language state
   const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
   const t = translations[lang] || translations.am;
 
@@ -78,11 +92,19 @@ function ReportsPage() {
     yearlySales: 0,
     yearlyProfit: 0,
     totalSales: 0,
-    totalProfit: 0
+    totalProfit: 0,
+    weeklyBreakdown: [],
+    monthlyBreakdown: [],
+    yearlyBreakdown: []
   });
+
   const [loading, setLoading] = useState(true);
 
-  // Business Type Checker
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState(null); // 'weekly', 'monthly', 'yearly'
+  const [modalData, setModalData] = useState([]);
+
   const getSelectedBusinessType = () => {
     const rawType = localStorage.getItem('businessType') || 'pharmacy';
     const isBuildingMode = rawType.toLowerCase().includes('building');
@@ -91,7 +113,6 @@ function ReportsPage() {
 
   const isBuilding = getSelectedBusinessType() === 'building_materials';
 
-  // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -100,17 +121,14 @@ function ReportsPage() {
     };
   };
 
-  // Fetch Analytics Function
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
       const currentBusinessType = getSelectedBusinessType();
-      
       const res = await axios.get(
         `${API_BASE_URL}/reports/analytics?businessType=${currentBusinessType}`, 
         { headers: getAuthHeaders() }
       );
-      
       if (res.data) {
         setStats(res.data);
       }
@@ -124,7 +142,6 @@ function ReportsPage() {
   useEffect(() => {
     fetchAnalytics();
 
-    // Mode Switch & Language Change listeners
     const handleModeChange = () => fetchAnalytics();
     const handleLangChange = () => {
       const savedLang = localStorage.getItem('appLanguage') || 'am';
@@ -144,26 +161,83 @@ function ReportsPage() {
     };
   }, []);
 
+  // Card Click Handler
+const handleCardClick = (type) => {
+  if (type === 'daily') return;
+
+  setSelectedPeriod(type);
+
+  // 1. የሳምንት ዝርዝር
+  if (type === 'weekly') {
+    const daysAm = ['ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'አርብ', 'ቅዳሜ', 'እሁድ'];
+    const daysOm = ['Wiinikoo', 'Qibxee', 'Roobii', 'Kamiisa', 'Jimaata', 'Sanbata', 'Dilbata'];
+    const daysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    const currentDays = lang === 'om' ? daysOm : lang === 'en' ? daysEn : daysAm;
+
+    const list = currentDays.map((dayName, idx) => {
+      const backendData = stats.weeklyBreakdown?.[idx];
+      return {
+        label: dayName,
+        sales: backendData ? backendData.sales : 0,
+        profit: backendData ? backendData.profit : 0
+      };
+    });
+    setModalData(list);
+  } 
+
+  // 2. የወር ዝርዝር
+  else if (type === 'monthly') {
+    const weeksAm = ['ሳምንት 1 (ቀን 1 - 7)', 'ሳምንት 2 (ቀን 8 - 14)', 'ሳምንት 3 (ቀን 15 - 21)', 'ሳምንት 4 (ቀን 22 - 30)'];
+    const weeksOm = ['Torban 1 (Guyyaa 1-7)', 'Torban 2 (Guyyaa 8-14)', 'Torban 3 (Guyyaa 15-21)', 'Torban 4 (Guyyaa 22-30)'];
+    const weeksEn = ['Week 1 (Days 1-7)', 'Week 2 (Days 8-14)', 'Week 3 (Days 15-21)', 'Week 4 (Days 22-30)'];
+
+    const currentWeeks = lang === 'om' ? weeksOm : lang === 'en' ? weeksEn : weeksAm;
+
+    const list = currentWeeks.map((weekName, idx) => {
+      const backendData = stats.monthlyBreakdown?.[idx];
+      return {
+        label: weekName,
+        sales: backendData ? backendData.sales : 0,
+        profit: backendData ? backendData.profit : 0
+      };
+    });
+    setModalData(list);
+  } 
+
+  // 3. የዓመት ዝርዝር
+  else if (type === 'yearly') {
+    const monthsAm = ['መስከረም', 'ጥቅምት', 'ህዳር', 'ታህሳስ', 'ጥር', 'የካቲት', 'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ'];
+    const monthsOm = ['Camsaa', 'Baggiga', 'Birraa', 'Onkololeessa', 'Sadaasa', 'Muddee', 'Amajjii', 'Gurraandhala', 'Bitootessa', 'Elba', 'Waxabajjii', 'Adooleessa'];
+    const monthsEn = ['Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yekatit', 'Megabit', 'Miyazia', 'Ginbot', 'Sene', 'Hamle', 'Nehase'];
+
+    const currentMonths = lang === 'om' ? monthsOm : lang === 'en' ? monthsEn : monthsAm;
+
+    const list = currentMonths.map((monthName, idx) => {
+      const backendData = stats.yearlyBreakdown?.[idx];
+      return {
+        label: monthName,
+        sales: backendData ? backendData.sales : 0,
+        profit: backendData ? backendData.profit : 0
+      };
+    });
+    setModalData(list);
+  }
+
+  setIsModalOpen(true);
+};
+
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '300px', 
-        color: '#64748b', 
-        fontSize: '16px',
-        fontWeight: '500',
-        fontFamily: 'Inter, system-ui, sans-serif'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px', color: '#64748b', fontSize: '16px', fontWeight: '500' }}>
         {t.loading}
       </div>
     );
   }
 
-  // Cards Data Configuration
   const cardsData = [
     {
+      type: 'daily',
       title: t.daily,
       sales: stats.dailySales,
       profit: stats.dailyProfit,
@@ -171,6 +245,7 @@ function ReportsPage() {
       accentColor: '#2563eb'
     },
     {
+      type: 'weekly',
       title: t.weekly,
       sales: stats.weeklySales,
       profit: stats.weeklyProfit,
@@ -178,6 +253,7 @@ function ReportsPage() {
       accentColor: '#7c3aed'
     },
     {
+      type: 'monthly',
       title: t.monthly,
       sales: stats.monthlySales,
       profit: stats.monthlyProfit,
@@ -185,6 +261,7 @@ function ReportsPage() {
       accentColor: '#0891b2'
     },
     {
+      type: 'yearly',
       title: t.yearly,
       sales: stats.yearlySales,
       profit: stats.yearlyProfit,
@@ -194,27 +271,12 @@ function ReportsPage() {
   ];
 
   return (
-    <div style={{ 
-      padding: 'clamp(15px, 3vw, 30px)', 
-      flex: 1, 
-      background: '#f8fafc', 
-      minHeight: '100vh',
-      boxSizing: 'border-box',
-      fontFamily: 'Inter, system-ui, sans-serif'
-    }}>
+    <div style={{ padding: 'clamp(15px, 3vw, 30px)', flex: 1, background: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
-      {/* Header Section */}
+      {/* Header */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <h2 style={{ 
-            margin: 0, 
-            color: '#0f172a', 
-            fontSize: 'clamp(18px, 4vw, 24px)', 
-            fontWeight: '700', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px' 
-          }}>
+          <h2 style={{ margin: 0, color: '#0f172a', fontSize: 'clamp(18px, 4vw, 24px)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {t.pageTitle}
           </h2>
           <span style={{ fontSize: '12px', background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '15px', fontWeight: '600' }}>
@@ -226,18 +288,16 @@ function ReportsPage() {
         </p>
       </div>
 
-      {/* Grid Layout - Mobile Responsive */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', 
-        gap: '16px',
-        marginBottom: '20px'
-      }}>
+      {/* Grid Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: '16px', marginBottom: '20px' }}>
         {cardsData.map((card, index) => {
           const isNegative = (card.profit || 0) < 0;
+          const isClickable = card.type !== 'daily';
+
           return (
             <div 
               key={index}
+              onClick={() => isClickable && handleCardClick(card.type)}
               style={{
                 background: '#ffffff',
                 padding: '16px',
@@ -249,34 +309,29 @@ function ReportsPage() {
                 justifyContent: 'space-between',
                 position: 'relative',
                 overflow: 'hidden',
+                cursor: isClickable ? 'pointer' : 'default',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 8px 12px rgba(0, 0, 0, 0.08)';
+                if (isClickable) {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = '0 8px 12px rgba(0, 0, 0, 0.08)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.04)';
+                if (isClickable) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.04)';
+                }
               }}
             >
-              {/* Top Accent Line */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '4px',
-                backgroundColor: card.accentColor
-              }} />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', backgroundColor: card.accentColor }} />
 
-              {/* Title & Icon */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>{card.title}</span>
                 <span style={{ fontSize: '18px', background: '#f1f5f9', padding: '5px 8px', borderRadius: '8px' }}>{card.icon}</span>
               </div>
 
-              {/* Sales Amount */}
               <div style={{ marginBottom: '12px' }}>
                 <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.sales}</div>
                 <h3 style={{ margin: '2px 0 0 0', color: '#0f172a', fontSize: 'clamp(18px, 3.5vw, 22px)', fontWeight: '700' }}>
@@ -284,7 +339,6 @@ function ReportsPage() {
                 </h3>
               </div>
 
-              {/* Profit / Loss Badge */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -306,7 +360,7 @@ function ReportsPage() {
         })}
       </div>
 
-      {/* Total Featured Card */}
+      {/* Featured Total Section */}
       <div style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         padding: 'clamp(16px, 3vw, 24px)',
@@ -321,17 +375,7 @@ function ReportsPage() {
         gap: '15px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '10px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            flexShrink: 0
-          }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
             💰
           </div>
           <div>
@@ -361,6 +405,105 @@ function ReportsPage() {
           </div>
         </div>
       </div>
+
+      {/* Breakdown Pop-up Modal */}
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '520px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>
+                {selectedPeriod === 'weekly' && t.breakdownTitleWeek}
+                {selectedPeriod === 'monthly' && t.breakdownTitleMonth}
+                {selectedPeriod === 'yearly' && t.breakdownTitleYear}
+              </h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', color: '#64748b', cursor: 'pointer', padding: '4px' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body Table */}
+            <div style={{ padding: '20px', maxHeight: '350px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #cbd5e1', fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>
+                    <th style={{ paddingBottom: '8px' }}>{t.period}</th>
+                    <th style={{ paddingBottom: '8px', textAlign: 'right' }}>{t.sales} ({t.birr})</th>
+                    <th style={{ paddingBottom: '8px', textAlign: 'right' }}>{t.profit} ({t.birr})</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modalData.map((row, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '14px' }}>
+                      <td style={{ padding: '12px 0', fontWeight: '600', color: '#334155' }}>{row.label}</td>
+                      <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>
+                        {(row.sales || 0).toLocaleString()}
+                      </td>
+                      <td style={{ 
+                        padding: '12px 0', 
+                        textAlign: 'right', 
+                        fontWeight: '700', 
+                        color: (row.profit || 0) < 0 ? '#dc2626' : '#16a34a' 
+                      }}>
+                        {(row.profit || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '12px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                style={{
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.close}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
