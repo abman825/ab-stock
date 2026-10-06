@@ -57,6 +57,83 @@ exports.getProducts = async (req, res) => {
   }
 };
 
+// 3. GET POS PRODUCTS
+exports.getPOSProducts = async (req, res) => {
+  try {
+    const { businessType } = req.query;
+    
+    let filter = {
+      user: req.user.id,
+      $or: [
+        { inStoreQty: { $gt: 0 } },         { quantity: {$gt: 0 } }
+      ]
+    };
+
+    if (businessType) {
+      filter.businessType = normalizeBusinessType(businessType);
+    }
+
+    const products = await Product.find(filter).sort({ name: 1 });
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 4. UPDATE PRODUCT
+exports.updateProduct = async (req, res) => {
+  try {
+    const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
+    if (!oldProduct) return res.status(404).json({ message: 'Product not found' });
+
+    let updateData = { ...req.body };
+    if (updateData.businessType) {
+      updateData.businessType = normalizeBusinessType(updateData.businessType);
+    }
+
+    const updated = await Product.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    await ActivityLog.create({
+      action: 'EDIT',
+      productName: updated.name,
+      details: `Updated product ${updated.name}`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
+
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// 5. DELETE PRODUCT
+exports.deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    await ActivityLog.create({
+      action: 'DELETE',
+      productName: product.name,
+      details: `Deleted product ${product.name}`,
+      userId: req.user.id,
+      employeeName: req.user.username || req.user.fullName || 'User'
+    });
+
+    res.json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // 6. CREATE PRODUCTS BULK
 exports.createProductsBulk = async (req, res) => {
   try {

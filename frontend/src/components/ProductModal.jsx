@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+// Multi-language translations
 const translations = {
   am: {
     editProduct: "ምርት ማስተካከያ",
@@ -9,30 +10,50 @@ const translations = {
     general: "ጠቅላላ (General)",
     salePrice: "የመሸጫ ዋጋ",
     productType: "የምርት ዓይነት",
-    stock: "ዕቃ (Stock)",
+    stock: "እቃ (Stock)",
     service: "አገልግሎት (Service)",
-    boughtPrice: "የመግዣ ዋጋ (ብር)",
+    boughtPrice: "የመግዢያ ዋጋ (ብር)",
     stockThreshold: "የማስጠንቀቂያ መጠን (አማራጭ)",
     unit: "መለኪያ (Unit)",
     selectUnit: "-- መለኪያ ይምረጡ --",
     units: {
-      kg: "ኪሎ (Kg)", meter: "ሜትር (Meter)", sqm: "ካሬ ሜትር (Sq.m)",
-      quintal: "ኩንታል (Quintal)", packet: "ፓኬት (Packet)", set: "ሴት (Set)",
-      liter: "ሊትር (Liter)", box: "ካርቶን / ቦክስ (Box)", roll: "ሮል (Roll)", pcs: "ቁራጭ (Pcs)"
+      kg: "ኪሎ (Kg)",
+      meter: "ሜትር (Meter)",
+      sqm: "ካሬ ሜትር (Sq.m)",
+      quintal: "ኩንታል (Quintal)",
+      packet: "ፓኬት (Packet)",
+      set: "ሴት (Set)",
+      liter: "ሊትር (Liter)",
+      box: "ካርቶን / ቦክስ (Box)",
+      roll: "ሮል (Roll)",
+      pcs: "ቁራጭ (Pcs)"
     },
     materialType: "የዕቃው ዓይነት (አማራጭ)",
     selectType: "-- ዓይነት ይምረጡ --",
     materials: {
-      cement: "ሲሚንቶ (Cement)", ironBar: "ባለ ብረት / ፌሮ (Iron Bar)", roofingSheet: "ቆርቆሮ (Roofing Sheet)",
-      pipes: "ፓይፕ / ቧንቧ (Pipes)", paint: "ቀለም (Paint)", plywood: "ፕላይዉድ (Plywood)",
-      nails: "ሚስማር (Nails)", plumbing: "የቧንቧ ዕቃዎች (Plumbing)", sanitary: "የሳኒተሪ ዕቃዎች (Sanitary)",
-      electrical: "የኤሌክትሪክ ዕቃዎች (Electrical)", other: "ሌላ (Other)"
+      cement: "ሲሚንቶ (Cement)",
+      ironBar: "ባለ ብረት / ፌሮ (Iron Bar)",
+      roofingSheet: "ቆርቆሮ (Roofing Sheet)",
+      pipes: "ፓይፕ / ቧንቧ (Pipes)",
+      paint: "ቀለም (Paint)",
+      plywood: "ፕላዉድ (Plywood)",
+      nails: "ሚስማር (Nails)",
+      plumbing: "የቧንቧ ዕቃዎች (Plumbing)",
+      sanitary: "የሳኒተሪ ዕቃዎች (Sanitary)",
+      electrical: "የኤሌክትሪክ ዕቃዎች (Electrical)",
+      other: "ሌላ (Other)"
     },
     medicineType: "የመድኃኒት ዓይነት (አማራጭ)",
     medicines: {
-      syrup: "ሲሮፕ (Syrup)", suspension: "ሱሴንሽን (Suspension)", tablet: "ኪኒን (Tablet)",
-      powder: "ፓውደር (Powder)", cream: "ክሬም (Cream)", ointment: "ቅባት (Ointment)",
-      medicalDevice: "የሕክምና መሣሪያ (Medical Device)", capsule: "ካፕሱል (Capsule)", other: "ሌላ (Other)"
+      syrup: "ሲሮፕ (Syrup)",
+      suspension: "ሱሴንሽን (Suspension)",
+      tablet: "ኪኒን (Tablet)",
+      powder: "ፓውደር (Powder)",
+      cream: "ክሬም (Cream)",
+      ointment: "ቅባት (Ointment)",
+      medicalDevice: "የሕክምና መሣሪያ (Medical Device)",
+      capsule: "ካፕሱል (Capsule)",
+      other: "ሌላ (Other)"
     },
     isSyrup: "ሲሮፕ / ፈሳሽ መድኃኒት ነው?",
     expiryDate: "የአገልግሎት ማብቂያ ቀን",
@@ -57,23 +78,43 @@ const translations = {
     unit: "Safartuu (Unit)",
     selectUnit: "-- Safartuu Filadhu --",
     units: {
-      kg: "Kiloogiraama (Kg)", meter: "Meetira (Meter)", sqm: "Sondii Meetira (Sq.m)",
-      quintal: "Kuntaala (Quintal)", packet: "Paakeetii (Packet)", set: "Seetii (Set)",
-      liter: "Liitira (Liter)", box: "Saanduqa (Box)", roll: "Roolii (Roll)", pcs: "Cabaa (Pcs)"
+      kg: "Kiloogiraama (Kg)",
+      meter: "Meetira (Meter)",
+      sqm: "Sondii Meetira (Sq.m)",
+      quintal: "Kuntaala (Quintal)",
+      packet: "Paakeetii (Packet)",
+      set: "Seetii (Set)",
+      liter: "Liitira (Liter)",
+      box: "Saanduqa (Box)",
+      roll: "Roolii (Roll)",
+      pcs: "Cabaa (Pcs)"
     },
     materialType: "Gosa Meeshaa (Filiannoo)",
     selectType: "-- Gosa Filadhu --",
     materials: {
-      cement: "Simintoos (Cement)", ironBar: "Sibiila / Sibiila Ijaarsaa (Iron Bar)", roofingSheet: "Qoorqoorroo (Roofing Sheet)",
-      pipes: "Ummuxee / Uummoo (Pipes)", paint: "Halluu (Paint)", plywood: "Pilaayiwuudii (Plywood)",
-      nails: "Misooma / Saamunaa Sibiilaa (Nails)", plumbing: "Meeshaa Bisani (Plumbing)", sanitary: "Meeshaa Qulqullinaa (Sanitary)",
-      electrical: "Meeshaa Ibsaa (Electrical)", other: "Kan biraa (Other)"
+      cement: "Simintoos (Cement)",
+      ironBar: "Sibiila / Sibiila Ijaarsaa (Iron Bar)",
+      roofingSheet: "Qoorqoorroo (Roofing Sheet)",
+      pipes: "Ummuxee / Uummoo (Pipes)",
+      paint: "Halluu (Paint)",
+      plywood: "Pilaayiwuudii (Plywood)",
+      nails: "Misooma / Saamunaa Sibiilaa (Nails)",
+      plumbing: "Meeshaa Bisani (Plumbing)",
+      sanitary: "Meeshaa Qulqullinaa (Sanitary)",
+      electrical: "Meeshaa Ibsaa (Electrical)",
+      other: "Kan biraa (Other)"
     },
     medicineType: "Gosa Qoricha (Filiannoo)",
     medicines: {
-      syrup: "Siirooppii (Syrup)", suspension: "Saspenshiinii (Suspension)", tablet: "Taanbleeti / Qoricha Akaakuu (Tablet)",
-      powder: "Daakuu (Powder)", cream: "Kiriimii (Cream)", ointment: "Dibata / Moomii (Ointment)",
-      medicalDevice: "Meeshaa Yaalaa (Medical Device)", capsule: "Kaapsuulii (Capsule)", other: "Kan biraa (Other)"
+      syrup: "Siirooppii (Syrup)",
+      suspension: "Saspenshiinii (Suspension)",
+      tablet: "Taanbleeti / Qoricha Akaakuu (Tablet)",
+      powder: "Daakuu (Powder)",
+      cream: "Kiriimii (Cream)",
+      ointment: "Dibata / Moomii (Ointment)",
+      medicalDevice: "Meeshaa Yaalaa (Medical Device)",
+      capsule: "Kaapsuulii (Capsule)",
+      other: "Kan biraa (Other)"
     },
     isSyrup: "Dhangala'aa/Syrup Dha?",
     expiryDate: "Guyyaa Booda Fayyadamuun Hin Danda'amne",
@@ -98,20 +139,43 @@ const translations = {
     unit: "Unit",
     selectUnit: "-- Select Unit --",
     units: {
-      kg: "Kg", meter: "Meter", sqm: "Sq.m", quintal: "Quintal", packet: "Packet",
-      set: "Set", liter: "Liter", box: "Box", roll: "Roll", pcs: "Pcs"
+      kg: "Kg",
+      meter: "Meter",
+      sqm: "Sq.m",
+      quintal: "Quintal",
+      packet: "Packet",
+      set: "Set",
+      liter: "Liter",
+      box: "Box",
+      roll: "Roll",
+      pcs: "Pcs"
     },
     materialType: "Material Type (optional)",
     selectType: "-- Select Type --",
     materials: {
-      cement: "Cement", ironBar: "Iron Bar", roofingSheet: "Roofing Sheet", pipes: "Pipes",
-      paint: "Paint", plywood: "Plywood", nails: "Nails", plumbing: "Plumbing",
-      sanitary: "Sanitary", electrical: "Electrical", other: "Other"
+      cement: "Cement",
+      ironBar: "Iron Bar",
+      roofingSheet: "Roofing Sheet",
+      pipes: "Pipes",
+      paint: "Paint",
+      plywood: "Plywood",
+      nails: "Nails",
+      plumbing: "Plumbing",
+      sanitary: "Sanitary",
+      electrical: "Electrical",
+      other: "Other"
     },
     medicineType: "Medicine Type (optional)",
     medicines: {
-      syrup: "Syrup", suspension: "Suspension", tablet: "Tablet", powder: "Powder",
-      cream: "Cream", ointment: "Ointment", medicalDevice: "Medical Device", capsule: "Capsule", other: "Other"
+      syrup: "Syrup",
+      suspension: "Suspension",
+      tablet: "Tablet",
+      powder: "Powder",
+      cream: "Cream",
+      ointment: "Ointment",
+      medicalDevice: "Medical Device",
+      capsule: "Capsule",
+      other: "Other"
     },
     isSyrup: "Is Syrup/Liquid?",
     expiryDate: "Expiry Date",
@@ -151,29 +215,11 @@ function ProductModal({
 
   const t = translations[lang] || translations.am;
 
+  // Check if business type is building materials mode
   const isBuildingMode = 
     businessType === 'building' || 
     businessType === 'building_materials' || 
     businessType === 'buildingMaterials';
-
-  // Helper date format convertor for <input type="date" />
-  const formatDateForInput = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return !isNaN(date.getTime()) ? date.toISOString().split('T')[0] : '';
-  };
-
-  const handleOnSubmit = (e) => {
-    e.preventDefault();
-    handleSubmit({
-      ...formData,
-      price: Number(formData.price) || 0,
-      boughtPrice: Number(formData.boughtPrice) || 0,
-      quantity: Number(formData.quantity) || 0,
-      inStoreQty: Number(formData.inStoreQty) || 0,
-      stockThreshold: Number(formData.stockThreshold) || 0
-    });
-  };
 
   return (
     <div style={{
@@ -192,11 +238,13 @@ function ProductModal({
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
         fontFamily: 'Inter, system-ui, sans-serif'
       }}>
+        
+        {/* Header */}
         <h3 style={{ textAlign: 'center', marginBottom: '20px', color: '#0f172a', fontWeight: '700' }}>
           {editingId ? t.editProduct : t.addProduct}
         </h3>
 
-        <form onSubmit={handleOnSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           
           {/* Product Name */}
           <div>
@@ -244,9 +292,7 @@ function ProductModal({
               <input
                 type="number"
                 required
-                min="0"
-                step="any"
-                value={formData.price ?? ''}
+                value={formData.price || ''}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
               />
@@ -275,9 +321,7 @@ function ProductModal({
               <input
                 type="number"
                 required
-                min="0"
-                step="any"
-                value={formData.boughtPrice ?? ''}
+                value={formData.boughtPrice || ''}
                 onChange={(e) => setFormData({ ...formData, boughtPrice: e.target.value })}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
               />
@@ -288,8 +332,7 @@ function ProductModal({
               </label>
               <input
                 type="number"
-                min="0"
-                value={formData.stockThreshold ?? ''}
+                value={formData.stockThreshold || ''}
                 onChange={(e) => setFormData({ ...formData, stockThreshold: e.target.value })}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
               />
@@ -376,7 +419,7 @@ function ProductModal({
                 <input
                   type="checkbox"
                   id="isSyrup"
-                  checked={Boolean(formData.isSyrup)}
+                  checked={formData.isSyrup || false}
                   onChange={(e) => setFormData({ ...formData, isSyrup: e.target.checked })}
                   style={{ cursor: 'pointer' }}
                 />
@@ -391,7 +434,7 @@ function ProductModal({
                 </label>
                 <input
                   type="date"
-                  value={formatDateForInput(formData.expiryDate)}
+                  value={formData.expiryDate || ''}
                   onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                 />
@@ -407,8 +450,7 @@ function ProductModal({
               </label>
               <input
                 type="number"
-                min="0"
-                value={formData.inStoreQty ?? ''}
+                value={formData.inStoreQty || ''}
                 onChange={(e) => setFormData({ ...formData, inStoreQty: e.target.value })}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
               />
@@ -419,8 +461,7 @@ function ProductModal({
               </label>
               <input
                 type="number"
-                min="0"
-                value={formData.quantity ?? ''}
+                value={formData.quantity || ''}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
               />
