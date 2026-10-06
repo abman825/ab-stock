@@ -162,70 +162,43 @@ function ReportsPage() {
   }, []);
 
   // Card Click Handler
-const handleCardClick = (type) => {
-  if (type === 'daily') return;
+  const handleCardClick = (type) => {
+    if (type === 'daily') return; // Daily has no breakdown needed
 
-  setSelectedPeriod(type);
+    setSelectedPeriod(type);
 
-  // 1. የሳምንት ዝርዝር
-  if (type === 'weekly') {
-    const daysAm = ['ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'አርብ', 'ቅዳሜ', 'እሁድ'];
-    const daysOm = ['Wiinikoo', 'Qibxee', 'Roobii', 'Kamiisa', 'Jimaata', 'Sanbata', 'Dilbata'];
-    const daysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    if (type === 'weekly') {
+      // Fallback sample if backend array is empty
+      const list = (stats.weeklyBreakdown && stats.weeklyBreakdown.length > 0) 
+        ? stats.weeklyBreakdown 
+        : Array.from({ length: 7 }, (_, i) => ({
+            label: `ቀን ${i + 1}`,
+            sales: i === 0 ? stats.weeklySales : 0,
+            profit: i === 0 ? stats.weeklyProfit : 0
+          }));
+      setModalData(list);
+    } else if (type === 'monthly') {
+      const list = (stats.monthlyBreakdown && stats.monthlyBreakdown.length > 0)
+        ? stats.monthlyBreakdown
+        : Array.from({ length: 4 }, (_, i) => ({
+            label: `ሳምንት ${i + 1}`,
+            sales: i === 0 ? stats.monthlySales : 0,
+            profit: i === 0 ? stats.monthlyProfit : 0
+          }));
+      setModalData(list);
+    } else if (type === 'yearly') {
+      const list = (stats.yearlyBreakdown && stats.yearlyBreakdown.length > 0)
+        ? stats.yearlyBreakdown
+        : Array.from({ length: 12 }, (_, i) => ({
+            label: `ወር ${i + 1}`,
+            sales: i === 0 ? stats.yearlySales : 0,
+            profit: i === 0 ? stats.yearlyProfit : 0
+          }));
+      setModalData(list);
+    }
 
-    const currentDays = lang === 'om' ? daysOm : lang === 'en' ? daysEn : daysAm;
-
-    const list = currentDays.map((dayName, idx) => {
-      const backendData = stats.weeklyBreakdown?.[idx];
-      return {
-        label: dayName,
-        sales: backendData ? backendData.sales : 0,
-        profit: backendData ? backendData.profit : 0
-      };
-    });
-    setModalData(list);
-  } 
-
-  // 2. የወር ዝርዝር
-  else if (type === 'monthly') {
-    const weeksAm = ['ሳምንት 1 (ቀን 1 - 7)', 'ሳምንት 2 (ቀን 8 - 14)', 'ሳምንት 3 (ቀን 15 - 21)', 'ሳምንት 4 (ቀን 22 - 30)'];
-    const weeksOm = ['Torban 1 (Guyyaa 1-7)', 'Torban 2 (Guyyaa 8-14)', 'Torban 3 (Guyyaa 15-21)', 'Torban 4 (Guyyaa 22-30)'];
-    const weeksEn = ['Week 1 (Days 1-7)', 'Week 2 (Days 8-14)', 'Week 3 (Days 15-21)', 'Week 4 (Days 22-30)'];
-
-    const currentWeeks = lang === 'om' ? weeksOm : lang === 'en' ? weeksEn : weeksAm;
-
-    const list = currentWeeks.map((weekName, idx) => {
-      const backendData = stats.monthlyBreakdown?.[idx];
-      return {
-        label: weekName,
-        sales: backendData ? backendData.sales : 0,
-        profit: backendData ? backendData.profit : 0
-      };
-    });
-    setModalData(list);
-  } 
-
-  // 3. የዓመት ዝርዝር
-  else if (type === 'yearly') {
-    const monthsAm = ['መስከረም', 'ጥቅምት', 'ህዳር', 'ታህሳስ', 'ጥር', 'የካቲት', 'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ'];
-    const monthsOm = ['Camsaa', 'Baggiga', 'Birraa', 'Onkololeessa', 'Sadaasa', 'Muddee', 'Amajjii', 'Gurraandhala', 'Bitootessa', 'Elba', 'Waxabajjii', 'Adooleessa'];
-    const monthsEn = ['Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yekatit', 'Megabit', 'Miyazia', 'Ginbot', 'Sene', 'Hamle', 'Nehase'];
-
-    const currentMonths = lang === 'om' ? monthsOm : lang === 'en' ? monthsEn : monthsAm;
-
-    const list = currentMonths.map((monthName, idx) => {
-      const backendData = stats.yearlyBreakdown?.[idx];
-      return {
-        label: monthName,
-        sales: backendData ? backendData.sales : 0,
-        profit: backendData ? backendData.profit : 0
-      };
-    });
-    setModalData(list);
-  }
-
-  setIsModalOpen(true);
-};
+    setIsModalOpen(true);
+  };
 
   if (loading) {
     return (
