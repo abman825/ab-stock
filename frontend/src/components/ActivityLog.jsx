@@ -11,7 +11,75 @@ import {
   AlertCircle 
 } from 'lucide-react';
 
+// 3ti languages er dictionary translations
+const translations = {
+  am: {
+    title: "የሰራተኞች እንቅስቃሴ መዝገብ",
+    subtitleBuilding: "በስርዓቱ ላይ በተጠቃሚዎች የተከናወኑ ተግባራትን በቅጽበት ይከታተሉ (ሕንፃ መሣሪያ)",
+    subtitlePharmacy: "በስርዓቱ ላይ በተጠቃሚዎች የተከናወኑ ተግባራትን በቅጽበት ይከታተሉ (ፋርማሲ)",
+    refresh: "አዲስ (Refresh)",
+    searchPlaceholder: "በሰራተኛ ስም፣ በምርት ወይም በዝርዝር መረጃ ይፈልጉ...",
+    allActions: "ሁሉም ተግባራት",
+    actionCreate: "አዲስ የተጨመሩ (CREATE / ADD)",
+    actionEdit: "የተሻሻሉ (EDIT / UPDATE)",
+    actionDelete: "የተሰረዙ (DELETE)",
+    thDateTime: "ቀን እና ሰዓት",
+    thEmployee: "ሰራተኛ",
+    thAction: "ተግባር",
+    thProduct: "ምርት",
+    thDetails: "ዝርዝር መረጃ",
+    loading: "መረጃው በመጫን ላይ ነው...",
+    noLogsFound: "ምንም ዓይነት የእንቅስቃሴ መዝገብ አልተገኘም",
+    noLogsSub: "እባክዎን የፍለጋ ወይም የፊልተር መስፈርቱን ይቀይሩ",
+    unknownUser: "ያልታወቀ"
+  },
+  om: {
+    title: "Galmee Sochii Hojjettootaa",
+    subtitleBuilding: "Gochaalee fayyadamtoataan raawwataman hordofaa (Meeshaalee Ijaarsaa)",
+    subtitlePharmacy: "Gochaalee fayyadamtoataan raawwataman hordofaa (Faarmaasii)",
+    refresh: "Haaromsi (Refresh)",
+    searchPlaceholder: "Maqaa hojjetaa, oomisha ykn odeeffannoon barbaadi...",
+    allActions: "Gochoota Hundumaa",
+    actionCreate: "Haaraa Dabalame (CREATE / ADD)",
+    actionEdit: "Kan Fooyya'e (EDIT / UPDATE)",
+    actionDelete: "Kan Haqame (DELETE)",
+    thDateTime: "Guyyaa fi Sa'aatii",
+    thEmployee: "Hojjetaa",
+    thAction: "Gocha",
+    thProduct: "Oomisha",
+    thDetails: "Odeeffannoo Bal'aa",
+    loading: "Odeeffannoon fe'amaa jira...",
+    noLogsFound: "Galmeen sochii tokkollee hin argamne",
+    noLogsSub: "Maaloo ulaagaa barbaacha ykn calallii jijjiiraa",
+    unknownUser: "Hin beekamu"
+  },
+  en: {
+    title: "Activity Logs",
+    subtitleBuilding: "Real-time log of actions performed by system users (Building Materials)",
+    subtitlePharmacy: "Real-time log of actions performed by system users (Pharmacy)",
+    refresh: "Refresh",
+    searchPlaceholder: "Search by employee, product, or details...",
+    allActions: "All Actions",
+    actionCreate: "Created / Added",
+    actionEdit: "Edited / Updated",
+    actionDelete: "Deleted",
+    thDateTime: "Date & Time",
+    thEmployee: "Employee",
+    thAction: "Action",
+    thProduct: "Product",
+    thDetails: "Details",
+    loading: "Loading logs...",
+    noLogsFound: "No activity logs found",
+    noLogsSub: "Please try changing search terms or action filters",
+    unknownUser: "Unknown"
+  }
+};
+
 function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
+  // Multi-language State setup
+  const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
+  const t = translations[lang] || translations.am;
+
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +105,19 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
 
   useEffect(() => {
     fetchLogs();
+
+    const handleLangChange = () => {
+      const savedLang = localStorage.getItem('appLanguage') || 'am';
+      setLang(savedLang);
+    };
+
+    window.addEventListener('storage', handleLangChange);
+    window.addEventListener('languageChanged', handleLangChange);
+
+    return () => {
+      window.removeEventListener('storage', handleLangChange);
+      window.removeEventListener('languageChanged', handleLangChange);
+    };
   }, [API_BASE_URL, businessType]);
 
   // Action Badges Color Helper
@@ -58,12 +139,11 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
 
   // Filter Logic (Search + Action Filter + BusinessType Check)
   const filteredLogs = logs.filter((log) => {
-    // 1. BusinessType Filter Verification
     if (log.businessType && log.businessType !== businessType) {
       return false;
     }
 
-    const employee = (log.employeeName || log.userId?.name || log.userId?.username || '').toLowerCase();
+    const employee = (log.employeeName || log.userId?.fullName || log.userId?.name || log.userId?.username || '').toLowerCase();
     const product = (log.productName || '').toLowerCase();
     const details = (log.details || '').toLowerCase();
     const action = (log.action || '').toLowerCase();
@@ -84,6 +164,8 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
     return matchesSearch && matchesAction;
   });
 
+  const isBuilding = businessType === 'building_materials' || businessType === 'building';
+
   return (
     <div style={{ padding: '24px', width: '100%', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
@@ -92,10 +174,10 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
         <div>
           <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ClipboardList style={{ color: '#2563eb' }} size={22} />
-            የሰራተኞች እንቅስቃሴ መዝገብ (Activity Logs)
+            {t.title}
           </h2>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-            በስርዓቱ ላይ በተጠቃሚዎች የተከናወኑ ተግባራትን በቅጽበት ይከታተሉ ({businessType === 'building_materials' ? 'ሕንፃ መሣሪያ' : 'ፋርማሲ'})
+            {isBuilding ? t.subtitleBuilding : t.subtitlePharmacy}
           </p>
         </div>
 
@@ -119,7 +201,7 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
           onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          አድስ (Refresh)
+          {t.refresh}
         </button>
       </div>
 
@@ -129,7 +211,7 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input 
             type="text" 
-            placeholder="በሰራተኛ ስም፣ በምርት ወይም በዝርዝር መረጃ ፈልግ..."
+            placeholder={t.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -160,24 +242,24 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
               outline: 'none'
             }}
           >
-            <option value="ALL">ሁሉም ተግባራት (All Actions)</option>
-            <option value="CREATE">አዲስ የተጨመሩ (CREATE / ADD)</option>
-            <option value="EDIT">የተሻሻሉ (EDIT / UPDATE)</option>
-            <option value="DELETE">የተሰረዙ (DELETE)</option>
+            <option value="ALL">{t.allActions}</option>
+            <option value="CREATE">{t.actionCreate}</option>
+            <option value="EDIT">{t.actionEdit}</option>
+            <option value="DELETE">{t.actionDelete}</option>
           </select>
         </div>
       </div>
 
       {/* Table Container */}
       <div style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left', minWidth: '650px' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
-              <th style={{ padding: '12px 16px' }}>ቀን እና ሰዓት</th>
-              <th style={{ padding: '12px 16px' }}>ሰራተኛ</th>
-              <th style={{ padding: '12px 16px' }}>ተግባር (Action)</th>
-              <th style={{ padding: '12px 16px' }}>ምርት</th>
-              <th style={{ padding: '12px 16px' }}>ዝርዝር መረጃ</th>
+              <th style={{ padding: '12px 16px' }}>{t.thDateTime}</th>
+              <th style={{ padding: '12px 16px' }}>{t.thEmployee}</th>
+              <th style={{ padding: '12px 16px' }}>{t.thAction}</th>
+              <th style={{ padding: '12px 16px' }}>{t.thProduct}</th>
+              <th style={{ padding: '12px 16px' }}>{t.thDetails}</th>
             </tr>
           </thead>
           <tbody>
@@ -186,7 +268,7 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
               [1, 2, 3, 4].map((idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td colSpan="5" style={{ padding: '16px', color: '#94a3b8', textAlign: 'center' }}>
-                    መረጃው በመጫን ላይ ነው...
+                    {t.loading}
                   </td>
                 </tr>
               ))
@@ -196,8 +278,8 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
                 <td colSpan="5" style={{ padding: '40px 20px', textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#94a3b8' }}>
                     <AlertCircle size={32} strokeWidth={1.5} />
-                    <span style={{ fontSize: '14px', fontWeight: '500' }}>ምንም አይነት የAktiviteti መዝገብ አልተገኘም</span>
-                    <span style={{ fontSize: '12px' }}>እባክዎን የፍለጋ ወይም የፊልተር መመዘኛዎን ይቀይሩ</span>
+                    <span style={{ fontSize: '14px', fontWeight: '500' }}>{t.noLogsFound}</span>
+                    <span style={{ fontSize: '12px' }}>{t.noLogsSub}</span>
                   </div>
                 </td>
               </tr>
@@ -224,7 +306,7 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
                     <td style={{ padding: '12px 16px', fontWeight: '600', color: '#1e293b' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <User size={14} style={{ color: '#64748b' }} />
-                        {log.employeeName || log.userId?.fullName || log.userId?.username || 'ያልታወቀ'}
+                        {log.employeeName || log.userId?.fullName || log.userId?.name || log.userId?.username || t.unknownUser}
                       </span>
                     </td>
 

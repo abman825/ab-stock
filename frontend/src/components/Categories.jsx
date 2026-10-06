@@ -5,7 +5,96 @@ import Papa from 'papaparse';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// 3ti languages er dictionary translations
+const translations = {
+  am: {
+    buildingTitle: "የሕንፃ መሣሪያዎች ምድብ አስተዳደር",
+    pharmacyTitle: "የፋርማሲ ምድብ አስተዳደር",
+    searchPlaceholder: "ይፈልጉ...",
+    addCategory: "+ ምድብ ጨምር",
+    import: "📥 አስገባ (Import)",
+    thCategoryId: "የምድብ መታወቂያ (ID)",
+    thName: "ስም",
+    thProducts: "የምርቶች ብዛት",
+    thActions: "ድርጊቶች",
+    edit: "አስተካክል",
+    delete: "ሰርዝ",
+    noCategories: "ምንም ምድብ አልተገኘም።",
+    editTitle: "ምድብ አስተካክል",
+    addTitle: "ምድብ ጨምር",
+    categoryIdLabel: "የምድብ መታወቂያ (አማራጭ)",
+    categoryNameLabel: "የምድብ ስም",
+    buildingPlaceholder: "ምሳሌ፡ ሲምንቶ፣ ብረት፣ ኤሌክትሪክ",
+    pharmacyPlaceholder: "ምሳሌ፡ መድኃኒት፣ ሽሮፕ፣ ታብሌት",
+    cancel: "ሰርዝ",
+    update: "አዘምን",
+    save: "አስቀምጥ",
+    confirmDelete: "እርግጠኛ ነዎት ይህንን ምድብ መሰረዝ ይፈልጋሉ?",
+    csvEmpty: "በCSV ፋይሉ ውስጥ ምንም ትክክለኛ መረጃ አልተገኘም!",
+    csvSuccess: " ምድቦች በጥሩ ሁኔታ ገብተዋል!",
+    csvError: "በማስገባት ሂደት ላይ ስህተት ተፈጥሯል!"
+  },
+  om: {
+    buildingTitle: "Bulchiinsa Ramaddii Meeshaalee Ijaarsaa",
+    pharmacyTitle: "Bulchiinsa Ramaddii Faarmaasii",
+    searchPlaceholder: "Barbaadi...",
+    addCategory: "+ Ramaddii Dabali",
+    import: "📥 Galchuu (Import)",
+    thCategoryId: "EEYYAMA RAMADDII (ID)",
+    thName: "MAQAA",
+    thProducts: "BAAY'INA OOMISHAALEE",
+    thActions: "TARKANFIISSA",
+    edit: "Gulaali",
+    delete: "Haqi",
+    noCategories: "Ramaddiin tokkoollee hin argamne.",
+    editTitle: "Ramaddii Gulaali",
+    addTitle: "Ramaddii Dabali",
+    categoryIdLabel: "Eeyyama Ramaddii (Filannoo)",
+    categoryNameLabel: "Maqaa Ramaddii",
+    buildingPlaceholder: "Simbirroo, Sibila, Elektiriikii",
+    pharmacyPlaceholder: "Qoricha, Sirooppii, Tabeelaa",
+    cancel: "Dhiisi",
+    update: "Haaromsi",
+    save: "Olka'i",
+    confirmDelete: "Ramaddii kana haquuf mirkanaa'aadhaa?",
+    csvEmpty: "Faayila CSV keessatti daataan sirrii hin argamne!",
+    csvSuccess: " Ramaddiileen milkaa'inaan galaniiru!",
+    csvError: "Dogoggorri uumameera faayila galchuu irratti!"
+  },
+  en: {
+    buildingTitle: "Building Materials Category Management",
+    pharmacyTitle: "Pharmacy Category Management",
+    searchPlaceholder: "Search...",
+    addCategory: "+ Add Category",
+    import: "Import",
+    thCategoryId: "CATEGORY ID",
+    thName: "NAME",
+    thProducts: "PRODUCTS",
+    thActions: "ACTIONS",
+    edit: "Edit",
+    delete: "Delete",
+    noCategories: "No categories found.",
+    editTitle: "Edit Category",
+    addTitle: "Add Category",
+    categoryIdLabel: "Category ID (Optional)",
+    categoryNameLabel: "Category Name",
+    buildingPlaceholder: "e.g. Cement, Steel, Electrical",
+    pharmacyPlaceholder: "e.g. Syrup, Tablet",
+    cancel: "Cancel",
+    update: "Update",
+    save: "Save",
+    confirmDelete: "Are you sure you want to delete this category?",
+    csvEmpty: "CSV data is empty or invalid!",
+    csvSuccess: " categories imported successfully!",
+    csvError: "Error during import process!"
+  }
+};
+
 function Categories() {
+  // Multi-language State setup
+  const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
+  const t = translations[lang] || translations.am;
+
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -18,7 +107,7 @@ function Categories() {
     name: ''
   });
 
-  // Business Mode dynamically detetct ማድረጊያ
+  // Business Mode dynamically detect
   const rawType = localStorage.getItem('businessType') || 'pharmacy';
   const isBuildingMode = rawType.toLowerCase().includes('building');
   const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
@@ -34,14 +123,12 @@ function Categories() {
 
   const fetchCategories = async () => {
     try {
-      // API call query parameter ከ Category.js schema enum ('pharmacy', 'building_materials') ጋር የተጣጣመ ነው
       const res = await axios.get(
         `${API_BASE_URL}/categories?businessType=${currentBusinessType}`,
         getAuthHeaders()
       );
 
       if (res.data) {
-        // Backend filtration ባይኖር እንኳን Strict Frontend Filtering logic
         const filtered = res.data.filter(cat => {
           const catType = (cat.businessType || '').toLowerCase();
           if (isBuildingMode) {
@@ -60,14 +147,22 @@ function Categories() {
   useEffect(() => {
     fetchCategories();
 
-    // App Mode ሲቀየር በራስ-ሰር ዳታውን Refresh ለማድረግ
     const handleModeChange = () => fetchCategories();
+    const handleLangChange = () => {
+      const savedLang = localStorage.getItem('appLanguage') || 'am';
+      setLang(savedLang);
+    };
+
     window.addEventListener('storage', handleModeChange);
     window.addEventListener('businessTypeChanged', handleModeChange);
+    window.addEventListener('storage', handleLangChange);
+    window.addEventListener('languageChanged', handleLangChange);
 
     return () => {
       window.removeEventListener('storage', handleModeChange);
       window.removeEventListener('businessTypeChanged', handleModeChange);
+      window.removeEventListener('storage', handleLangChange);
+      window.removeEventListener('languageChanged', handleLangChange);
     };
   }, []);
 
@@ -87,7 +182,7 @@ function Categories() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
+    if (window.confirm(t.confirmDelete)) {
       try {
         await axios.delete(`${API_BASE_URL}/categories/${id}`, getAuthHeaders());
         fetchCategories();
@@ -103,7 +198,7 @@ function Categories() {
       const config = getAuthHeaders();
       const payload = {
         ...formData,
-        businessType: currentBusinessType // Dynamic businessType assignment
+        businessType: currentBusinessType
       };
 
       if (editingId) {
@@ -135,16 +230,16 @@ function Categories() {
           })).filter(c => c.name);
 
           if (formattedCategories.length === 0) {
-            alert('CSV data is empty or invalid!');
+            alert(t.csvEmpty);
             return;
           }
 
           await axios.post(`${API_BASE_URL}/categories/bulk`, formattedCategories, getAuthHeaders());
-          alert(`${formattedCategories.length} categories imported successfully!`);
+          alert(`${formattedCategories.length}${t.csvSuccess}`);
           fetchCategories();
         } catch (err) {
           console.error('CSV Import Error:', err);
-          alert('Error during import process!');
+          alert(t.csvError);
         }
       }
     });
@@ -159,15 +254,15 @@ function Categories() {
 
   return (
     <div style={{ padding: '20px', flex: 1, backgroundColor: '#f4f6f8' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
-          {isBuildingMode ? 'Building Materials' : 'Pharmacy'} Category Management
+          {isBuildingMode ? t.buildingTitle : t.pharmacyTitle}
         </h2>
         
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="text"
-            placeholder="Search..."
+            placeholder={t.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -196,7 +291,7 @@ function Categories() {
               gap: '4px'
             }}
           >
-            + Add Category
+            {t.addCategory}
           </button>
 
           <input
@@ -222,26 +317,26 @@ function Categories() {
               gap: '4px'
             }}
           >
-            Import
+            {t.import}
           </button>
         </div>
       </div>
 
-      <div style={{ backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+      <div style={{ backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '600px' }}>
           <thead>
             <tr style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #e0e0e0', color: '#666', fontSize: '11px', letterSpacing: '0.5px' }}>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>CATEGORY ID</th>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>NAME</th>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>PRODUCTS</th>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>ACTIONS</th>
+              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thCategoryId}</th>
+              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thName}</th>
+              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thProducts}</th>
+              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thActions}</th>
             </tr>
           </thead>
           <tbody>
             {filteredCategories.length === 0 ? (
               <tr>
                 <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: '#888' }}>
-                  No categories found.
+                  {t.noCategories}
                 </td>
               </tr>
             ) : (
@@ -263,7 +358,7 @@ function Categories() {
                         fontWeight: '500'
                       }}
                     >
-                      Edit
+                      {t.edit}
                     </button>
                     <button
                       onClick={() => handleDelete(cat._id)}
@@ -276,7 +371,7 @@ function Categories() {
                         fontWeight: '500'
                       }}
                     >
-                      Delete
+                      {t.delete}
                     </button>
                   </td>
                 </tr>
@@ -290,11 +385,11 @@ function Categories() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '6px', width: '380px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
             <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', color: '#333' }}>
-              {editingId ? 'Edit Category' : 'Add Category'}
+              {editingId ? t.editTitle : t.addTitle}
             </h3>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: '#666', marginBottom: '4px', display: 'block' }}>Category ID (Optional)</label>
+                <label style={{ fontSize: '11px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.categoryIdLabel}</label>
                 <input
                   type="text"
                   placeholder="e.g. 2813"
@@ -305,11 +400,11 @@ function Categories() {
               </div>
 
               <div>
-                <label style={{ fontSize: '11px', color: '#666', marginBottom: '4px', display: 'block' }}>Category Name</label>
+                <label style={{ fontSize: '11px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.categoryNameLabel}</label>
                 <input
                   type="text"
                   required
-                  placeholder={isBuildingMode ? "e.g. Cement, Steel, Electrical" : "e.g. Syrup, Tablet"}
+                  placeholder={isBuildingMode ? t.buildingPlaceholder : t.pharmacyPlaceholder}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   style={{ width: '100%', padding: '7px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
@@ -317,9 +412,11 @@ function Categories() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-                <button type="button" onClick={handleCloseModal} style={{ backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+                <button type="button" onClick={handleCloseModal} style={{ backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
+                  {t.cancel}
+                </button>
                 <button type="submit" style={{ backgroundColor: '#0d6efd', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
-                  {editingId ? 'Update' : 'Save'}
+                  {editingId ? t.update : t.save}
                 </button>
               </div>
             </form>

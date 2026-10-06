@@ -5,14 +5,154 @@ import ProductModal from './ProductModal';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// 3tu languages er dictionary translations
+const translations = {
+  am: {
+    title: "የምርቶች አስተዳደር",
+    buildingMode: "🏗️ የሕንፃ መሣሪያዎች ሁነታ",
+    pharmacyMode: "💊 የፋርማሲ ሁነታ",
+    import: "📥 አስገባ (Import)",
+    addProduct: "+ ምርት ጨምር",
+    searchPlaceholder: "ይፈልጉ...",
+    all: "ሁሉም",
+    inStock: "ስቶክ ላይ ያለ",
+    lowStock: "አነስተኛ ስቶክ",
+    outOfStock: "ያለቀ",
+    thName: "ስም",
+    thCategory: "ምድብ",
+    thProdType: "የምርት ዓይነት",
+    thMaterialType: "የቁሳቁስ ዓይነት",
+    thUnit: "ዩኒት",
+    thSpecificType: "የተወሰነ ዓይነት",
+    thSalePrice: "የመሸጫ ዋጋ",
+    thBoughtPrice: "የመግዣ ዋጋ",
+    thInStore: "መጋዘን ውስጥ",
+    thInShop: "ሱቅ ውስጥ",
+    thInvoice: "ኢንቮይስ #",
+    thExpiry: "የማብቂያ ቀን",
+    thActions: "ድርጊቶች",
+    edit: "አስተካክል",
+    delete: "ሰርዝ",
+    export: "ምርቶችን አውጣ (Export)",
+    noProducts: "ምንም ምርት አልተገኘም።",
+    confirmDelete: "እርግጠኛ ነዎት ይህንን ምርት መሰረዝ ይፈልጋሉ?",
+    deleteSuccess: "ምርቱ በጥሩ ሁኔታ ተሰርዟል!",
+    deleteFailed: "ምርቱን መሰረዝ አልተሳካም።",
+    csvImportSuccess: "የCSV ፋይል በጥሩ ሁኔታ ገብቷል!",
+    csvImportNoData: "በCSV ፋይሉ ውስጥ ምንም ትክክለኛ መረጃ አልተገኘም!",
+    csvImportFailed: "የCSV ፋይል ማስገባት አልተሳካም: ",
+    noExportData: "ለመላክ ምንም ምርት የለም!",
+    enterNameErr: "እባክዎን የምርት ስም ያስገቡ!",
+    selectCatErr: "እባክዎን ምድብ ይምረጡ!",
+    validPriceErr: "እባክዎን ትክክለኛ የመግዣ ዋጋ ያስገቡ!",
+    updateSuccess: "ምርቱ በጥሩ ሁኔታ ተስተካክሏል!",
+    saveSuccess: "ምርቱ በጥሩ ሁኔታ ተመዝግቧል!",
+    saveFailed: "ምርቱን መመዝገብ አልተሳካም: ",
+    birr: "ብር",
+    na: "የለም"
+  },
+  om: {
+    title: "Bulchiinsa Oomishootaa",
+    buildingMode: "🏗️ Haala Meeshaalee Ijaarsaa",
+    pharmacyMode: "💊 Haala Faarmaasii",
+    import: "📥 Galchuu (Import)",
+    addProduct: "+ Oomisha Dabali",
+    searchPlaceholder: "Barbaadi...",
+    all: "Hundumaa",
+    inStock: "Stookii Keessa Kan Jiru",
+    lowStock: "Stookii Xiqqaa",
+    outOfStock: "Kan Dhumate",
+    thName: "MAQAA",
+    thCategory: "RAMADDII",
+    thProdType: "GOSA OOMISHAA",
+    thMaterialType: "GOSA MEESHAA",
+    thUnit: "YUUNIITII",
+    thSpecificType: "GOSA WAA'EE",
+    thSalePrice: "GURGURTAA",
+    thBoughtPrice: "BITAA",
+    thInStore: "GUTTUMMAAN",
+    thInShop: "SUUQA KEESSA",
+    thInvoice: "INVOICE #",
+    thExpiry: "GUYYAA SAAMUDAA",
+    thActions: "TARKANFIISSA",
+    edit: "Gulaali",
+    delete: "Haqi",
+    export: "Oomisha Baasi (Export)",
+    noProducts: "Oomishni hin argamne.",
+    confirmDelete: "Oomisha kana haquuf mirkanaa'aadhaa?",
+    deleteSuccess: "Oomishni milkaa'inaan haqameera!",
+    deleteFailed: "Oomisha haquun kuffa'eera!",
+    csvImportSuccess: "Faayilli CSV milkaa'inaan galee jira!",
+    csvImportNoData: "Faayila CSV keessatti daataan sirrii hin argamne!",
+    csvImportFailed: "Faayila CSV galchuun kuffa'eera: ",
+    noExportData: "Oomishni ergame hin jiru!",
+    enterNameErr: "Maaloo maqaa oomishaa galchaa!",
+    selectCatErr: "Maaloo ramaddii filadhaa!",
+    validPriceErr: "Maaloo gatii bitaa sirrii galchaa!",
+    updateSuccess: "Oomishni milkaa'inaan haara'omeera!",
+    saveSuccess: "Oomishni milkaa'inaan olka'ameera!",
+    saveFailed: "Oomisha olka'uun kuffa'eera: ",
+    birr: "Birr",
+    na: "Hingarre"
+  },
+  en: {
+    title: "Product Management",
+    buildingMode: "🏗️ Building Materials Mode",
+    pharmacyMode: "💊 Pharmacy Mode",
+    import: "📥 Import",
+    addProduct: "+ Add product",
+    searchPlaceholder: "Search...",
+    all: "All",
+    inStock: "In stock",
+    lowStock: "Low stock",
+    outOfStock: "Out of stock",
+    thName: "NAME",
+    thCategory: "CATEGORY",
+    thProdType: "PROD TYPE",
+    thMaterialType: "MATERIAL TYPE",
+    thUnit: "UNIT",
+    thSpecificType: "SPECIFIC TYPE",
+    thSalePrice: "SALE PRICE",
+    thBoughtPrice: "BOUGHT PRICE",
+    thInStore: "IN STORE",
+    thInShop: "IN SHOP",
+    thInvoice: "INVOICE #",
+    thExpiry: "EXPIRY DATE",
+    thActions: "ACTIONS",
+    edit: "Edit",
+    delete: "Delete",
+    export: "Export Products",
+    noProducts: "No products found.",
+    confirmDelete: "Are you sure you want to delete this product?",
+    deleteSuccess: "Product deleted successfully!",
+    deleteFailed: "Failed to delete product!",
+    csvImportSuccess: "CSV file imported successfully!",
+    csvImportNoData: "No valid data found in CSV file!",
+    csvImportFailed: "CSV import failed: ",
+    noExportData: "No products available to export!",
+    enterNameErr: "Please enter product name!",
+    selectCatErr: "Please select a category!",
+    validPriceErr: "Please enter a valid bought price!",
+    updateSuccess: "Product updated successfully!",
+    saveSuccess: "Product saved successfully!",
+    saveFailed: "Failed to save product: ",
+    birr: "Birr",
+    na: "N/A"
+  }
+};
+
 function Products() {
+  // Language Persistence & Multi-language setup
+  const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
+  const t = translations[lang] || translations.am;
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // 1. Business Mode State
+  // Business Mode State
   const [businessType, setBusinessType] = useState(
     localStorage.getItem('businessType') || 'pharmacy'
   );
@@ -52,15 +192,25 @@ function Products() {
       setBusinessType(currentMode);
     };
 
+    const handleLangChange = () => {
+      const savedLang = localStorage.getItem('appLanguage') || 'am';
+      setLang(savedLang);
+    };
+
     window.addEventListener('businessTypeChanged', handleModeChange);
     window.addEventListener('storage', handleModeChange);
+    window.addEventListener('languageChanged', handleLangChange);
+    window.addEventListener('storage', handleLangChange);
+
     return () => {
       window.removeEventListener('businessTypeChanged', handleModeChange);
       window.removeEventListener('storage', handleModeChange);
+      window.removeEventListener('languageChanged', handleLangChange);
+      window.removeEventListener('storage', handleLangChange);
     };
   }, []);
 
-  // 2. Fetch Products & Categories
+  // Fetch Products & Categories
   const fetchData = async () => {
     try {
       const config = { headers: getAuthHeaders() };
@@ -72,7 +222,6 @@ function Products() {
 
       setProducts(resProducts.data);
 
-      // Strict client-side filter para kadagiti categories
       const filteredCategories = resCategories.data.filter((cat) => {
         const catType = (cat.businessType || '').toLowerCase();
         if (isBuilding) {
@@ -143,14 +292,14 @@ function Products() {
           await axios.post(`${API_BASE_URL}/products/bulk`, importedProducts, {
             headers: getAuthHeaders()
           });
-          alert('CSV file imported successfully!');
+          alert(t.csvImportSuccess);
           fetchData();
         } else {
-          alert('No valid data found in CSV file!');
+          alert(t.csvImportNoData);
         }
       } catch (err) {
         console.error('Error importing CSV:', err.response ? err.response.data : err.message);
-        alert(`CSV import failed: ${err.response?.data?.message || 'Server Error'}`);
+        alert(`${t.csvImportFailed}${err.response?.data?.message || 'Server Error'}`);
       }
       e.target.value = null;
     };
@@ -203,7 +352,7 @@ function Products() {
     });
   };
 
-  // 3. Filter products
+  // Filter products
   const filteredProducts = products.filter((p) => {
     const qty = p.quantity ?? p.inShop ?? 0;
     const matchesSearch = p.name ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
@@ -217,23 +366,23 @@ function Products() {
   });
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+    if (window.confirm(t.confirmDelete)) {
       try {
         await axios.delete(`${API_BASE_URL}/products/${id}`, {
           headers: getAuthHeaders()
         });
-        alert('Product deleted successfully!');
+        alert(t.deleteSuccess);
         fetchData();
       } catch (err) {
         console.error('Error deleting product:', err);
-        alert('Failed to delete product!');
+        alert(t.deleteFailed);
       }
     }
   };
 
   const handleExport = () => {
     if (!filteredProducts || filteredProducts.length === 0) {
-      alert('No products available to export!');
+      alert(t.noExportData);
       return;
     }
 
@@ -295,17 +444,17 @@ function Products() {
     e.preventDefault();
 
     if (!formData.name || formData.name.trim() === '') {
-      alert('Please enter product name!');
+      alert(t.enterNameErr);
       return;
     }
 
     if (!formData.category || formData.category.trim() === '') {
-      alert('Please select a category!');
+      alert(t.selectCatErr);
       return;
     }
 
     if (formData.boughtPrice === '' || Number(formData.boughtPrice) < 0) {
-      alert('Please enter a valid bought price!');
+      alert(t.validPriceErr);
       return;
     }
 
@@ -338,10 +487,10 @@ function Products() {
 
       if (editingId) {
         await axios.put(`${API_BASE_URL}/products/${editingId}`, payload, config);
-        alert('Product updated successfully!');
+        alert(t.updateSuccess);
       } else {
         await axios.post(`${API_BASE_URL}/products`, payload, config);
-        alert('Product saved successfully!');
+        alert(t.saveSuccess);
       }
 
       handleCloseModal();
@@ -349,8 +498,16 @@ function Products() {
     } catch (err) {
       console.error('Error saving product:', err.response ? err.response.data : err.message);
       const serverMsg = err.response?.data?.message || err.response?.data?.error || JSON.stringify(err.response?.data);
-      alert(`Failed to save product: ${serverMsg || 'Server Error'}`);
+      alert(`${t.saveFailed}${serverMsg || 'Server Error'}`);
     }
+  };
+
+  // Dynamic filter tab labels mapping
+  const filterTabLabels = {
+    'All': t.all,
+    'In stock': t.inStock,
+    'Low stock': t.lowStock,
+    'Out of stock': t.outOfStock
   };
 
   return (
@@ -434,9 +591,9 @@ function Products() {
       {/* Top Header */}
       <div className="products-header">
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Product Management</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>{t.title}</h2>
           <span style={{ fontSize: '11px', color: '#0d6efd', fontWeight: 'bold', textTransform: 'uppercase' }}>
-            {isBuilding ? '🏗️ Building Materials Mode' : '💊 Pharmacy Mode'}
+            {isBuilding ? t.buildingMode : t.pharmacyMode}
           </span>
         </div>
         
@@ -452,7 +609,7 @@ function Products() {
             alignItems: 'center',
             gap: '5px'
           }}>
-            📥 Import
+            {t.import}
             <input 
               type="file" 
               accept=".csv" 
@@ -483,7 +640,7 @@ function Products() {
             }}
             style={{ background: '#0d6efd', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
           >
-            + Add product
+            {t.addProduct}
           </button>
         </div>
       </div>
@@ -492,7 +649,7 @@ function Products() {
       <div className="filter-container">
         <input
           type="text"
-          placeholder="Search..."
+          placeholder={t.searchPlaceholder}
           className="search-input"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -512,7 +669,7 @@ function Products() {
                 color: filter === f ? '#fff' : '#212529'
               }}
             >
-              {f}
+              {filterTabLabels[f]}
             </button>
           ))}
         </div>
@@ -523,33 +680,33 @@ function Products() {
         <table className="products-table">
           <thead>
             <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #dee2e6', color: '#6c757d' }}>
-              <th style={{ padding: '10px' }}>NAME</th>
-              <th style={{ padding: '10px' }}>CATEGORY</th>
-              <th style={{ padding: '10px' }}>PROD TYPE</th>
+              <th style={{ padding: '10px' }}>{t.thName}</th>
+              <th style={{ padding: '10px' }}>{t.thCategory}</th>
+              <th style={{ padding: '10px' }}>{t.thProdType}</th>
               
               {isBuilding ? (
                 <>
-                  <th style={{ padding: '10px' }}>MATERIAL TYPE</th>
-                  <th style={{ padding: '10px' }}>UNIT</th>
+                  <th style={{ padding: '10px' }}>{t.thMaterialType}</th>
+                  <th style={{ padding: '10px' }}>{t.thUnit}</th>
                 </>
               ) : (
-                <th style={{ padding: '10px' }}>SPECIFIC TYPE</th>
+                <th style={{ padding: '10px' }}>{t.thSpecificType}</th>
               )}
 
-              <th style={{ padding: '10px' }}>SALE PRICE</th>
-              <th style={{ padding: '10px' }}>BOUGHT PRICE</th>
-              <th style={{ padding: '10px' }}>IN STORE</th>
-              <th style={{ padding: '10px' }}>IN SHOP</th>
-              <th style={{ padding: '10px' }}>INVOICE #</th>
-              {!isBuilding && <th style={{ padding: '10px' }}>EXPIRY DATE</th>}
-              <th style={{ padding: '10px' }}>ACTIONS</th>
+              <th style={{ padding: '10px' }}>{t.thSalePrice}</th>
+              <th style={{ padding: '10px' }}>{t.thBoughtPrice}</th>
+              <th style={{ padding: '10px' }}>{t.thInStore}</th>
+              <th style={{ padding: '10px' }}>{t.thInShop}</th>
+              <th style={{ padding: '10px' }}>{t.thInvoice}</th>
+              {!isBuilding && <th style={{ padding: '10px' }}>{t.thExpiry}</th>}
+              <th style={{ padding: '10px' }}>{t.thActions}</th>
             </tr>
           </thead>
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
                 <td colSpan={isBuilding ? "11" : "10"} style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-                  No products found.
+                  {t.noProducts}
                 </td>
               </tr>
             ) : (
@@ -565,29 +722,29 @@ function Products() {
                     {isBuilding ? (
                       <>
                         <td style={{ padding: '8px 10px', color: '#0d6efd', fontWeight: '500' }}>
-                          {p.specificType || 'N/A'}
+                          {p.specificType || t.na}
                         </td>
                         <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>
                           {p.unit || '-'}
                         </td>
                       </>
                     ) : (
-                      <td style={{ padding: '8px 10px' }}>{p.specificType || 'N/A'}</td>
+                      <td style={{ padding: '8px 10px' }}>{p.specificType || t.na}</td>
                     )}
 
-                    <td style={{ padding: '8px 10px' }}>{p.price} Birr</td>
-                    <td style={{ padding: '8px 10px', color: '#28a745', fontWeight: 'bold' }}>{p.boughtPrice ? `${p.boughtPrice} Birr` : '0 Birr'}</td>
+                    <td style={{ padding: '8px 10px' }}>{p.price} {t.birr}</td>
+                    <td style={{ padding: '8px 10px', color: '#28a745', fontWeight: 'bold' }}>{p.boughtPrice ? `${p.boughtPrice} ${t.birr}` : `0 ${t.birr}`}</td>
                     <td style={{ padding: '8px 10px' }}>{p.inStoreQty ?? 0}</td>
                     <td style={{ padding: '8px 10px' }}>
                       <span style={{ background: qty < (p.stockThreshold || 5) ? '#f8d7da' : '#d1e7dd', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
                         {qty}
                       </span>
                     </td>
-                    <td style={{ padding: '8px 10px', color: '#6c757d' }}>{p.invoiceNo || 'N/A'}</td>
+                    <td style={{ padding: '8px 10px', color: '#6c757d' }}>{p.invoiceNo || t.na}</td>
                     
                     {!isBuilding && (
                       <td style={{ padding: '8px 10px', color: exp ? '#fd7e14' : '#6c757d', fontWeight: exp ? 'bold' : 'normal' }}>
-                        {exp ? new Date(exp).toLocaleDateString() : 'N/A'}
+                        {exp ? new Date(exp).toLocaleDateString() : t.na}
                       </td>
                     )}
 
@@ -596,13 +753,13 @@ function Products() {
                         onClick={() => handleEditClick(p)}
                         style={{ background: '#ffc107', color: '#000', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                       >
-                        Edit
+                        {t.edit}
                       </button>
                       <button
                         onClick={() => handleDelete(p._id)}
                         style={{ background: '#dc3545', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                       >
-                        Delete
+                        {t.delete}
                       </button>
                     </td>
                   </tr>
@@ -619,7 +776,7 @@ function Products() {
           onClick={handleExport}
           style={{ background: '#0d6efd', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
         >
-          Export Products
+          {t.export}
         </button>
       </div>
 

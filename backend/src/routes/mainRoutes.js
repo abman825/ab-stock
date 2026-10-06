@@ -1,8 +1,18 @@
 const express = require('express');
 const router = express.Router();
 
-// Controller & Middleware Imports
-const controller = require('../controllers/mainController');
+// Ayrı-ayrı Controller-lərin çağırılması
+const authController = require('../controllers/authController');
+const productController = require('../controllers/productController');
+const categoryController = require('../controllers/categoryController');
+const supplierController = require('../controllers/supplierController');
+const purchaseController = require('../controllers/purchaseController');
+const transferController = require('../controllers/transferController');
+const orderController = require('../controllers/orderController');
+const customerController = require('../controllers/customerController');
+const analyticsController = require('../controllers/analyticsController');
+
+// Middleware
 const authMiddleware = require('../middleware/authMiddleware');
 
 // ==========================================
@@ -10,63 +20,64 @@ const authMiddleware = require('../middleware/authMiddleware');
 // ==========================================
 
 // Authentication Routes
-router.post('/auth/register', controller.register);
-router.post('/auth/login', controller.login);
-router.post('/auth/forgot-password', controller.forgotPassword);
-router.post('/reset-password/:token', controller.resetPassword);
+router.post('/auth/register', authController.register);
+router.post('/auth/login', authController.login);
+router.post('/auth/forgot-password', authController.forgotPassword);
+router.post('/reset-password/:token', authController.resetPassword);
 
 // Shortcut Public Routes
-router.post('/register', controller.register);
-router.post('/login', controller.login);
-router.post('/forgot-password', controller.forgotPassword);
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/forgot-password', authController.forgotPassword);
 
 // ==========================================
 // 2. Protected Routes (JWT Token required)
 // ==========================================
 router.use(authMiddleware);
 
-// Activity Logs Route (የነበረውን 404 ኤረር የሚያስተክለው አዲስ መስመር)
-router.get('/activity-logs', controller.getActivityLogs);
+// Activity Logs Route
+router.get('/activity-logs', productController.getActivityLogs);
 
 // Bulk Import Routes
-if (controller.createProductsBulk) {
-  router.post('/products/bulk', controller.createProductsBulk);
+if (productController.createProductsBulk) {
+  router.post('/products/bulk', productController.createProductsBulk);
 }
-if (controller.createCategoriesBulk) {
-  router.post('/categories/bulk', controller.createCategoriesBulk);
+if (categoryController.createCategoriesBulk) {
+  router.post('/categories/bulk', categoryController.createCategoriesBulk);
 }
 
 // Profile & Account Settings
-router.get('/profile', controller.getProfile);
-router.get('/auth/profile', controller.getProfile);
-router.put('/auth/update-profile', controller.updateProfile);
-router.put('/update-profile', controller.updateProfile);
-router.put('/auth/change-password', controller.changePassword);
-router.put('/change-password', controller.changePassword);
+router.get('/profile', authController.getProfile);
+router.get('/auth/profile', authController.getProfile);
+router.put('/auth/update-profile', authController.updateProfile);
+router.put('/update-profile', authController.updateProfile);
+router.put('/auth/change-password', authController.changePassword);
+router.put('/change-password', authController.changePassword);
 
 // Reports & Analytics
-router.get('/reports/analytics', controller.getAnalytics);
+router.get('/reports/analytics', analyticsController.getAnalytics);
 
 // Products
-router.get('/products', controller.getProducts);
-router.post('/products', controller.createProduct);
-router.put('/products/:id', controller.updateProduct);
-router.delete('/products/:id', controller.deleteProduct);
+router.get('/products', productController.getProducts);
+router.post('/products', productController.createProduct);
+router.put('/products/:id', productController.updateProduct);
+router.delete('/products/:id', productController.deleteProduct);
 
 // Categories
-router.get('/categories', controller.getCategories);
-router.post('/categories', controller.createCategory);
-router.put('/categories/:id', controller.updateCategory);
-router.delete('/categories/:id',controller.deleteCategory);
+router.get('/categories', categoryController.getCategories);
+router.post('/categories', categoryController.createCategory);
+router.put('/categories/:id', categoryController.updateCategory);
+router.delete('/categories/:id', categoryController.deleteCategory);
+
 // Suppliers
-router.get('/suppliers', controller.getSuppliers);
-router.post('/suppliers', controller.createSupplier);
-router.put('/suppliers/:id', controller.updateSupplier);       // <-- ይህ መኖሩን አረጋግጥ
-router.delete('/suppliers/:id',controller.deleteSupplier);
+router.get('/suppliers', supplierController.getSuppliers);
+router.post('/suppliers', supplierController.createSupplier);
+router.put('/suppliers/:id', supplierController.updateSupplier);
+router.delete('/suppliers/:id', supplierController.deleteSupplier);
 
 // Purchase Orders
-router.get('/purchase-orders', controller.getPurchases);
-router.post('/purchase-orders', controller.createPurchase);
+router.get('/purchase-orders', purchaseController.getPurchases);
+router.post('/purchase-orders', purchaseController.createPurchase);
 
 // Bulk Import CSV Route (Purchase Orders)
 router.post('/purchase-orders/bulk', async (req, res) => {
@@ -98,16 +109,16 @@ router.post('/purchase-orders/bulk', async (req, res) => {
 });
 
 // Transfers
-router.get('/transfers', controller.getTransfers);
-router.post('/transfers', controller.createTransfer);
+router.get('/transfers', transferController.getTransfers);
+router.post('/transfers', transferController.createTransfer);
 
 // Orders & Sales
-router.get('/orders/today-summary', controller.getTodaySalesSummary);
-router.get('/orders', controller.getOrders);
-router.post('/orders', controller.createOrder);
+router.get('/orders/today-summary', orderController.getTodaySalesSummary);
+router.get('/orders', orderController.getOrders);
+router.post('/orders', orderController.createOrder);
 
 // Customers
-router.get('/customers', controller.getCustomers);
-router.post('/customers', controller.createCustomer);
+router.get('/customers', customerController.getCustomers);
+router.post('/customers', customerController.createCustomer);
 
 module.exports = router;

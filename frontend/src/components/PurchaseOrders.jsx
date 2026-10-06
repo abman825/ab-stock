@@ -3,7 +3,111 @@ import React, { useState, useEffect } from 'react';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// 3ti languages er dictionary translations
+const translations = {
+  am: {
+    title: "የግዢ ማዘዣዎች (Purchase Orders)",
+    subtitle: "አዲስ የግዢ ትዕዛዝ በማዘጋጀት ምርት ያስገቡ።",
+    subInfo: "ምርቱ በቀጥታ ወደ መጋዘንዎ ገቢ ይደረጋል።",
+    btnCreate: "+ አዲስ ግዢ መዝግብ",
+    btnImport: "📥 CSV አስገባ",
+    thDate: "ቀን",
+    thItems: "የተገዙ ምርቶች",
+    thTotal: "ጠቅላላ ዋጋ",
+    thSupplier: "አቅራቢ",
+    thInvoice: "የኢንቮይስ ቁጥር",
+    noOrders: "ምንም የተመዘገበ የግዢ መረጃ የለም።",
+    modalTitle: "አዲስ የግዢ ማዘዣ መመዝገቢያ",
+    labelSupplier: "አቅራቢ *",
+    selectSupplier: "-- አቅራቢ ይምረጡ --",
+    labelProduct: "ምርት *",
+    selectProduct: "-- ምርት ይምረጡ --",
+    labelQuantity: "ብዛት",
+    labelUnitCost: "የአንዱ ዋጋ (ETB)",
+    labelInvoice: "የኢንቮይስ ቁጥር (አማራጭ)",
+    btnCancel: "ሰርዝ",
+    btnSave: "ግዢውን አስቀምጥ",
+    alertCsvSuccess: "የመረጃዎቹ የ CSV ግዢዎች በጥሩ ሁኔታ ተመዝግበዋል!",
+    alertCsvFail: "ግዢዎችን ማስገባት አልተቻለም",
+    alertCsvEmpty: "የመረጡት CSV ፋይል ባዶ ነው ወይም ትክክለኛ መረጃ አልያዘም።",
+    alertCsvError: "CSV ፋይሉን በማንበብ ሂደት ላይ ስህተት ተፈጥሯል!",
+    alertCreateFail: "Purchase Order ማስገባት አልተቻለም",
+    itemText: "ምርት",
+    itemsText: "ምርቶች",
+    defaultProduct: "የገባ ምርት",
+    defaultSupplier: "ጠቅላላ አቅራቢ"
+  },
+  om: {
+    title: "Ajaja Bitachaa (Purchase Orders)",
+    subtitle: "Ajaja bitachaa haaraa uumuudhaan meeshaa galchaa.",
+    subInfo: "Meeshaan kallattiidhaan gara kuusaa keessaniitti ni dabalama.",
+    btnCreate: "+ Bitaa Haaraa Galmeessi",
+    btnImport: "📥 CSV Galchaa",
+    thDate: "GUYYAA",
+    thItems: "MEESHAALEE BITAAMAN",
+    thTotal: "GATII WALIIGALAA",
+    thSupplier: "DHIYEESSAA",
+    thInvoice: "LAKKOOFSA INVOICE",
+    noOrders: "Galmeen bitachaa tokkollee hin jiru.",
+    modalTitle: "Ajaja Bitachaa Haaraa Galmeessuu",
+    labelSupplier: "Dhiyeessaa *",
+    selectSupplier: "-- Dhiyeessaa Filadhaa --",
+    labelProduct: "Oomisha / Meeshaa *",
+    selectProduct: "-- Oomisha Filadhaa --",
+    labelQuantity: "Baay'ina",
+    labelUnitCost: "Gatii Tokkoo (ETB)",
+    labelInvoice: "Lakk. Invoice (Filiyaalii)",
+    btnCancel: "Dhiisi",
+    btnSave: "Bitaa Olka'i",
+    alertCsvSuccess: "Odeeffannoon bitachaa CSV milkaa'inaan galmeeffameera!",
+    alertCsvFail: "Bitachaa galchuurra dogoggorri jira",
+    alertCsvEmpty: "Faayiliin CSV filattan duudaa dha ykn odeeffannoo sirrii hin qabu.",
+    alertCsvError: "Faayilii CSV dubbisuu irratti dogoggorri uumameera!",
+    alertCreateFail: "Ajaja bitachaa galchuu hin danda'amne",
+    itemText: "Meeshaa",
+    itemsText: "Meeshaalee",
+    defaultProduct: "Meeshaa Galfame",
+    defaultSupplier: "Dhiyeessaa Waliigalaa"
+  },
+  en: {
+    title: "Purchase Orders",
+    subtitle: "Add inventory by creating a purchase order.",
+    subInfo: "Stock will be added directly to your warehouse.",
+    btnCreate: "+ Create Purchase",
+    btnImport: "📥 Import Purchases",
+    thDate: "DATE",
+    thItems: "PURCHASED ITEMS",
+    thTotal: "TOTAL AMOUNT",
+    thSupplier: "SUPPLIER",
+    thInvoice: "INVOICE NUMBER",
+    noOrders: "No purchases recorded yet.",
+    modalTitle: "Create New Purchase",
+    labelSupplier: "Supplier *",
+    selectSupplier: "-- Select Supplier --",
+    labelProduct: "Product *",
+    selectProduct: "-- Select Product --",
+    labelQuantity: "Quantity",
+    labelUnitCost: "Unit Cost (ETB)",
+    labelInvoice: "Invoice Number (Optional)",
+    btnCancel: "Cancel",
+    btnSave: "Save Purchase",
+    alertCsvSuccess: "CSV purchase orders imported successfully!",
+    alertCsvFail: "Failed to import purchases",
+    alertCsvEmpty: "The selected CSV file is empty or formatted incorrectly.",
+    alertCsvError: "Error occurred while reading the CSV file!",
+    alertCreateFail: "Failed to create purchase order",
+    itemText: "Item",
+    itemsText: "Items",
+    defaultProduct: "Imported Product",
+    defaultSupplier: "General"
+  }
+};
+
 function PurchaseOrders() {
+  // Multi-language state
+  const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
+  const t = translations[lang] || translations.am;
+
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -18,7 +122,7 @@ function PurchaseOrders() {
     invoiceNumber: ''
   });
 
-  // Authorization Header ማዘጋጀት
+  // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -52,6 +156,19 @@ function PurchaseOrders() {
 
   useEffect(() => {
     fetchData();
+
+    const handleLangChange = () => {
+      const savedLang = localStorage.getItem('appLanguage') || 'am';
+      setLang(savedLang);
+    };
+
+    window.addEventListener('storage', handleLangChange);
+    window.addEventListener('languageChanged', handleLangChange);
+
+    return () => {
+      window.removeEventListener('storage', handleLangChange);
+      window.removeEventListener('languageChanged', handleLangChange);
+    };
   }, []);
 
   // CSV Import Functionality
@@ -70,7 +187,6 @@ function PurchaseOrders() {
           const line = lines[i].trim();
           if (!line) continue;
 
-          // Regex በመጠቀም በሴል ውስጥ ያለን ኮማ ቲክስ እንዳያደፈርሰው ይረዳል
           const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || line.split(',');
           const cleanValues = values.map((val) => val.replace(/^"|"$/g, '').trim());
 
@@ -79,11 +195,11 @@ function PurchaseOrders() {
             const uCost = Number(cleanValues[2]) || 0;
 
             importedOrders.push({
-              productName: cleanValues[0] || 'Imported Product',
+              productName: cleanValues[0] || t.defaultProduct,
               quantity: qty,
               unitCost: uCost,
               totalCost: qty * uCost,
-              supplierName: cleanValues[3] || (suppliers.length > 0 ? suppliers[0].name : 'General'),
+              supplierName: cleanValues[3] || (suppliers.length > 0 ? suppliers[0].name : t.defaultSupplier),
               invoiceNumber: cleanValues[4] || `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
             });
           }
@@ -97,32 +213,32 @@ function PurchaseOrders() {
           });
 
           if (res.ok) {
-            alert('የመረጧቸው የ CSV ግዢዎች በጥሩ ሁኔታ ተመዝግበዋል!');
+            alert(t.alertCsvSuccess);
             fetchData();
           } else {
             const errorData = await res.json().catch(() => ({}));
-            alert(`ግዢዎችን ማስገባት አልተቻለም: ${errorData.message || 'Server Error'}`);
+            alert(`${t.alertCsvFail}: ${errorData.message || 'Server Error'}`);
           }
         } else {
-          alert('የመረጡት CSV ፋይል ባዶ ነው ወይም ትክክለኛ መረጃ አልያዘም።');
+          alert(t.alertCsvEmpty);
         }
       } catch (err) {
         console.error('Error importing CSV:', err);
-        alert('CSV ፋይሉን በማንበብ ሂደት ላይ ስህተት ተፈጥሯል!');
+        alert(t.alertCsvError);
       }
 
-      e.target.value = null; // Input ን reset ለማድረግ
+      e.target.value = null;
     };
     reader.readAsText(file);
   };
 
   const handleProductSelect = (e) => {
     const selectedId = e.target.value;
-    const selectedProd = products.find((p) => p._id === selectedId);
+    const selectedProd = products.find((p) => (p._id || p.id) === selectedId);
     if (selectedProd) {
       setFormData({
         ...formData,
-        productId: selectedProd._id,
+        productId: selectedProd._id || selectedProd.id,
         productName: selectedProd.name,
         unitCost: selectedProd.boughtPrice || selectedProd.price || 0
       });
@@ -154,7 +270,7 @@ function PurchaseOrders() {
         fetchData();
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(`Purchase Order ማስገባት አልተቻለም: ${errData.message || 'Server Error'}`);
+        alert(`${t.alertCreateFail}: ${errData.message || 'Server Error'}`);
       }
     } catch (err) {
       console.error('Error creating purchase order:', err);
@@ -162,19 +278,19 @@ function PurchaseOrders() {
   };
 
   return (
-    <div style={{ padding: '24px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
+    <div style={{ padding: '24px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
       {/* Top Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#1e293b', margin: 0 }}>Purchase</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#1e293b', margin: 0 }}>{t.title}</h2>
           <p style={{ fontSize: '13px', color: '#64748b', margin: '6px 0 0 0' }}>
-            Add inventory by creating a purchase.<br />
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Stock will be added to your warehouse.</span>
+            {t.subtitle}<br />
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>{t.subInfo}</span>
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setShowModal(true)}
             style={{
@@ -191,7 +307,7 @@ function PurchaseOrders() {
               gap: '6px'
             }}
           >
-            + Create Purchase
+            {t.btnCreate}
           </button>
 
           {/* Import Purchases Label/Button */}
@@ -210,7 +326,7 @@ function PurchaseOrders() {
               gap: '6px'
             }}
           >
-            📥 Import Purchases
+            {t.btnImport}
             <input
               type="file"
               accept=".csv"
@@ -226,18 +342,18 @@ function PurchaseOrders() {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '650px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '11px', textTransform: 'uppercase' }}>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>DATE</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>PURCHASED ITEMS</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>TOTAL AMOUNT</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>SUPPLIER</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>INVOICE NUMBER</th>
+              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thDate}</th>
+              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thItems}</th>
+              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thTotal}</th>
+              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thSupplier}</th>
+              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thInvoice}</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
               <tr>
                 <td colSpan="5" style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
-                  No purchases recorded yet.
+                  {t.noOrders}
                 </td>
               </tr>
             ) : (
@@ -247,7 +363,7 @@ function PurchaseOrders() {
                     {new Date(po.createdAt || Date.now()).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                   </td>
                   <td style={{ padding: '14px 20px', fontWeight: '500', color: '#0f172a' }}>
-                    {po.quantity} Item{po.quantity > 1 ? 's' : ''} ({po.productName})
+                    {po.quantity} {po.quantity > 1 ? t.itemsText : t.itemText} ({po.productName})
                   </td>
                   <td style={{ padding: '14px 20px', fontWeight: '500', color: '#0f172a' }}>
                     ETB {po.totalCost ? po.totalCost.toLocaleString() : (po.quantity * po.unitCost || 0).toLocaleString()}
@@ -267,19 +383,21 @@ function PurchaseOrders() {
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
           <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '100%', maxWidth: '420px', boxSizing: 'border-box' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '16px', color: '#0f172a' }}>
-              Create New Purchase
+            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '16px', color: '#0f172a', fontWeight: '600' }}>
+              {t.modalTitle}
             </h3>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>Supplier *</label>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                  {t.labelSupplier}
+                </label>
                 <select
                   required
                   value={formData.supplierName}
                   onChange={(e) => setFormData({ ...formData, supplierName: e.target.value })}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 >
-                  <option value="">-- Select Supplier --</option>
+                  <option value="">{t.selectSupplier}</option>
                   {suppliers.map((s) => (
                     <option key={s._id || s.id} value={s.name}>{s.name}</option>
                   ))}
@@ -287,14 +405,16 @@ function PurchaseOrders() {
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>Product *</label>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                  {t.labelProduct}
+                </label>
                 <select
                   required
                   value={formData.productId}
                   onChange={handleProductSelect}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 >
-                  <option value="">-- Select Product --</option>
+                  <option value="">{t.selectProduct}</option>
                   {products.map((p) => (
                     <option key={p._id || p.id} value={p._id || p.id}>{p.name}</option>
                   ))}
@@ -303,7 +423,9 @@ function PurchaseOrders() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>Quantity</label>
+                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                    {t.labelQuantity}
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -314,7 +436,9 @@ function PurchaseOrders() {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>Unit Cost (ETB)</label>
+                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                    {t.labelUnitCost}
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -327,7 +451,9 @@ function PurchaseOrders() {
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>Invoice Number (Optional)</label>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                  {t.labelInvoice}
+                </label>
                 <input
                   type="text"
                   placeholder="INV-XXXXXX"
@@ -338,9 +464,18 @@ function PurchaseOrders() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
-                <button type="submit" style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
-                  Save Purchase
+                <button 
+                  type="button" 
+                  onClick={() => setShowModal(false)} 
+                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+                >
+                  {t.btnCancel}
+                </button>
+                <button 
+                  type="submit" 
+                  style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+                >
+                  {t.btnSave}
                 </button>
               </div>
             </form>

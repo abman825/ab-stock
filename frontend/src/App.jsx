@@ -17,6 +17,85 @@ import ActivityLog from './components/ActivityLog';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// Multi-language UI texts for App component
+const translations = {
+  am: {
+    main: "ዋና",
+    inventory: "ዕቃዎችና ስቶክ",
+    procurement: "ግዥና አቅርቦት",
+    salesAndCustomers: "ሽያጭና ደንበኞች",
+    pos: "Point of Sale",
+    products: "ዕቃዎች (Products)",
+    categories: "ምድቦች (Categories)",
+    activityLogs: "📋 የእንቅስቃሴ መዝገብ",
+    suppliers: "አቅራቢዎች",
+    purchases: "የግዥ ትዕዛዞች",
+    transfer: "ዝውውር (Transfer)",
+    orders: "የሽያጭ መዝገብ",
+    customers: "ደንበኞች",
+    reports: "📊 ሪፖርትና ትርፍ",
+    setting: "⚙️ Setting",
+    howToUse: "አጠቃቀም 📹",
+    userRole: "ተጠቃሚ",
+    logout: "ውጣ",
+    saleSuccess: "ሽያጩ በትክክለኛው ሁኔታ ተጠናቋል!",
+    saleFailed: "ሽያጩ አልተሳካም፦",
+    emptyCart: "እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!",
+    serverError: "ከ server ጋር መገናኘት አልተቻለም",
+    tutorialTitle: "📹 የስርዓቱ አጠቃቀም Tutorial"
+  },
+  om: {
+    main: "GURMUU GURBAA",
+    inventory: "QABEENYA FI INVENTORY",
+    procurement: "BITAAN FI KAN BIRA",
+    salesAndCustomers: "GURRAACHA FI MAAMILTOOTA",
+    pos: "Gurgurtaa (POS)",
+    products: "Oomshaalee (Products)",
+    categories: "Gosa Oomshaa (Categories)",
+    activityLogs: "📋 Galmee Socho'iinsaa",
+    suppliers: "Dhiyeessitoota",
+    purchases: "Ajaja Bittaa",
+    transfer: "Dabarsu (Transfer)",
+    orders: "Galmee Gurgurtaa",
+    customers: "Maamiltoota",
+    reports: "📊 Gabaasa fi Bu'aa",
+    setting: "⚙️ Qindaa'ina",
+    howToUse: "Akkaata Akka Fayyadaman 📹",
+    userRole: "Fayyadamaa",
+    logout: "Ba'i",
+    saleSuccess: "Gurgurtaan milkaa'inaan xumurameera!",
+    saleFailed: "Gurgurtaan hin milkaa'in:",
+    emptyCart: "Maaloo jalqaba meeshaa gara kaartitti galchaa!",
+    serverError: "Server waliin qunnamuu hin danda'amne",
+    tutorialTitle: "📹 Tutorial Akkaata Fayyadamasaa"
+  },
+  en: {
+    main: "MAIN",
+    inventory: "INVENTORY",
+    procurement: "PROCUREMENT",
+    salesAndCustomers: "SALES & CUSTOMERS",
+    pos: "Point of Sale",
+    products: "Products",
+    categories: "Categories",
+    activityLogs: "📋 Activity Logs",
+    suppliers: "Suppliers",
+    purchases: "Purchase Orders",
+    transfer: "Transfer",
+    orders: "Orders",
+    customers: "Customers",
+    reports: "📊 Reports & Profit",
+    setting: "⚙️ Setting",
+    howToUse: "Tutorial 📹",
+    userRole: "User",
+    logout: "Logout",
+    saleSuccess: "Sale completed successfully!",
+    saleFailed: "Sale failed:",
+    emptyCart: "Please add items to cart first!",
+    serverError: "Unable to connect to server",
+    tutorialTitle: "📹 System Tutorial"
+  }
+};
+
 function App() {
   const [user, setUser] = useState(null);
   const [resetToken, setResetToken] = useState(null);
@@ -27,11 +106,29 @@ function App() {
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [loading, setLoading] = useState(false);
 
+  // App Language State
+  const [currentLang, setCurrentLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
+
   // Mobile Navigation Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // YouTube Tutorial Modal State
   const [showVideoModal, setShowVideoModal] = useState(false);
+
+  // Listen to Language Changes globally
+  useEffect(() => {
+    const handleLangChange = () => {
+      setCurrentLang(localStorage.getItem('appLanguage') || 'am');
+    };
+    window.addEventListener('storage', handleLangChange);
+    window.addEventListener('languageChanged', handleLangChange);
+    return () => {
+      window.removeEventListener('storage', handleLangChange);
+      window.removeEventListener('languageChanged', handleLangChange);
+    };
+  }, []);
+
+  const t = translations[currentLang] || translations.am;
 
   // 1. URL ውስጥ /reset-password/ የሚል ካለ Token-ን መለየት
   useEffect(() => {
@@ -60,30 +157,27 @@ function App() {
     }
   }, []);
 
- useEffect(() => {
-  console.log("Current User:", user);
-  if (user) {
-    fetchProducts();
-    fetchCategories();
-    fetchTodaySalesSummary();
-  }
-}, [user]);
-
-const fetchProducts = async () => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/products`, {
-      headers: getAuthHeaders()
-    });
-    console.log("Products Status:", res.status);
-    if (res.ok) {
-      const data = await res.json();
-      console.log("Fetched Products:", data);
-      setProducts(data);
+  useEffect(() => {
+    if (user) {
+      fetchProducts();
+      fetchCategories();
+      fetchTodaySalesSummary();
     }
-  } catch (err) {
-    console.error("Products Fetch Error:", err);
-  }
-};
+  }, [user]);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/products`, {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data);
+      }
+    } catch (err) {
+      console.error("Products Fetch Error:", err);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -101,35 +195,34 @@ const fetchProducts = async () => {
     }
   };
 
- const fetchTodaySalesSummary = async () => {
-  try {
-    const rawType = localStorage.getItem('businessType') || 'pharmacy';
-    const isBuildingMode = rawType.toLowerCase().includes('building');
-    const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
+  const fetchTodaySalesSummary = async () => {
+    try {
+      const rawType = localStorage.getItem('businessType') || 'pharmacy';
+      const isBuildingMode = rawType.toLowerCase().includes('building');
+      const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
 
-    const res = await fetch(
-      `${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, 
-      { headers: getAuthHeaders() }
-    );
+      const res = await fetch(
+        `${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, 
+        { headers: getAuthHeaders() }
+      );
 
-    if (res.ok) {
-      const data = await res.json();
-      setTodaySales(data);
-    } else {
-      console.error("Sales summary fetching failed:", res.status);
+      if (res.ok) {
+        const data = await res.json();
+        setTodaySales(data);
+      } else {
+        console.error("Sales summary fetching failed:", res.status);
+      }
+    } catch (err) {
+      console.error("Error fetching sales summary:", err);
     }
-  } catch (err) {
-    console.error("Error fetching sales summary:", err);
-  }
-};
+  };
 
   // የሽያጭ ማጠቃለያ ፋንክሽን (Order complete handler)
   const handleCompleteSale = async (saleDetails) => {
-    // POS ወይም POSpage የሚልክልንን Items አደራጅቶ መውሰድ
     const itemsToProcess = saleDetails?.items || cart;
 
     if (itemsToProcess.length === 0) {
-      alert('እባክዎን አስቀድመው እቃ ወደ ካርት ያስገቡ!');
+      alert(t.emptyCart);
       return;
     }
 
@@ -170,23 +263,23 @@ const fetchProducts = async () => {
       });
 
       if (res.ok) {
-        alert('ሽያጩ በትክክለኛው ሁኔታ ተጠናቋል!');
+        alert(t.saleSuccess);
         setCart([]);
         fetchProducts();
         fetchTodaySalesSummary();
       } else {
         const errData = await res.json();
-        alert(`ሽያጩ አልተሳካም: ${errData.message || errData.error || 'Server error'}`);
+        alert(`${t.saleFailed} ${errData.message || errData.error || 'Server error'}`);
       }
     } catch (err) {
       console.error('Sale completion error:', err);
-      alert('ከ server ጋር መገናኘት አልተቻለም');
+      alert(t.serverError);
     } finally {
       setLoading(false);
     }
   };
 
-  // Logout ሲደረግ LocalStorage አጽድቆ ገጹን ሙሉ በሙሉ Reload ማድረግ
+  // Logout ሲደረግ LocalStorage አፅድቆ ገፁን ሙሉ በሙሉ Reload ማድረግ
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -204,6 +297,7 @@ const fetchProducts = async () => {
     return (
       <ResetPassword 
         token={resetToken} 
+        currentLang={currentLang}
         onBackToLogin={() => {
           setResetToken(null);
           window.history.pushState({}, '', '/');
@@ -214,33 +308,40 @@ const fetchProducts = async () => {
 
   // 4. user ከሌለ Login ማሳያ
   if (!user) {
-    return <Login onLoginSuccess={(userData) => setUser(userData)} />;
+    return <Login currentLang={currentLang} onLoginSuccess={(userData) => setUser(userData)} />;
   }
 
   // Sidebar Menu Sections
   const menuSections = [
-    { title: 'MAIN', items: [{ id: 'pos', label: 'Point of Sale' }] },
+    { title: t.main, items: [{ id: 'pos', label: t.pos }] },
     { 
-      title: 'INVENTORY', 
+      title: t.inventory, 
       items: [
-        { id: 'products', label: 'Products' }, 
-        { id: 'categories', label: 'Categories' },
-        { id: 'activityLogs', label: '📋 Activity Logs' }
+        { id: 'products', label: t.products }, 
+        { id: 'categories', label: t.categories },
+        { id: 'activityLogs', label: t.activityLogs }
       ] 
     },
-    { title: 'PROCUREMENT', items: [{ id: 'suppliers', label: 'Suppliers' }, { id: 'purchases', label: 'Purchase Orders' }, { id: 'transfer', label: 'Transfer' }] },
     { 
-      title: 'SALES & CUSTOMERS', 
+      title: t.procurement, 
       items: [
-        { id: 'orders', label: 'Orders' }, 
-        { id: 'customers', label: 'Customers' },
-        { id: 'reports', label: '📊 Reports & Profit' }
+        { id: 'suppliers', label: t.suppliers }, 
+        { id: 'purchases', label: t.purchases }, 
+        { id: 'transfer', label: t.transfer }
+      ] 
+    },
+    { 
+      title: t.salesAndCustomers, 
+      items: [
+        { id: 'orders', label: t.orders }, 
+        { id: 'customers', label: t.customers },
+        { id: 'reports', label: t.reports }
       ] 
     }
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Segoe UI, sans-serif' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Inter, Segoe UI, sans-serif' }}>
       
       {/* Mobile Backdrop Overlay */}
       {isMobileMenuOpen && (
@@ -344,7 +445,7 @@ const fetchProducts = async () => {
               gap: '6px'
             }}
           >
-            ⚙️ Setting
+            {t.setting}
           </button>
 
           <div 
@@ -362,14 +463,14 @@ const fetchProducts = async () => {
               <span style={{ fontSize: '16px' }}>👤</span>
               <div style={{ overflow: 'hidden' }}>
                 <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</div>
-                <div style={{ fontSize: '10px', color: '#94a3b8' }}>User</div>
+                <div style={{ fontSize: '10px', color: '#94a3b8' }}>{t.userRole}</div>
               </div>
             </div>
             <button 
               onClick={handleLogout}
               style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', padding: '4px' }}
             >
-              Logout
+              {t.logout}
             </button>
           </div>
         </div>
@@ -405,7 +506,7 @@ const fetchProducts = async () => {
               onClick={() => setShowVideoModal(true)}
               style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              አጠቃቀም 📹
+              {t.howToUse}
             </button>
 
             <button 
@@ -413,7 +514,7 @@ const fetchProducts = async () => {
               style={{ background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
               className="desktop-settings-btn"
             >
-              ⚙️ Setting
+              {t.setting}
             </button>
           </div>
         </div>
@@ -429,18 +530,19 @@ const fetchProducts = async () => {
               todaySales={todaySales}
               onCompleteSale={handleCompleteSale}
               loading={loading}
+              currentLang={currentLang}
             />
           )}
-          {activeTab === 'products' && <Products products={products} refreshProducts={fetchProducts} />}
-          {activeTab === 'categories' && <Categories categories={categories} refreshCategories={fetchCategories} />}
-          {activeTab === 'activityLogs' && <ActivityLog API_BASE_URL={API_BASE_URL} />}
-          {activeTab === 'suppliers' && <Suppliers />}
-          {activeTab === 'purchases' && <PurchaseOrders />}
-          {activeTab === 'transfer' && <Transfer />}
-          {activeTab === 'orders' && <Orders />}
-          {activeTab === 'customers' && <Customers />}
-          {activeTab === 'reports' && <ReportsPage API_BASE_URL={API_BASE_URL} />}
-          {activeTab === 'settings' && <Settings />}
+          {activeTab === 'products' && <Products products={products} refreshProducts={fetchProducts} currentLang={currentLang} />}
+          {activeTab === 'categories' && <Categories categories={categories} refreshCategories={fetchCategories} currentLang={currentLang} />}
+          {activeTab === 'activityLogs' && <ActivityLog API_BASE_URL={API_BASE_URL} currentLang={currentLang} />}
+          {activeTab === 'suppliers' && <Suppliers currentLang={currentLang} />}
+          {activeTab === 'purchases' && <PurchaseOrders currentLang={currentLang} />}
+          {activeTab === 'transfer' && <Transfer currentLang={currentLang} />}
+          {activeTab === 'orders' && <Orders currentLang={currentLang} />}
+          {activeTab === 'customers' && <Customers currentLang={currentLang} />}
+          {activeTab === 'reports' && <ReportsPage API_BASE_URL={API_BASE_URL} currentLang={currentLang} />}
+          {activeTab === 'settings' && <Settings currentLang={currentLang} />}
         </div>
 
       </div>
@@ -471,7 +573,7 @@ const fetchProducts = async () => {
             position: 'relative'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>📹 የስርዓቱ አጠቃቀም Tutorial</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>{t.tutorialTitle}</h3>
               <button 
                 onClick={() => setShowVideoModal(false)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}

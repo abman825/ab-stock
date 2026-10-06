@@ -13,12 +13,12 @@ const transferSchema = new mongoose.Schema({
   from: {
     type: String,
     required: true,
-    enum: ['stock', 'pharmacy', 'store', 'shop']
+    enum: ['stock', 'store', 'shop']
   },
   to: {
     type: String,
     required: true,
-    enum: ['stock', 'pharmacy', 'store', 'shop']
+    enum: ['stock', 'store', 'shop']
   },
    businessType: {
     type: String,
