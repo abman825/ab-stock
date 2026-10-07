@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import POSpage from './components/POSpage';
 import Products from './components/Products';
 import Categories from './components/Categories';
@@ -22,14 +23,14 @@ const translations = {
   am: {
     main: "ዋና",
     inventory: "ዕቃዎችና ስቶክ",
-    procurement: "ግዥና አቅርቦት",
+    procurement: "ግዢና አቅርቦት",
     salesAndCustomers: "ሽያጭና ደንበኞች",
     pos: "Point of Sale",
     products: "ዕቃዎች (Products)",
     categories: "ምድቦች (Categories)",
     activityLogs: "📋 የእንቅስቃሴ መዝገብ",
     suppliers: "አቅራቢዎች",
-    purchases: "የግዥ ትዕዛዞች",
+    purchases: "የግዢ ትዕዛዞች",
     transfer: "ዝውውር (Transfer)",
     orders: "የሽያጭ መዝገብ",
     customers: "ደንበኞች",
@@ -39,12 +40,12 @@ const translations = {
     userRole: "ተጠቃሚ",
     logout: "ውጣ",
     saleSuccess: "ሽያጩ በትክክለኛው ሁኔታ ተጠናቋል!",
-    saleFailed: "ሽያጩ አልተሳካም፦",
+    saleFailed: "ሽያጩ አልተሳካም፡",
     emptyCart: "እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!",
     serverError: "ከ server ጋር መገናኘት አልተቻለም",
     tutorialTitle: "📹 የስርዓቱ አጠቃቀም Tutorial",
-    expiredTitle: "🔒 የወርሃዊ አገልግሎት ክፍያ ጊዜዎ አልፏል!",
-    expiredMessage: "እባክዎን አገልግሎቱን ለማስቀጠል ክፍያ ይፈጽሙ ወይም የሲስተሙን አስተዳዳሪ (Admin) ያነጋግሩ።"
+    expiredTitle: "🔒 የወርሃዊ አገልግሎት ክፍያ ጊዜዎ አልቋል!",
+    expiredMessage: "እባክዎን አገልግሎቱን ለመቀጠል ክፍያ ይፈፅሙ ወይም የስርዓቱን አስተዳዳሪ (Admin) ያነጋግሩ።"
   },
   om: {
     main: "GURMUU GURBAA",
@@ -102,6 +103,47 @@ const translations = {
   }
 };
 
+// 🌟 Top Subscription Warning Banner Component
+function SubscriptionBanner({ warning }) {
+  if (!warning || !warning.message) return null;
+
+  return (
+    <div 
+      style={{
+        backgroundColor: '#f59e0b',
+        color: '#ffffff',
+        padding: '8px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontSize: '13px',
+        fontWeight: '600',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        zIndex: 1000
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span>⚠️</span>
+        <span>{warning.message}</span>
+      </div>
+      <a 
+        href="tel:+251900000000" 
+        style={{
+          backgroundColor: '#ffffff',
+          color: '#b45309',
+          padding: '4px 10px',
+          borderRadius: '4px',
+          textDecoration: 'none',
+          fontSize: '11px',
+          fontWeight: 'bold'
+        }}
+      >
+        አሁኑኑ ይክፈሉ
+      </a>
+    </div>
+  );
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [resetToken, setResetToken] = useState(null);
@@ -112,9 +154,10 @@ function App() {
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [loading, setLoading] = useState(false);
 
-  // Subscription Expired State (የክፍያ ጊዜ ማብቃት መቆጣጠሪያ)
+  // Subscription Expired & Warning States
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
   const [expiredMessage, setExpiredMessage] = useState('');
+  const [subscriptionWarning, setSubscriptionWarning] = useState(null);
 
   // App Language State
   const [currentLang, setCurrentLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
@@ -140,10 +183,16 @@ function App() {
 
   const t = translations[currentLang] || translations.am;
 
-  // Response Error Handler for Subscriptions
+  // Response Error & Warning Handler for Subscriptions
   const handleApiResponse = async (res) => {
+    const data = await res.json().catch(() => ({}));
+    
+    // ቀሪ ቀናት ማስጠንቀቂያ ካለ ይያዛል
+    if (data.subscriptionWarning) {
+      setSubscriptionWarning(data.subscriptionWarning);
+    }
+
     if (res.status === 403) {
-      const data = await res.json().catch(() => ({}));
       if (data.isExpired || data.message) {
         setIsSubscriptionExpired(true);
         setExpiredMessage(data.message || t.expiredMessage);
@@ -153,7 +202,7 @@ function App() {
     return true;
   };
 
-  // 1. URL ውስጥ /reset-password/ የሚል ካለ Token-ን መለየት
+  // URL ውስጥ /reset-password/ የሚል ካለ Token-ን መለየት
   useEffect(() => {
     const path = window.location.pathname;
     if (path.startsWith('/reset-password/')) {
@@ -164,7 +213,7 @@ function App() {
     }
   }, []);
 
-  // 2. Authorization Header
+  // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -195,7 +244,7 @@ function App() {
       });
       const isValid = await handleApiResponse(res);
       if (isValid && res.ok) {
-        const data = await res.json();
+        const data = await res.clone().json().catch(() => []);
         setProducts(data);
       }
     } catch (err) {
@@ -210,10 +259,8 @@ function App() {
       });
       const isValid = await handleApiResponse(res);
       if (isValid && res.ok) {
-        const data = await res.json();
+        const data = await res.clone().json().catch(() => []);
         setCategories(data);
-      } else {
-        console.error("Categories fetching failed:", res.status);
       }
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -233,17 +280,15 @@ function App() {
 
       const isValid = await handleApiResponse(res);
       if (isValid && res.ok) {
-        const data = await res.json();
+        const data = await res.clone().json().catch(() => ({ cash: 0, bank: 0, telebirr: 0, total: 0 }));
         setTodaySales(data);
-      } else {
-        console.error("Sales summary fetching failed:", res.status);
       }
     } catch (err) {
       console.error("Error fetching sales summary:", err);
     }
   };
 
-  // የሽያጭ ማጠቃለያ ፋንክሽን (Order complete handler)
+  // የሽያጭ ማጠቃለያ ፋንክሽን
   const handleCompleteSale = async (saleDetails) => {
     const itemsToProcess = saleDetails?.items || cart;
 
@@ -309,7 +354,6 @@ function App() {
     }
   };
 
-  // Logout ሲደረግ LocalStorage አፅድቆ ገፁን ሙሉ በሙሉ Reload ማድረግ
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -322,7 +366,6 @@ function App() {
     setIsMobileMenuOpen(false);
   };
 
-  // 3. Reset Password Token ካለ የ ResetPassword component-ን ብቻ ያሳያል
   if (resetToken) {
     return (
       <ResetPassword 
@@ -336,12 +379,10 @@ function App() {
     );
   }
 
-  // 4. user ከሌለ Login ማሳያ
   if (!user) {
     return <Login currentLang={currentLang} onLoginSuccess={(userData) => setUser(userData)} />;
   }
 
-  // Sidebar Menu Sections
   const menuSections = [
     { title: t.main, items: [{ id: 'pos', label: t.pos }] },
     { 
@@ -371,264 +412,238 @@ function App() {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Inter, Segoe UI, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Inter, Segoe UI, sans-serif' }}>
       
-      {/* Subscription Expired Fullscreen Lock Screen */}
-      {isSubscriptionExpired && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(15, 23, 42, 0.92)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justify: 'center',
-          padding: '20px',
-          color: '#fff',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            backgroundColor: '#1e293b',
-            border: '1px solid #ef4444',
-            borderRadius: '16px',
-            padding: '30px 25px',
-            maxWidth: '450px',
-            width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(239, 68, 68, 0.2)'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚠️</div>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#f87171', marginBottom: '12px' }}>
-              {t.expiredTitle}
-            </h2>
-            <p style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6', marginBottom: '25px' }}>
-              {expiredMessage || t.expiredMessage}
-            </p>
-            <button
-              onClick={handleLogout}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#ef4444',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              {t.logout}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 1. 5 የቀን ቀሪ ማስጠንቀቂያ Banner */}
+      <SubscriptionBanner warning={subscriptionWarning} />
 
-      {/* Mobile Backdrop Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          onClick={() => setIsMobileMenuOpen(false)}
-          style={{
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        
+        {/* Subscription Expired Fullscreen Lock Screen */}
+        {isSubscriptionExpired && (
+          <div style={{
             position: 'fixed',
             top: 0,
             left: 0,
             width: '100vw',
             height: '100vh',
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
-            zIndex: 1040,
-            display: 'block'
-          }}
-        />
-      )}
-
-      {/* Silver/Slate Sidebar Navigation */}
-      <div style={{ 
-        width: '240px', 
-        height: '100vh', 
-        backgroundColor: '#1e293b', 
-        color: '#f8fafc', 
-        padding: '15px 12px', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        flexShrink: 0, 
-        boxSizing: 'border-box',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        zIndex: 1050,
-        transition: 'transform 0.3s ease-in-out',
-        borderRight: '1px solid #334155',
-        transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)'
-      }} className="responsive-sidebar">
-        
-        {/* Logo & Mobile Close Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0' }}>
-            📦 ab Stock
-          </h2>
-          <button 
-            onClick={() => setIsMobileMenuOpen(false)}
-            style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
-            className="mobile-close-btn"
-          >
-            ✖
-          </button>
-        </div>
-
-        {/* Navigation Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', flex: 1, overflowY: 'auto' }}>
-          {menuSections.map((section, idx) => (
-            <div key={idx}>
-              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '6px', letterSpacing: '0.5px' }}>{section.title}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {section.items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavClick(item.id)}
-                    style={{
-                      padding: '10px 12px',
-                      border: 'none',
-                      background: activeTab === item.id ? '#334155' : 'transparent',
-                      color: activeTab === item.id ? '#38bdf8' : '#cbd5e1',
-                      textAlign: 'left',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: activeTab === item.id ? 'bold' : 'normal',
-                      transition: 'background 0.2s, color 0.2s'
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            color: '#fff',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              backgroundColor: '#1e293b',
+              border: '1px solid #ef4444',
+              borderRadius: '16px',
+              padding: '30px 25px',
+              maxWidth: '450px',
+              width: '100%',
+              boxShadow: '0 20px 25px -5px rgba(239, 68, 68, 0.2)'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚠️</div>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#f87171', marginBottom: '12px' }}>
+                {t.expiredTitle}
+              </h2>
+              <p style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6', marginBottom: '25px' }}>
+                {expiredMessage || t.expiredMessage}
+              </p>
+              <button
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                {t.logout}
+              </button>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
-        {/* Sidebar Bottom (User Info & Settings) */}
-        <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button 
-            onClick={() => handleNavClick('settings')} 
-            style={{ 
-              width: '100%', 
-              padding: '8px 10px', 
-              background: activeTab === 'settings' ? '#334155' : 'transparent', 
-              border: '1px solid #475569', 
-              color: '#e2e8f0', 
-              borderRadius: '6px', 
-              cursor: 'pointer', 
-              textAlign: 'left', 
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            {t.setting}
-          </button>
-
+        {/* Mobile Backdrop Overlay */}
+        {isMobileMenuOpen && (
           <div 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justify: 'space-between', 
-              background: '#0f172a', 
-              padding: '8px 10px', 
-              borderRadius: '6px',
-              border: '1px solid #334155'
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              zIndex: 1040
             }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-              <span style={{ fontSize: '16px' }}>👤</span>
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</div>
-                <div style={{ fontSize: '10px', color: '#94a3b8' }}>{t.userRole}</div>
+          />
+        )}
+
+        {/* Sidebar Navigation */}
+        <div style={{ 
+          width: '240px', 
+          height: '100%', 
+          backgroundColor: '#1e293b', 
+          color: '#f8fafc', 
+          padding: '15px 12px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          flexShrink: 0, 
+          boxSizing: 'border-box',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 1050,
+          transition: 'transform 0.3s ease-in-out',
+          borderRight: '1px solid #334155',
+          transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)'
+        }} className="responsive-sidebar">
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0' }}>
+              📦 ab Stock
+            </h2>
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
+              className="mobile-close-btn"
+            >
+              ✖
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', flex: 1, overflowY: 'auto' }}>
+            {menuSections.map((section, idx) => (
+              <div key={idx}>
+                <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '6px', letterSpacing: '0.5px' }}>{section.title}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {section.items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavClick(item.id)}
+                      style={{
+                        padding: '10px 12px',
+                        border: 'none',
+                        background: activeTab === item.id ? '#334155' : 'transparent',
+                        color: activeTab === item.id ? '#38bdf8' : '#cbd5e1',
+                        textAlign: 'left',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: activeTab === item.id ? 'bold' : 'normal'
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <button 
-              onClick={handleLogout}
-              style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', padding: '4px' }}
-            >
-              {t.logout}
-            </button>
+            ))}
           </div>
-        </div>
-      </div>
 
-      {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', width: '100%' }} className="main-content-panel">
-        
-        {/* Top Header */}
-        <div style={{ backgroundColor: '#ffffff', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              style={{
-                background: '#475569',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '5px',
-                padding: '6px 10px',
-                fontSize: '16px',
-                cursor: 'pointer'
+              onClick={() => handleNavClick('settings')} 
+              style={{ 
+                width: '100%', 
+                padding: '8px 10px', 
+                background: activeTab === 'settings' ? '#334155' : 'transparent', 
+                border: '1px solid #475569', 
+                color: '#e2e8f0', 
+                borderRadius: '6px', 
+                cursor: 'pointer', 
+                textAlign: 'left', 
+                fontSize: '12px'
               }}
-              className="hamburger-btn"
-            >
-              ☰
-            </button>
-            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: 'clamp(14px, 3vw, 16px)' }}>AB Stock POS</span>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button 
-              onClick={() => setShowVideoModal(true)}
-              style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              {t.howToUse}
-            </button>
-
-            <button 
-              onClick={() => handleNavClick('settings')}
-              style={{ background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
-              className="desktop-settings-btn"
             >
               {t.setting}
             </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0f172a', padding: '8px 10px', borderRadius: '6px', border: '1px solid #334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                <span style={{ fontSize: '16px' }}>👤</span>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8' }}>{t.userRole}</div>
+                </div>
+              </div>
+              <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                {t.logout}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Dynamic Page Views Container */}
-        <div style={{ flex: 1, padding: 'clamp(10px, 2vw, 20px)', overflowY: 'auto', boxSizing: 'border-box' }}>
-          {activeTab === 'pos' && (
-            <POSpage 
-              cart={cart} 
-              setCart={setCart} 
-              products={products}
-              categories={categories}
-              todaySales={todaySales}
-              onCompleteSale={handleCompleteSale}
-              loading={loading}
-              currentLang={currentLang}
-            />
-          )}
-          {activeTab === 'products' && <Products products={products} refreshProducts={fetchProducts} currentLang={currentLang} />}
-          {activeTab === 'categories' && <Categories categories={categories} refreshCategories={fetchCategories} currentLang={currentLang} />}
-          {activeTab === 'activityLogs' && <ActivityLog API_BASE_URL={API_BASE_URL} currentLang={currentLang} />}
-          {activeTab === 'suppliers' && <Suppliers currentLang={currentLang} />}
-          {activeTab === 'purchases' && <PurchaseOrders currentLang={currentLang} />}
-          {activeTab === 'transfer' && <Transfer currentLang={currentLang} />}
-          {activeTab === 'orders' && <Orders currentLang={currentLang} />}
-          {activeTab === 'customers' && <Customers currentLang={currentLang} />}
-          {activeTab === 'reports' && <ReportsPage API_BASE_URL={API_BASE_URL} currentLang={currentLang} />}
-          {activeTab === 'settings' && <Settings currentLang={currentLang} />}
+        {/* Main Content Area */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', width: '100%' }} className="main-content-panel">
+          
+          <div style={{ backgroundColor: '#ffffff', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                style={{ background: '#475569', color: '#fff', border: 'none', borderRadius: '5px', padding: '6px 10px', fontSize: '16px', cursor: 'pointer' }}
+                className="hamburger-btn"
+              >
+                ☰
+              </button>
+              <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: 'clamp(14px, 3vw, 16px)' }}>AB Stock POS</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button 
+                onClick={() => setShowVideoModal(true)}
+                style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}
+              >
+                {t.howToUse}
+              </button>
+
+              <button 
+                onClick={() => handleNavClick('settings')}
+                style={{ background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+                className="desktop-settings-btn"
+              >
+                {t.setting}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, padding: 'clamp(10px, 2vw, 20px)', overflowY: 'auto', boxSizing: 'border-box' }}>
+            {activeTab === 'pos' && (
+              <POSpage 
+                cart={cart} 
+                setCart={setCart} 
+                products={products}
+                categories={categories}
+                todaySales={todaySales}
+                onCompleteSale={handleCompleteSale}
+                loading={loading}
+                currentLang={currentLang}
+              />
+            )}
+            {activeTab === 'products' && <Products products={products} refreshProducts={fetchProducts} currentLang={currentLang} />}
+            {activeTab === 'categories' && <Categories categories={categories} refreshCategories={fetchCategories} currentLang={currentLang} />}
+            {activeTab === 'activityLogs' && <ActivityLog API_BASE_URL={API_BASE_URL} currentLang={currentLang} />}
+            {activeTab === 'suppliers' && <Suppliers currentLang={currentLang} />}
+            {activeTab === 'purchases' && <PurchaseOrders currentLang={currentLang} />}
+            {activeTab === 'transfer' && <Transfer currentLang={currentLang} />}
+            {activeTab === 'orders' && <Orders currentLang={currentLang} />}
+            {activeTab === 'customers' && <Customers currentLang={currentLang} />}
+            {activeTab === 'reports' && <ReportsPage API_BASE_URL={API_BASE_URL} currentLang={currentLang} />}
+            {activeTab === 'settings' && <Settings currentLang={currentLang} />}
+          </div>
+
         </div>
 
       </div>
@@ -644,26 +659,14 @@ function App() {
           background: 'rgba(15, 23, 42, 0.75)',
           display: 'flex',
           alignItems: 'center',
-          justify: 'center',
+          justifyContent: 'center',
           zIndex: 9999,
-          padding: '15px',
-          boxSizing: 'border-box'
+          padding: '15px'
         }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: '12px',
-            padding: '15px',
-            width: '100%',
-            maxWidth: '700px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            position: 'relative'
-          }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '15px', width: '100%', maxWidth: '700px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ margin: 0, fontSize: '15px', color: '#1e293b' }}>{t.tutorialTitle}</h3>
-              <button 
-                onClick={() => setShowVideoModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
-              >
+              <button onClick={() => setShowVideoModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>
                 ✖
               </button>
             </div>
@@ -681,17 +684,13 @@ function App() {
         </div>
       )}
 
-      {/* Responsive Styles */}
       <style>{`
         @media (min-width: 768px) {
           .responsive-sidebar {
             position: relative !important;
             transform: none !important;
           }
-          .hamburger-btn {
-            display: none !important;
-          }
-          .mobile-close-btn {
+          .hamburger-btn, .mobile-close-btn {
             display: none !important;
           }
         }

@@ -31,15 +31,19 @@ const checkSubscription = async (req, res, next) => {
   try {
     const user = req.user;
 
-    // SuperAdmin ወይም Admin ከሆነ በነፃ እንዲጠቀም ፍቀድለት
     if (user.role === 'Admin' || user.role === 'SuperAdmin') {
       return next();
     }
 
     const today = new Date();
+    const expiryDate = new Date(user.nextPaymentDate);
+    
+    // የቀረውን ቀን ማስላት
+    const diffTime = expiryDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // አካውንቱ ከተዘጋ ወይም የክፍያ ቀኑ ካለፈ
-    if (!user.isActive || new Date(user.nextPaymentDate) < today) {
+    // 1. ቀኑ ሙሉ በሙሉ ካለፈ ወይም isActive: false ከሆነ መቆለፍ
+    if (user.isActive === false || diffDays <= 0) {
       return res.status(403).json({
         success: false,
         isExpired: true,
@@ -47,11 +51,17 @@ const checkSubscription = async (req, res, next) => {
       });
     }
 
+    // 2. ቀሪው ቀን ከ 5 ቀን በታች ከሆነ ለ Front-end መረጃ መስጠት
+    if (diffDays <= 5) {
+      req.subscriptionWarning = {
+        showWarning: true,
+        daysLeft: diffDays,
+        message: `የአገልግሎት ጊዜዎ ሊያልቅ ${diffDays} ቀን ብቻ ቀርቶታል! እባክዎን ክፍያ ይፈጽሙ።`
+      };
+    }
+
     next();
   } catch (error) {
     res.status(500).json({ message: "የሴርቨር ስህተት አጋጥሟል" });
   }
 };
-
-// ሁለቱንም ለየብቻ Export እናደርጋቸዋለን
-module.exports = { protect, checkSubscription };
