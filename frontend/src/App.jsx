@@ -223,11 +223,40 @@ function App() {
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+  const savedUser = localStorage.getItem('user');
+  if (savedUser) {
+    const parsedUser = JSON.parse(savedUser);
+    setUser(parsedUser);
+    
+    // Login ሲደረግ የመጣ ማስጠንቀቂያ ካለ ይያዛል
+    if (parsedUser.subscriptionWarning) {
+      setSubscriptionWarning(parsedUser.subscriptionWarning);
     }
-  }, []);
+  }
+}, []);
+useEffect(() => {
+  const checkSubscription = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/check-subscription`, {
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+      
+      if (data.subscriptionWarning) {
+        setSubscriptionWarning(data.subscriptionWarning);
+      }
+      if (data.isExpired) {
+        setIsSubscriptionExpired(true);
+        setExpiredMessage(data.message);
+      }
+    } catch (err) {
+      console.error("Subscription check error:", err);
+    }
+  };
+
+  checkSubscription();
+}, [user]);
 
   useEffect(() => {
     if (user) {
