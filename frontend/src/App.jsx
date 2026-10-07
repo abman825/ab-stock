@@ -43,9 +43,9 @@ const translations = {
     saleFailed: "ሽያጩ አልተሳካም፡",
     emptyCart: "እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!",
     serverError: "ከ server ጋር መገናኘት አልተቻለም",
-    tutorialTitle: "📹 የስርዓቱ አጠቃቀም Tutorial",
+    tutorialTitle: "📹 የሥርዓቱ አጠቃቀም Tutorial",
     expiredTitle: "🔒 የወርሃዊ አገልግሎት ክፍያ ጊዜዎ አልቋል!",
-    expiredMessage: "እባክዎን አገልግሎቱን ለመቀጠል ክፍያ ይፈፅሙ ወይም የስርዓቱን አስተዳዳሪ (Admin) ያነጋግሩ።"
+    expiredMessage: "እባክዎን አገልግሎቱን ለመቀጠል ክፍያ ይፈጽሙ ወይም የሥርዓቱን አስተዳዳሪ (Admin) ያነጋግሩ።"
   },
   om: {
     main: "GURMUU GURBAA",
@@ -103,7 +103,7 @@ const translations = {
   }
 };
 
-// 🌟 Top Subscription Warning Banner Component
+// Top Subscription Warning Banner Component
 function SubscriptionBanner({ warning }) {
   if (!warning || !warning.message) return null;
 
@@ -183,26 +183,7 @@ function App() {
 
   const t = translations[currentLang] || translations.am;
 
-  // Response Error & Warning Handler for Subscriptions
-  const handleApiResponse = async (res) => {
-    const data = await res.json().catch(() => ({}));
-    
-    // ቀሪ ቀናት ማስጠንቀቂያ ካለ ይያዛል
-    if (data.subscriptionWarning) {
-      setSubscriptionWarning(data.subscriptionWarning);
-    }
-
-    if (res.status === 403) {
-      if (data.isExpired || data.message) {
-        setIsSubscriptionExpired(true);
-        setExpiredMessage(data.message || t.expiredMessage);
-      }
-      return false;
-    }
-    return true;
-  };
-
-  // URL ውስጥ /reset-password/ የሚል ካለ Token-ን መለየት
+  // URL /reset-password/ token
   useEffect(() => {
     const path = window.location.pathname;
     if (path.startsWith('/reset-password/')) {
@@ -223,40 +204,40 @@ function App() {
   };
 
   useEffect(() => {
-  const savedUser = localStorage.getItem('user');
-  if (savedUser) {
-    const parsedUser = JSON.parse(savedUser);
-    setUser(parsedUser);
-    
-    // Login ሲደረግ የመጣ ማስጠንቀቂያ ካለ ይያዛል
-    if (parsedUser.subscriptionWarning) {
-      setSubscriptionWarning(parsedUser.subscriptionWarning);
-    }
-  }
-}, []);
-useEffect(() => {
-  const checkSubscription = async () => {
-    if (!user) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/users/check-subscription`, {
-        headers: getAuthHeaders()
-      });
-      const data = await res.json();
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
       
-      if (data.subscriptionWarning) {
-        setSubscriptionWarning(data.subscriptionWarning);
+      if (parsedUser.subscriptionWarning) {
+        setSubscriptionWarning(parsedUser.subscriptionWarning);
       }
-      if (data.isExpired) {
-        setIsSubscriptionExpired(true);
-        setExpiredMessage(data.message);
-      }
-    } catch (err) {
-      console.error("Subscription check error:", err);
     }
-  };
+  }, []);
 
-  checkSubscription();
-}, [user]);
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/check-subscription`, {
+          headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        
+        if (data.subscriptionWarning) {
+          setSubscriptionWarning(data.subscriptionWarning);
+        }
+        if (data.isExpired) {
+          setIsSubscriptionExpired(true);
+          setExpiredMessage(data.message);
+        }
+      } catch (err) {
+        console.error("Subscription check error:", err);
+      }
+    };
+
+    checkSubscription();
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -271,10 +252,17 @@ useEffect(() => {
       const res = await fetch(`${API_BASE_URL}/products`, {
         headers: getAuthHeaders()
       });
-      const isValid = await handleApiResponse(res);
-      if (isValid && res.ok) {
-        const data = await res.clone().json().catch(() => []);
-        setProducts(data);
+      const data = await res.json();
+      
+      if (data.subscriptionWarning) setSubscriptionWarning(data.subscriptionWarning);
+
+      if (res.ok) {
+        setProducts(Array.isArray(data) ? data : []);
+      } else if (res.status === 403) {
+        if (data.isExpired || data.message) {
+          setIsSubscriptionExpired(true);
+          setExpiredMessage(data.message || t.expiredMessage);
+        }
       }
     } catch (err) {
       console.error("Products Fetch Error:", err);
@@ -286,10 +274,17 @@ useEffect(() => {
       const res = await fetch(`${API_BASE_URL}/categories`, {
         headers: getAuthHeaders()
       });
-      const isValid = await handleApiResponse(res);
-      if (isValid && res.ok) {
-        const data = await res.clone().json().catch(() => []);
-        setCategories(data);
+      const data = await res.json();
+
+      if (data.subscriptionWarning) setSubscriptionWarning(data.subscriptionWarning);
+
+      if (res.ok) {
+        setCategories(Array.isArray(data) ? data : []);
+      } else if (res.status === 403) {
+        if (data.isExpired || data.message) {
+          setIsSubscriptionExpired(true);
+          setExpiredMessage(data.message || t.expiredMessage);
+        }
       }
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -306,18 +301,23 @@ useEffect(() => {
         `${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, 
         { headers: getAuthHeaders() }
       );
+      const data = await res.json();
 
-      const isValid = await handleApiResponse(res);
-      if (isValid && res.ok) {
-        const data = await res.clone().json().catch(() => ({ cash: 0, bank: 0, telebirr: 0, total: 0 }));
-        setTodaySales(data);
+      if (data.subscriptionWarning) setSubscriptionWarning(data.subscriptionWarning);
+
+      if (res.ok) {
+        setTodaySales(data || { cash: 0, bank: 0, telebirr: 0, total: 0 });
+      } else if (res.status === 403) {
+        if (data.isExpired || data.message) {
+          setIsSubscriptionExpired(true);
+          setExpiredMessage(data.message || t.expiredMessage);
+        }
       }
     } catch (err) {
       console.error("Error fetching sales summary:", err);
     }
   };
 
-  // የሽያጭ ማጠቃለያ ፋንክሽን
   const handleCompleteSale = async (saleDetails) => {
     const itemsToProcess = saleDetails?.items || cart;
 
@@ -362,18 +362,24 @@ useEffect(() => {
         body: JSON.stringify(orderData)
       });
 
-      const isValid = await handleApiResponse(res);
+      const data = await res.json();
 
-      if (isValid) {
-        if (res.ok) {
-          alert(t.saleSuccess);
-          setCart([]);
-          fetchProducts();
-          fetchTodaySalesSummary();
-        } else {
-          const errData = await res.json();
-          alert(`${t.saleFailed} ${errData.message || errData.error || 'Server error'}`);
+      if (data.subscriptionWarning) {
+        setSubscriptionWarning(data.subscriptionWarning);
+      }
+
+      if (res.ok) {
+        alert(t.saleSuccess);
+        setCart([]);
+        fetchProducts();
+        fetchTodaySalesSummary();
+      } else if (res.status === 403) {
+        if (data.isExpired || data.message) {
+          setIsSubscriptionExpired(true);
+          setExpiredMessage(data.message || t.expiredMessage);
         }
+      } else {
+        alert(`${t.saleFailed} ${data.message || data.error || 'Server error'}`);
       }
     } catch (err) {
       console.error('Sale completion error:', err);
@@ -443,7 +449,7 @@ useEffect(() => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Inter, Segoe UI, sans-serif' }}>
       
-      {/* 1. 5 የቀን ቀሪ ማስጠንቀቂያ Banner */}
+      {/* 1. Subscription Banner */}
       <SubscriptionBanner warning={subscriptionWarning} />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
