@@ -9,6 +9,20 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   role: { type: String, default: 'User' },
 
+  // የወርሃዊ ክፍያ መቆጣጠሪያዎች (Subscription Control)
+  isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  nextPaymentDate: { 
+    type: Date, 
+    default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // ከተመዘገቡበት ቀን ጀምሮ 30 ቀን ይሰጣቸዋል
+  },
+  subscriptionPlan: { 
+    type: String, 
+    default: 'Monthly' 
+  },
+
   // Forgot Password
   resetPasswordToken: String,
   resetPasswordExpires: Date

@@ -42,7 +42,9 @@ const translations = {
     saleFailed: "ሽያጩ አልተሳካም፦",
     emptyCart: "እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!",
     serverError: "ከ server ጋር መገናኘት አልተቻለም",
-    tutorialTitle: "📹 የስርዓቱ አጠቃቀም Tutorial"
+    tutorialTitle: "📹 የስርዓቱ አጠቃቀም Tutorial",
+    expiredTitle: "🔒 የወርሃዊ አገልግሎት ክፍያ ጊዜዎ አልፏል!",
+    expiredMessage: "እባክዎን አገልግሎቱን ለማስቀጠል ክፍያ ይፈጽሙ ወይም የሲስተሙን አስተዳዳሪ (Admin) ያነጋግሩ።"
   },
   om: {
     main: "GURMUU GURBAA",
@@ -67,7 +69,9 @@ const translations = {
     saleFailed: "Gurgurtaan hin milkaa'in:",
     emptyCart: "Maaloo jalqaba meeshaa gara kaartitti galchaa!",
     serverError: "Server waliin qunnamuu hin danda'amne",
-    tutorialTitle: "📹 Tutorial Akkaata Fayyadamasaa"
+    tutorialTitle: "📹 Tutorial Akkaata Fayyadamasaa",
+    expiredTitle: "🔒 Yeroon Kaffaltii Keessanii Xumurameera!",
+    expiredMessage: "Tajaajila itti fufsiisuuf maaloo kaffaltii raawwadhaa yookiin Admin qunnamaa."
   },
   en: {
     main: "MAIN",
@@ -92,7 +96,9 @@ const translations = {
     saleFailed: "Sale failed:",
     emptyCart: "Please add items to cart first!",
     serverError: "Unable to connect to server",
-    tutorialTitle: "📹 System Tutorial"
+    tutorialTitle: "📹 System Tutorial",
+    expiredTitle: "🔒 Subscription Expired!",
+    expiredMessage: "Your monthly service plan has expired. Please make a payment or contact the system administrator to restore access."
   }
 };
 
@@ -105,6 +111,10 @@ function App() {
   const [categories, setCategories] = useState([]);
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
   const [loading, setLoading] = useState(false);
+
+  // Subscription Expired State (የክፍያ ጊዜ ማብቃት መቆጣጠሪያ)
+  const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
+  const [expiredMessage, setExpiredMessage] = useState('');
 
   // App Language State
   const [currentLang, setCurrentLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
@@ -129,6 +139,19 @@ function App() {
   }, []);
 
   const t = translations[currentLang] || translations.am;
+
+  // Response Error Handler for Subscriptions
+  const handleApiResponse = async (res) => {
+    if (res.status === 403) {
+      const data = await res.json().catch(() => ({}));
+      if (data.isExpired || data.message) {
+        setIsSubscriptionExpired(true);
+        setExpiredMessage(data.message || t.expiredMessage);
+      }
+      return false;
+    }
+    return true;
+  };
 
   // 1. URL ውስጥ /reset-password/ የሚል ካለ Token-ን መለየት
   useEffect(() => {
@@ -170,7 +193,8 @@ function App() {
       const res = await fetch(`${API_BASE_URL}/products`, {
         headers: getAuthHeaders()
       });
-      if (res.ok) {
+      const isValid = await handleApiResponse(res);
+      if (isValid && res.ok) {
         const data = await res.json();
         setProducts(data);
       }
@@ -184,7 +208,8 @@ function App() {
       const res = await fetch(`${API_BASE_URL}/categories`, {
         headers: getAuthHeaders()
       });
-      if (res.ok) {
+      const isValid = await handleApiResponse(res);
+      if (isValid && res.ok) {
         const data = await res.json();
         setCategories(data);
       } else {
@@ -206,7 +231,8 @@ function App() {
         { headers: getAuthHeaders() }
       );
 
-      if (res.ok) {
+      const isValid = await handleApiResponse(res);
+      if (isValid && res.ok) {
         const data = await res.json();
         setTodaySales(data);
       } else {
@@ -262,14 +288,18 @@ function App() {
         body: JSON.stringify(orderData)
       });
 
-      if (res.ok) {
-        alert(t.saleSuccess);
-        setCart([]);
-        fetchProducts();
-        fetchTodaySalesSummary();
-      } else {
-        const errData = await res.json();
-        alert(`${t.saleFailed} ${errData.message || errData.error || 'Server error'}`);
+      const isValid = await handleApiResponse(res);
+
+      if (isValid) {
+        if (res.ok) {
+          alert(t.saleSuccess);
+          setCart([]);
+          fetchProducts();
+          fetchTodaySalesSummary();
+        } else {
+          const errData = await res.json();
+          alert(`${t.saleFailed} ${errData.message || errData.error || 'Server error'}`);
+        }
       }
     } catch (err) {
       console.error('Sale completion error:', err);
@@ -343,6 +373,62 @@ function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f1f5f9', fontFamily: 'Inter, Segoe UI, sans-serif' }}>
       
+      {/* Subscription Expired Fullscreen Lock Screen */}
+      {isSubscriptionExpired && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.92)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justify: 'center',
+          padding: '20px',
+          color: '#fff',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            backgroundColor: '#1e293b',
+            border: '1px solid #ef4444',
+            borderRadius: '16px',
+            padding: '30px 25px',
+            maxWidth: '450px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(239, 68, 68, 0.2)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '15px' }}>⚠️</div>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#f87171', marginBottom: '12px' }}>
+              {t.expiredTitle}
+            </h2>
+            <p style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6', marginBottom: '25px' }}>
+              {expiredMessage || t.expiredMessage}
+            </p>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#ef4444',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+            >
+              {t.logout}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Backdrop Overlay */}
       {isMobileMenuOpen && (
         <div 
