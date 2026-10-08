@@ -24,7 +24,7 @@ function CartPanel({
   setSelectedCustomer,
   paidAmount,
   setPaidAmount,
-  // 👉 የተከፈለበትን መንገድ (Cash, Bank, Telebirr) ለመምረጥ የተጨመሩ Props
+  // ቅድመ ክፍያው የተከፈለበትን መንገድ (Cash, Bank, Telebirr) መያዣ Props
   creditPaymentType = 'cash',
   setCreditPaymentType
 }) {
@@ -174,7 +174,7 @@ function CartPanel({
                     onClick={() => {
                       setPaymentMethod(method);
                       if (method === 'Credit') {
-                        setPaidAmount(''); // ብድር ሲሆን በነባሪ ባዶ እንዲሆን
+                        setPaidAmount('');
                       } else {
                         setPaidAmount(grandTotal);
                       }
@@ -197,7 +197,7 @@ function CartPanel({
               </div>
             </div>
 
-            {/* የብድር ዝርዝሮች (ደንበኛ መምረጫ እና ክፍያ ማስገቢያ) */}
+            {/* የብድር ዝርዝሮች (ደንበኛ መምረጫ፣ ክፍያ እና የክፍያ መንገድ መምረጫ) */}
             {isCredit && (
               <div style={{ marginTop: '10px', background: '#fff3cd', padding: '8px', borderRadius: '6px', border: '1px solid #ffeeba' }}>
                 
@@ -228,38 +228,36 @@ function CartPanel({
                   />
                 </div>
 
-                {/* 👉 3. አሁን የተከፈለው ገንዘብ በምን እንደተከፈለ መምረጫ (Cash, Bank, Telebirr) */}
-                {Number(paidAmount) > 0 && setCreditPaymentType && (
-                  <div style={{ marginBottom: '6px', borderTop: '1px dashed #ffe8a1', paddingTop: '4px' }}>
-                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404', display: 'block', marginBottom: '2px' }}>ቅድመ ክፍያው የተከፈለበት መንገድ፦</label>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {[
-                        { id: 'cash', label: t.cash || 'ካሽ' },
-                        { id: 'bank', label: t.bank || 'ባንክ' },
-                        { id: 'telebirr', label: t.telebirr || 'ቴሌብር' }
-                      ].map((pay) => (
-                        <button
-                          key={pay.id}
-                          type="button"
-                          onClick={() => setCreditPaymentType(pay.id)}
-                          style={{
-                            flex: 1,
-                            padding: '3px 2px',
-                            fontSize: '9px',
-                            borderRadius: '3px',
-                            border: creditPaymentType === pay.id ? '1px solid #0d6efd' : '1px solid #ccc',
-                            background: creditPaymentType === pay.id ? '#0d6efd' : '#fff',
-                            color: creditPaymentType === pay.id ? '#fff' : '#333',
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {pay.label}
-                        </button>
-                      ))}
-                    </div>
+                {/* 3. ቅድመ ክፍያው የተከፈለበት መንገድ (ካሽ/ባንክ/ቴሌብር) - ሁልጊዜ ይታያል */}
+                <div style={{ marginBottom: '6px', borderTop: '1px dashed #ffe8a1', paddingTop: '4px' }}>
+                  <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404', display: 'block', marginBottom: '2px' }}>የከፈለበት መንገድ፦</label>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {[
+                      { id: 'cash', label: t.cash || 'ካሽ' },
+                      { id: 'bank', label: t.bank || 'ባንክ' },
+                      { id: 'telebirr', label: t.telebirr || 'ቴሌብር' }
+                    ].map((pay) => (
+                      <button
+                        key={pay.id}
+                        type="button"
+                        onClick={() => setCreditPaymentType && setCreditPaymentType(pay.id)}
+                        style={{
+                          flex: 1,
+                          padding: '3px 2px',
+                          fontSize: '9px',
+                          borderRadius: '3px',
+                          border: creditPaymentType === pay.id ? '2px solid #28a745' : '1px solid #ccc',
+                          background: creditPaymentType === pay.id ? '#e8f5e9' : '#fff',
+                          color: creditPaymentType === pay.id ? '#28a745' : '#333',
+                          cursor: 'pointer',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {pay.label}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
 
                 {/* 4. በብድር የቀረው ዕዳ */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#dc3545', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #ffd8a8' }}>
