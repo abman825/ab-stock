@@ -178,13 +178,21 @@ exports.getTodaySalesSummary = async (req, res) => {
       const method = (order.paymentMethod || 'cash').toLowerCase();
       const grandTotal = Number(order.grandTotal || 0);
       const paid = Number(order.paidAmount || 0);
+      const remaining = Number(order.remainingAmount ?? Math.max(0, grandTotal - paid));
 
       if (method === 'credit') {
-        // ብድር ከሆነ በዕዳ የቀረው መጠን ወደ credit ይገባል
-        const remaining = Number(order.remainingAmount ?? (grandTotal - paid));
+        // 👉 1. ያልተከፈለው በዱቤ የቀረው መጠን ወደ Credit ይገባል
         credit += remaining;
-        // በብድር ጊዜ አሁን የተከፈለው ካሽ ካለ ወደ cash ይደመራል
-        cash += paid;
+
+        // 👉 2. በዱቤ ጊዜ የተከፈለ ቅድመ ክፍያ ካለ በተመረጠው የክፍያ ዓይነት ይደመራል
+        const creditPayMethod = (order.creditPaymentType || 'cash').toLowerCase();
+        if (creditPayMethod === 'telebirr') {
+          telebirr += paid;
+        } else if (creditPayMethod === 'bank') {
+          bank += paid;
+        } else {
+          cash += paid; // Default Cash ይሆናል
+        }
       } else if (method === 'cash') {
         cash += grandTotal;
       } else if (method === 'bank') {
@@ -194,7 +202,6 @@ exports.getTodaySalesSummary = async (req, res) => {
       }
     });
 
-    // አጠቃላይ ድምር (Total) = Cash + Bank + Telebirr + Credit (ሙሉ የዕቃው ዋጋ ይደመራል)
     const total = cash + bank + telebirr + credit;
 
     res.json({ cash, bank, telebirr, credit, total });
