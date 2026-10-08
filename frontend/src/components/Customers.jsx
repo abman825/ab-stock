@@ -74,7 +74,6 @@ const translations = {
 
 function Customers({ currentLang }) {
   const [customers, setCustomers] = useState([]);
-  const [customerDebts, setCustomerDebts] = useState({});
   const [selectedCustForPay, setSelectedCustForPay] = useState(null);
   const [payAmount, setPayAmount] = useState('');
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -99,35 +98,21 @@ function Customers({ currentLang }) {
   };
 
   useEffect(() => {
-    fetchCustomersAndDebts();
+    fetchCustomers();
   }, []);
 
-  const fetchCustomersAndDebts = async () => {
+  // ደንበኞችንና የዕዳ መጠናቸውን ከዳታቤዝ በቀጥታ መውሰድ
+  const fetchCustomers = async () => {
     try {
       const headers = getAuthHeaders();
-      const [custRes, ordersRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/customers`, { headers }),
-        fetch(`${API_BASE_URL}/orders`, { headers }).catch(() => ({ ok: false }))
-      ]);
+      const res = await fetch(`${API_BASE_URL}/customers`, { headers });
 
-      if (custRes.ok) {
-        const custData = await custRes.json();
+      if (res.ok) {
+        const custData = await res.json();
         setCustomers(custData);
       }
-
-      if (ordersRes.ok) {
-        const ordersData = await ordersRes.json();
-        const debts = {};
-        ordersData.forEach(order => {
-          if (order.customer && order.remainingAmount > 0) {
-            const custId = typeof order.customer === 'object' ? order.customer._id : order.customer;
-            debts[custId] = (debts[custId] || 0) + Number(order.remainingAmount || 0);
-          }
-        });
-        setCustomerDebts(debts);
-      }
     } catch (err) {
-      console.log("Error fetching customers/debts:", err);
+      console.log("Error fetching customers:", err);
     }
   };
 
@@ -185,9 +170,9 @@ function Customers({ currentLang }) {
       });
 
       if (res.ok) {
-        alert("የዱቤ ክፍያ በተሳካ ሁኔታ ተመዝግቧል!");
+        alert("የዱቤ ክፍያ በጥሩ ሁኔታ ተመዝግቧል!");
         setIsPayModalOpen(false);
-        fetchCustomersAndDebts();
+        fetchCustomers(); // ከክፍያ በኋላ ሰንጠረዡን ማደስ (Refresh)
       } else {
         alert("ክፍያውን ለመመዝገብ አልተቻለም።");
       }
@@ -289,7 +274,7 @@ function Customers({ currentLang }) {
               </tr>
             ) : (
               customers.map((cust) => {
-                const debt = customerDebts[cust._id] || 0;
+                const debt = Number(cust.totalDebt || 0);
                 return (
                   <tr key={cust._id} style={{ borderBottom: '1px solid #e9ecef' }}>
                     <td style={{ padding: '10px', fontWeight: '500' }}>{cust.name}</td>
@@ -331,7 +316,7 @@ function Customers({ currentLang }) {
           <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', width: '320px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>{t.payDebtModalTitle}</h3>
             <p style={{ fontSize: '13px', margin: '5px 0' }}><strong>ደንበኛ:</strong> {selectedCustForPay.name}</p>
-            <p style={{ fontSize: '13px', margin: '5px 0', color: '#dc3545' }}><strong>ያለበት ዕዳ:</strong> {(customerDebts[selectedCustForPay._id] || 0).toFixed(2)} ETB</p>
+            <p style={{ fontSize: '13px', margin: '5px 0', color: '#dc3545' }}><strong>ያለበት ዕዳ:</strong> {Number(selectedCustForPay.totalDebt || 0).toFixed(2)} ETB</p>
             
             <div style={{ marginTop: '15px' }}>
               <label style={{ fontSize: '12px', display: 'block', marginBottom: '5px' }}>የከፈለው መጠን (ብር):</label>
