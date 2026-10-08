@@ -18,7 +18,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [paidAmountInput, setPaidAmountInput] = useState('');
   const [dueDateInput, setDueDateInput] = useState('');
 
-  // 👉 1. በዱቤ ጊዜ ቅድመ ክፍያው የተከፈለበትን መንገድ መያዣ State
+  // 1. በብድር ጊዜ ቅድመ ክፍያው የተከፈለበትን መንገድ መያዣ State (cash, bank, telebirr)
   const [creditPaymentType, setCreditPaymentType] = useState('cash');
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,9 +161,9 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         discountValue: Number(discountValue || 0),
         discountAmount: discountBirr,
         grandTotal,
-        paymentMethod: paymentMethod.toLowerCase(), // 'credit', 'cash', 'bank', 'telebirr'
+        paymentMethod: paymentMethod.toLowerCase(),
         
-        // 👉 በዱቤ ጊዜ ቅድመ ክፍያው የተከፈለበት መንገድ (Cash, Bank, Telebirr)
+        // 👉 በብድር ጊዜ ቅድመ ክፍያው የተከፈለበት መንገድ (Cash, Bank, Telebirr)
         creditPaymentType: isCredit ? (creditPaymentType || 'cash').toLowerCase() : undefined,
         
         paymentStatus: status,
@@ -180,11 +180,15 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       } else {
         await axios.post(`${API_BASE_URL}/orders`, orderPayload, getAuthHeaders());
         alert(t.saleSuccess || 'Sale completed successfully');
-        setCart([]);
-        setSelectedCustomer('');
-        setPaidAmountInput('');
-        setDueDateInput('');
       }
+
+      // ከሽያጭ በኋላ ፎርሞችን ማጽዳት
+      setCart([]);
+      setSelectedCustomer('');
+      setPaidAmountInput('');
+      setDueDateInput('');
+      setCreditPaymentType('cash'); // Reset to default cash
+
       await fetchData();
     } catch (err) {
       alert(t.checkoutFailed || 'Checkout failed');
@@ -301,7 +305,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
             paidAmount={paidAmountInput}
             setPaidAmount={setPaidAmountInput}
             
-            // 👉 2. ለ CartPanel ድጋፊ props መላክ
+            // 👉 ለ CartPanel props መላካቸውን ማረጋገጫ
             creditPaymentType={creditPaymentType}
             setCreditPaymentType={setCreditPaymentType}
           />
