@@ -128,46 +128,35 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     if (cart.length === 0) return alert(t.cartIsEmpty || 'Cart is empty');
 
     const isCredit = paymentMethod.toLowerCase() === 'credit';
-    
-    if (isCredit && !selectedCustomer) {
-      return alert('እባክዎ ደንበኛ ይምረጡ / Please select a customer');
-    }
 
-    const paid = isCredit ? Number(paidAmountInput || 0) : grandTotal;
-    const remaining = Math.max(0, grandTotal - paid);
-    
-    let status = 'Paid';
-    if (isCredit) {
-      if (paid === 0) status = 'Unpaid';
-      else if (paid < grandTotal) status = 'Partial';
-      else status = 'Paid';
-    }
-
-    try {
-      const orderPayload = {
-        items: cart.map(item => ({
-          ...item,
-          productId: item.productId || item._id,
-          productName: item.name || item.productName || '',
-          price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
-          boughtPrice: item.boughtPrice || item.costPrice || 0,
-          cartQty: item.cartQty,
-          quantity: item.cartQty
-        })),
-        subtotal,
-        discountType,
-        discountValue: Number(discountValue || 0),
-        discountAmount: discountBirr,
-        grandTotal,
-        paymentMethod: paymentMethod.toLowerCase(),
-        paymentStatus: status,
-        customer: isCredit && selectedCustomer !== '' ? selectedCustomer : null,
-        paidAmount: paid,
-        remainingAmount: remaining,
-        dueDate: isCredit && dueDateInput ? dueDateInput : undefined,
-        businessType: currentBusinessType,
-        soldAtDate: todayDateString
-      };
+const orderPayload = {
+  items: cart.map(item => ({
+    ...item,
+    productId: item.productId || item._id,
+    productName: item.name || item.productName || '',
+    price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
+    boughtPrice: item.boughtPrice || item.costPrice || 0,
+    cartQty: item.cartQty,
+    quantity: item.cartQty
+  })),
+  subtotal,
+  discountType,
+  discountValue: Number(discountValue || 0),
+  discountAmount: discountBirr,
+  grandTotal,
+  paymentMethod: paymentMethod.toLowerCase(), // 'credit', 'cash', 'bank', 'telebirr'
+  
+  // 👉 በዱቤ ጊዜ ቅድመ ክፍያው የተከፈለበት መንገድ (ተመርጦ ከሆነ Cash, Bank, Telebirr መላክ)
+  creditPaymentType: isCredit ? (creditPaymentType || 'cash').toLowerCase() : undefined,
+  
+  paymentStatus: status,
+  customer: isCredit && selectedCustomer !== '' ? selectedCustomer : null,
+  paidAmount: paid,
+  remainingAmount: remaining,
+  dueDate: isCredit && dueDateInput ? dueDateInput : undefined,
+  businessType: currentBusinessType,
+  soldAtDate: todayDateString
+};
 
       if (onCompleteSale) {
         await onCompleteSale(orderPayload);
