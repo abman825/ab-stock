@@ -190,3 +190,29 @@ exports.getTodaySalesSummary = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// የደንበኛ ዕዳ ክፍያ መቀበያ (Pay Debt)
+exports.payDebt = async (req, res) => {
+  try {
+    const { customerId, amount } = req.body;
+
+    if (!customerId || !amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'እባክዎ ትክክለኛ የደንበኛ መረጃ እና የገንዘብ መጠን ያስገቡ' });
+    }
+
+    const payAmount = Number(amount);
+
+    // 1. ደንበኛውን መፈለግ እና ዕዳውን መቀነስ
+    const customer = await Customer.findOne({ _id: customerId, user: req.user.id });
+    if (!customer) {
+      return res.status(404).json({ error: 'ደንበኛው አልተገኘም' });
+    }
+
+    const newDebt = Math.max(0, customer.totalDebt - payAmount);
+    customer.totalDebt = newDebt;
+    await customer.save();
+
+    res.json({ message: 'ክፍያው በትክክል ተመዝግቧል', newDebt });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'ክፍያውን መመዝገብ አልተቻለም' });
+  }
+};

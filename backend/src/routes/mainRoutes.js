@@ -121,6 +121,7 @@ router.post('/transfers', transferController.createTransfer);
 router.get('/orders/today-summary', orderController.getTodaySalesSummary);
 router.get('/orders', orderController.getOrders);
 router.post('/orders', orderController.createOrder);
+router.post('/orders/pay-debt', protect, orderController.payDebt);
 
 // Customers
 router.get('/customers', customerController.getCustomers);
