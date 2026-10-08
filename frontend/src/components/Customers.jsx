@@ -154,32 +154,33 @@ function Customers({ currentLang }) {
   };
 
   const handleProcessDebtPayment = async () => {
-    if (!payAmount || Number(payAmount) <= 0) {
-      alert(t.enterPaymentAmount);
-      return;
-    }
+  if (!payAmount || Number(payAmount) <= 0) {
+    alert(t.enterPaymentAmount);
+    return;
+  }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/orders/pay-debt`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          customerId: selectedCustForPay._id,
-          amount: Number(payAmount)
-        })
-      });
+  try {
+    const res = await fetch(`${API_BASE_URL}/orders/pay-debt`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        customerId: selectedCustForPay._id,
+        amount: Number(payAmount),
+        paymentMethod: payMethod // 👉 የተመረጠውን የክፍያ መንገድ መላክ
+      })
+    });
 
-      if (res.ok) {
-        alert("የዱቤ ክፍያ በጥሩ ሁኔታ ተመዝግቧል!");
-        setIsPayModalOpen(false);
-        fetchCustomers(); // ከክፍያ በኋላ ሰንጠረዡን ማደስ (Refresh)
-      } else {
-        alert("ክፍያውን ለመመዝገብ አልተቻለም።");
-      }
-    } catch (err) {
-      alert("ስህተት ተከሰቷል።");
+    if (res.ok) {
+      alert("የዱቤ ክፍያው በጥሩ ሁኔታ ተመዝግቧል!");
+      setIsPayModalOpen(false);
+      fetchCustomers();
+    } else {
+      alert("ክፍያውን ለመመዝገብ አልተቻለም።");
     }
-  };
+  } catch (err) {
+    alert("ስህተት ተከሰቷል።");
+  }
+};
 
   return (
     <div style={{ padding: '25px', width: '100%', boxSizing: 'border-box' }}>
@@ -312,40 +313,55 @@ function Customers({ currentLang }) {
 
       {/* Pay Debt Modal */}
       {isPayModalOpen && selectedCustForPay && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', width: '320px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>{t.payDebtModalTitle}</h3>
-            <p style={{ fontSize: '13px', margin: '5px 0' }}><strong>ደንበኛ:</strong> {selectedCustForPay.name}</p>
-            <p style={{ fontSize: '13px', margin: '5px 0', color: '#dc3545' }}><strong>ያለበት ዕዳ:</strong> {Number(selectedCustForPay.totalDebt || 0).toFixed(2)} ETB</p>
-            
-            <div style={{ marginTop: '15px' }}>
-              <label style={{ fontSize: '12px', display: 'block', marginBottom: '5px' }}>የከፈለው መጠን (ብር):</label>
-              <input
-                type="number"
-                placeholder="0.00"
-                value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-              />
-            </div>
+  <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+    <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', width: '330px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+      <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>{t.payDebtModalTitle}</h3>
+      <p style={{ fontSize: '13px', margin: '5px 0' }}><strong>ደንበኛ:</strong> {selectedCustForPay.name}</p>
+      <p style={{ fontSize: '13px', margin: '5px 0', color: '#dc3545' }}><strong>ያለበት ዕዳ:</strong> {Number(selectedCustForPay.totalDebt || 0).toFixed(2)} ETB</p>
+      
+      {/* የገንዘብ መጠን ማስገቢያ */}
+      <div style={{ marginTop: '12px' }}>
+        <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>የከፈለው መጠን (ብር):</label>
+        <input
+          type="number"
+          placeholder="0.00"
+          value={payAmount}
+          onChange={(e) => setPayAmount(e.target.value)}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+        />
+      </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-              <button
-                onClick={() => setIsPayModalOpen(false)}
-                style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: '#6c757d', color: '#fff' }}
-              >
-                ሰርዝ
-              </button>
-              <button
-                onClick={handleProcessDebtPayment}
-                style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: '#198754', color: '#fff', fontWeight: 'bold' }}
-              >
-                ክፍያ መዝግብ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 👉 አዲስ የተጨመረ፡ የክፍያ መንገድ መምረጫ */}
+      <div style={{ marginTop: '12px' }}>
+        <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>የክፍያ መንገድ፦</label>
+        <select
+          value={payMethod}
+          onChange={(e) => setPayMethod(e.target.value)}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', fontSize: '13px' }}
+        >
+          <option value="cash">💵 ካሽ (Cash)</option>
+          <option value="bank">🏦 ባንክ (Bank)</option>
+          <option value="telebirr">📱 ቴሌብር (Telebirr)</option>
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+        <button
+          onClick={() => setIsPayModalOpen(false)}
+          style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: '#6c757d', color: '#fff' }}
+        >
+          ሰርዝ
+        </button>
+        <button
+          onClick={handleProcessDebtPayment}
+          style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: '#198754', color: '#fff', fontWeight: 'bold' }}
+        >
+          ክፍያ መዝግብ
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
     </div>
   );

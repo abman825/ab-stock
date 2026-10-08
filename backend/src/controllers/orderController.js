@@ -205,13 +205,14 @@ exports.getTodaySalesSummary = async (req, res) => {
 // የደንበኛ ዕዳ ክፍያ መቀበያ (Pay Debt)
 exports.payDebt = async (req, res) => {
   try {
-    const { customerId, amount } = req.body;
+    const { customerId, amount, paymentMethod } = req.body;
 
     if (!customerId || !amount || Number(amount) <= 0) {
       return res.status(400).json({ error: 'እባክዎ ትክክለኛ የደንበኛ መረጃ እና የገንዘብ መጠን ያስገቡ' });
     }
 
     const payAmount = Number(amount);
+    const method = (paymentMethod || 'cash').toLowerCase();
 
     // 1. ደንበኛውን መፈለግ እና ዕዳውን መቀነስ
     const customer = await Customer.findOne({ _id: customerId, user: req.user.id });
@@ -222,6 +223,26 @@ exports.payDebt = async (req, res) => {
     const newDebt = Math.max(0, customer.totalDebt - payAmount);
     customer.totalDebt = newDebt;
     await customer.save();
+
+    // 2. የዕዳ ክፍያውን እንደ አንድ ገቢ/Order መመዝገብ (የዛሬ ሽያጭ እና የክፍያ አይነት መዝገብ ላይ እንዲካተት)
+    const debtOrder = new Order({
+      user: req.user.id,
+      items: [],
+      subtotal: payAmount,
+      discountAmount: 0,
+      grandTotal: payAmount,
+      totalCost: 0,
+      profit: payAmount,
+      paymentMethod: method, // 👉 ካሽ፣ ባንክ ወይም ቴሌብር
+      paymentStatus: 'Paid',
+      customer: customerId,
+      paidAmount: payAmount,
+      remainingAmount: 0,
+      soldAtDate: getLocalTodayDate(),
+      businessType: req.user?.businessType || 'pharmacy'
+    });
+
+    await debtOrder.save();
 
     res.json({ message: 'ክፍያው በትክክል ተመዝግቧል', newDebt });
   } catch (err) {
