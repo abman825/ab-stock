@@ -80,7 +80,6 @@ exports.getPOSProducts = async (req, res) => {
   }
 };
 
-// 4. UPDATE PRODUCT
 exports.updateProduct = async (req, res) => {
   try {
     const oldProduct = await Product.findOne({ _id: req.params.id, user: req.user.id });
@@ -97,10 +96,55 @@ exports.updateProduct = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // 👉 1. ምን ምን እንደተቀየረ ለይቶ ማወቂያ Logic
+    let changes = [];
+
+    // የስም ቅያሬ
+    if (req.body.name && req.body.name !== oldProduct.name) {
+      changes.push(`ስም ከ '${oldProduct.name}' ወደ '${updated.name}'`);
+    }
+
+    // የሽያጭ ዋጋ ቅያሬ (Price)
+    const oldPrice = Number(oldProduct.price || 0);
+    const newPrice = Number(updated.price || 0);
+    if (req.body.price !== undefined && oldPrice !== newPrice) {
+      changes.push(`የመሸጫ ዋጋ ከ ${oldPrice} ብር ወደ ${newPrice} ብር`);
+    }
+
+    // የግዢ ዋጋ ቅያሬ (Cost/Bought Price)
+    const oldCost = Number(oldProduct.costPrice || oldProduct.boughtPrice || 0);
+    const newCost = Number(updated.costPrice || updated.boughtPrice || 0);
+    if ((req.body.costPrice !== undefined || req.body.boughtPrice !== undefined) && oldCost !== newCost) {
+      changes.push(`የግዢ ዋጋ ከ ${oldCost} ብር ወደ ${newCost} ብር`);
+    }
+
+    // የብዛት/ስቶክ ቅያሬ (Quantity/Stock)
+    const oldQty = Number(oldProduct.quantity ?? oldProduct.inShop ?? oldProduct.stock ?? 0);
+    const newQty = Number(updated.quantity ?? updated.inShop ?? updated.stock ?? 0);
+    if ((req.body.quantity !== undefined || req.body.inShop !== undefined) && oldQty !== newQty) {
+      changes.push(`ብዛት ከ ${oldQty} ወደ ${newQty}`);
+    }
+
+    // የሱቅ/መጋዘን ብዛት ቅያሬ (InStore)
+    const oldStore = Number(oldProduct.inStore || 0);
+    const newStore = Number(updated.inStore || 0);
+    if (req.body.inStore !== undefined && oldStore !== newStore) {
+      changes.push(`በመጋዘን ያለ ብዛት ከ ${oldStore} ወደ ${newStore}`);
+    }
+
+    // 2. በዝርዝር የቪው ጽሁፉን ማዘጋጀት
+    let detailMessage = '';
+    if (changes.length > 0) {
+      detailMessage = `${updated.name}፦ ${changes.join('፣ ')} ተቀይሯል`;
+    } else {
+      detailMessage = `የ ${updated.name} መረጃ ተሻሽሏል`;
+    }
+
+    // 3. Activity Log መመዝገብ
     await ActivityLog.create({
       action: 'EDIT',
       productName: updated.name,
-      details: `Updated product ${updated.name}`,
+      details: detailMessage,
       userId: req.user.id,
       employeeName: req.user.username || req.user.fullName || 'User'
     });

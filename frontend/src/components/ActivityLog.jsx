@@ -11,14 +11,13 @@ import {
   AlertCircle 
 } from 'lucide-react';
 
-// 3ti languages er dictionary translations
 const translations = {
   am: {
     title: "የሰራተኞች እንቅስቃሴ መዝገብ",
     subtitleBuilding: "በስርዓቱ ላይ በተጠቃሚዎች የተከናወኑ ተግባራትን በቅጽበት ይከታተሉ (ሕንፃ መሣሪያ)",
     subtitlePharmacy: "በስርዓቱ ላይ በተጠቃሚዎች የተከናወኑ ተግባራትን በቅጽበት ይከታተሉ (ፋርማሲ)",
     refresh: "አዲስ (Refresh)",
-    searchPlaceholder: "በሰራተኛ ስም፣ በምርት ወይም በዝርዝር መረጃ ይፈልጉ...",
+    searchPlaceholder: "በሰራተኛ ስም፣ ምርት ወይም በዝርዝር መረጃ ይፈልጉ...",
     allActions: "ሁሉም ተግባራት",
     actionCreate: "አዲስ የተጨመሩ (CREATE / ADD)",
     actionEdit: "የተሻሻሉ (EDIT / UPDATE)",
@@ -75,10 +74,13 @@ const translations = {
   }
 };
 
-function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
-  // Multi-language State setup
+function ActivityLog({ API_BASE_URL, businessType }) {
   const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
   const t = translations[lang] || translations.am;
+
+  // localStorage ላይ ያለውን የንግድ አይነት መውሰጃ
+  const rawType = businessType || localStorage.getItem('businessType') || 'pharmacy';
+  const currentBusinessType = rawType.toLowerCase().includes('building') ? 'building_materials' : 'pharmacy';
 
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,10 +94,15 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
       const baseUrl = API_BASE_URL || 'http://localhost:5000/api';
       
       const res = await axios.get(`${baseUrl}/activity-logs`, {
-        params: { businessType },
+        params: { businessType: currentBusinessType },
         headers: { Authorization: token ? `Bearer ${token}` : '' }
       });
-      setLogs(res.data);
+
+      if (Array.isArray(res.data)) {
+        setLogs(res.data);
+      } else {
+        setLogs([]);
+      }
     } catch (err) {
       console.error('Error fetching logs:', err);
     } finally {
@@ -118,9 +125,8 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
       window.removeEventListener('storage', handleLangChange);
       window.removeEventListener('languageChanged', handleLangChange);
     };
-  }, [API_BASE_URL, businessType]);
+  }, [API_BASE_URL, currentBusinessType]);
 
-  // Action Badges Color Helper
   const getBadgeStyle = (action) => {
     const act = action?.toUpperCase();
     switch (act) {
@@ -137,12 +143,7 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
     }
   };
 
-  // Filter Logic (Search + Action Filter + BusinessType Check)
   const filteredLogs = logs.filter((log) => {
-    if (log.businessType && log.businessType !== businessType) {
-      return false;
-    }
-
     const employee = (log.employeeName || log.userId?.fullName || log.userId?.name || log.userId?.username || '').toLowerCase();
     const product = (log.productName || '').toLowerCase();
     const details = (log.details || '').toLowerCase();
@@ -155,16 +156,17 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
       details.includes(search) || 
       action.includes(search);
 
+    const logActionUpper = (log.action || '').toUpperCase();
     const matchesAction = 
       selectedAction === 'ALL' || 
-      log.action?.toUpperCase() === selectedAction ||
-      (selectedAction === 'CREATE' && log.action?.toUpperCase() === 'ADD') ||
-      (selectedAction === 'EDIT' && log.action?.toUpperCase() === 'UPDATE');
+      logActionUpper === selectedAction ||
+      (selectedAction === 'CREATE' && (logActionUpper === 'ADD' || logActionUpper === 'CREATE')) ||
+      (selectedAction === 'EDIT' && (logActionUpper === 'UPDATE' || logActionUpper === 'EDIT'));
 
     return matchesSearch && matchesAction;
   });
 
-  const isBuilding = businessType === 'building_materials' || businessType === 'building';
+  const isBuilding = currentBusinessType === 'building_materials';
 
   return (
     <div style={{ padding: '24px', width: '100%', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -194,11 +196,8 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
             color: '#334155',
             fontSize: '13px',
             fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
+            cursor: 'pointer'
           }}
-          onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
-          onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           {t.refresh}
@@ -264,16 +263,12 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
           </thead>
           <tbody>
             {loading ? (
-              // Loading Skeleton
-              [1, 2, 3, 4].map((idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td colSpan="5" style={{ padding: '16px', color: '#94a3b8', textAlign: 'center' }}>
-                    {t.loading}
-                  </td>
-                </tr>
-              ))
+              <tr>
+                <td colSpan="5" style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>
+                  {t.loading}
+                </td>
+              </tr>
             ) : filteredLogs.length === 0 ? (
-              // Empty State
               <tr>
                 <td colSpan="5" style={{ padding: '40px 20px', textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#94a3b8' }}>
@@ -284,21 +279,16 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
                 </td>
               </tr>
             ) : (
-              // Data Rows
               filteredLogs.map((log) => {
                 const badgeStyle = getBadgeStyle(log.action);
+                const logTime = log.timestamp || log.createdAt;
                 return (
-                  <tr 
-                    key={log._id} 
-                    style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
+                  <tr key={log._id || Math.random()} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     {/* Timestamp */}
                     <td style={{ padding: '12px 16px', color: '#64748b', whiteSpace: 'nowrap' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Clock size={14} style={{ color: '#94a3b8' }} />
-                        {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
+                        {logTime ? new Date(logTime).toLocaleString() : 'N/A'}
                       </span>
                     </td>
 
@@ -341,7 +331,7 @@ function ActivityLog({ API_BASE_URL, businessType = 'pharmacy' }) {
                     </td>
 
                     {/* Details */}
-                    <td style={{ padding: '12px 16px', color: '#475569', maxWidth: '280px', wordBreak: 'break-word' }}>
+                    <td style={{ padding: '12px 16px', color: '#475569', maxWidth: '300px', wordBreak: 'break-word' }}>
                       {log.details || '-'}
                     </td>
                   </tr>
