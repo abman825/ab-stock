@@ -133,3 +133,29 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// GET /api/products/export-all
+exports.exportAllUserData = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // የዚህን ተጠቃሚ ዳታዎች ብቻ በሙሉ ከሁሉም ኮሌክሽኖች መሰብሰብ
+    const [products, categories, customers, suppliers, orders] = await Promise.all([
+      Product.find({ user: userId }),
+      Category.find({ user: userId }),
+      Customer.find({ user: userId }),
+      Supplier.find({ user: userId }),
+      Order.find({ user: userId })
+    ]);
+
+    res.json({
+      exportDate: new Date(),
+      products,
+      categories,
+      customers,
+      suppliers,
+      orders
+    });
+  } catch (err) {
+    res.status(500).json({ error: "መረጃዎችን ማውረድ አልተቻለም፦ " + err.message });
+  }
+};
