@@ -38,6 +38,11 @@ const orderSchema = new mongoose.Schema({
     enum: ['pharmacy', 'building', 'building_materials'],
     default: 'pharmacy'
   },
+  creditPaymentType: {
+  type: String,
+  enum: ['cash', 'bank', 'telebirr'],
+  default: 'cash'
+},
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
