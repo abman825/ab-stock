@@ -23,7 +23,10 @@ function CartPanel({
   selectedCustomer,
   setSelectedCustomer,
   paidAmount,
-  setPaidAmount
+  setPaidAmount,
+  // 👉 የተከፈለበትን መንገድ (Cash, Bank, Telebirr) ለመምረጥ የተጨመሩ Props
+  creditPaymentType = 'cash',
+  setCreditPaymentType
 }) {
   const remainingAmount = Math.max(0, grandTotal - (Number(paidAmount) || 0));
   const isCredit = paymentMethod.toLowerCase() === 'credit';
@@ -41,11 +44,11 @@ function CartPanel({
     }}>
       {/* ርዕስ */}
       <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#495057', textAlign: 'center', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px' }}>
-        {t.currentCart}
+        {t.currentCart || 'የአሁኑ ቅርጫት'}
       </h4>
 
       {cart.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#adb5bd', padding: '40px 0' }}>{t.cartEmpty}</div>
+        <div style={{ textAlign: 'center', color: '#adb5bd', padding: '40px 0' }}>{t.cartEmpty || 'ቅርጫቱ ባዶ ነው'}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           
@@ -62,7 +65,7 @@ function CartPanel({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{item.name}</div>
-                      <div style={{ fontSize: '10px', color: '#6c757d' }}>{itemUnitPrice.toFixed(2)} {t.birr}</div>
+                      <div style={{ fontSize: '10px', color: '#6c757d' }}>{itemUnitPrice.toFixed(2)} {t.birr || 'ብር'}</div>
                     </div>
                     <button 
                       onClick={() => removeFromCart(itemId)} 
@@ -79,13 +82,13 @@ function CartPanel({
                       <span style={{ fontSize: '12px', padding: '0 5px' }}>{item.cartQty}</span>
                       <button onClick={() => updateQty(itemId, 1)} style={{ border: '1px solid #ccc', background: '#fff', width: '22px', height: '22px', borderRadius: '3px', cursor: 'pointer' }}>+</button>
                     </div>
-                    <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{itemTotal.toFixed(2)} {t.birr}</span>
+                    <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{itemTotal.toFixed(2)} {t.birr || 'ብር'}</span>
                   </div>
 
                   {/* ቀናት (የተሸጠበት ቀን እና የሚያልፍበት ቀን) */}
                   <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.soldAt}</label>
+                      <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.soldAt || 'የተሸጠበት ቀን'}</label>
                       <input
                         type="date"
                         value={item.soldAtDate}
@@ -96,9 +99,9 @@ function CartPanel({
                     
                     {!isBuildingMode && (
                       <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.expDate}</label>
+                        <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.expDate || 'የሚያልፍበት ቀን'}</label>
                         <div style={{ fontSize: '10px', padding: '4px', background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '4px', color: '#6c757d' }}>
-                          {itemExpDate ? new Date(itemExpDate).toLocaleDateString() : t.na}
+                          {itemExpDate ? new Date(itemExpDate).toLocaleDateString() : (t.na || 'N/A')}
                         </div>
                       </div>
                     )}
@@ -113,7 +116,7 @@ function CartPanel({
             
             {/* ቅናሽ (Discount) */}
             <div style={{ marginBottom: '8px' }}>
-              <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.discount}</label>
+              <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.discount || 'ቅናሽ'}</label>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <input
                   type="number"
@@ -135,11 +138,11 @@ function CartPanel({
                     onClick={() => setDiscountType('fixed')}
                     style={{ border: 'none', padding: '4px 8px', fontSize: '10px', background: discountType === 'fixed' ? '#0d6efd' : '#f8f9fa', color: discountType === 'fixed' ? '#fff' : '#333', cursor: 'pointer' }}
                   >
-                    {t.birr}
+                    {t.birr || 'ብር'}
                   </button>
                 </div>
                 <span style={{ fontSize: '11px', fontWeight: 'bold', marginLeft: 'auto', color: '#dc3545' }}>
-                  -{discountBirr.toFixed(2)} {t.birr}
+                  -{discountBirr.toFixed(2)} {t.birr || 'ብር'}
                 </span>
               </div>
             </div>
@@ -147,22 +150,22 @@ function CartPanel({
             {/* አጠቃላይ እና የመጨረሻ ዋጋ */}
             <div style={{ marginTop: '8px', fontSize: '11px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
-                <span>{t.subtotal}:</span>
-                <span>{subtotal.toFixed(2)} {t.birr}</span>
+                <span>{t.subtotal || 'ምንም ሳይቀነስ'}:</span>
+                <span>{subtotal.toFixed(2)} {t.birr || 'ብር'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
-                <span>{t.discount} ({discountType === 'percent' ? `${discountValue}%` : 'fixed'}):</span>
-                <span>{discountBirr.toFixed(2)} {t.birr}</span>
+                <span>{t.discount || 'ቅናሽ'} ({discountType === 'percent' ? `${discountValue}%` : 'fixed'}):</span>
+                <span>{discountBirr.toFixed(2)} {t.birr || 'ብር'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}>
-                <span>{t.total}:</span>
-                <span style={{ color: '#28a745' }}>{grandTotal.toFixed(2)} {t.birr}</span>
+                <span>{t.total || 'የመጨረሻ ዋጋ'}:</span>
+                <span style={{ color: '#28a745' }}>{grandTotal.toFixed(2)} {t.birr || 'ብር'}</span>
               </div>
             </div>
 
-            {/* የክፍያ መንገድ (4 ቁልፎች፡ Cash, Bank, Telebirr, Credit) */}
+            {/* የክፍያ መንገድ (4 ቁልፎች፦ Cash, Bank, Telebirr, Credit) */}
             <div style={{ marginTop: '10px' }}>
-              <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>{t.paymentMethod}</label>
+              <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>{t.paymentMethod || 'የክፍያ መንገድ'}</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '4px' }}>
                 {['Cash', 'Bank', 'Telebirr', 'Credit'].map((method) => (
                   <button
@@ -171,7 +174,7 @@ function CartPanel({
                     onClick={() => {
                       setPaymentMethod(method);
                       if (method === 'Credit') {
-                        setPaidAmount(''); // ብድር ሲሆን በነባሪ ባዶ ወይም 0 እንዲሆን
+                        setPaidAmount(''); // ብድር ሲሆን በነባሪ ባዶ እንዲሆን
                       } else {
                         setPaidAmount(grandTotal);
                       }
@@ -188,7 +191,7 @@ function CartPanel({
                       textAlign: 'center'
                     }}
                   >
-                    {method === 'Cash' ? t.cash : method === 'Bank' ? t.bank : method === 'Telebirr' ? t.telebirr : 'ብድር'}
+                    {method === 'Cash' ? (t.cash || 'ካሽ') : method === 'Bank' ? (t.bank || 'ባንክ') : method === 'Telebirr' ? (t.telebirr || 'ቴሌብር') : 'ብድር'}
                   </button>
                 ))}
               </div>
@@ -200,7 +203,7 @@ function CartPanel({
                 
                 {/* 1. ደንበኛ መምረጫ */}
                 <div style={{ marginBottom: '6px' }}>
-                  <label style={{ fontSize: '10px', color: '#856404', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>ደንበኛ ይምረጡ *፦</label>
+                  <label style={{ fontSize: '10px', color: '#856404', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>ደንበኛ ይምረጡ *</label>
                   <select
                     value={selectedCustomer}
                     onChange={(e) => setSelectedCustomer(e.target.value)}
@@ -208,27 +211,60 @@ function CartPanel({
                   >
                     <option value="">-- ደንበኛ ይምረጡ --</option>
                     {customers.map((c) => (
-                      <option key={c._id} value={c._id}>{c.name} ({c.phone})</option>
+                      <option key={c._id || c.id} value={c._id || c.id}>{c.name} ({c.phone})</option>
                     ))}
                   </select>
                 </div>
 
                 {/* 2. አሁን የተከፈለው ገንዘብ */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404' }}>አሁን የከፈለው፦</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404' }}>አሁን የከፈለዉ፦</label>
                   <input
                     type="number"
                     placeholder="0.00"
                     value={paidAmount}
                     onChange={(e) => setPaidAmount(e.target.value)}
-                    style={{ width: '75px', padding: '3px 5px', fontSize: '11px', border: '1px solid #ccc', borderRadius: '3px', background: '#fff' }}
+                    style={{ width: '80px', padding: '3px 5px', fontSize: '11px', border: '1px solid #ccc', borderRadius: '3px', background: '#fff' }}
                   />
                 </div>
 
-                {/* 3. በብድር የቀረው ዕዳ */}
+                {/* 👉 3. አሁን የተከፈለው ገንዘብ በምን እንደተከፈለ መምረጫ (Cash, Bank, Telebirr) */}
+                {Number(paidAmount) > 0 && setCreditPaymentType && (
+                  <div style={{ marginBottom: '6px', borderTop: '1px dashed #ffe8a1', paddingTop: '4px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404', display: 'block', marginBottom: '2px' }}>ቅድመ ክፍያው የተከፈለበት መንገድ፦</label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {[
+                        { id: 'cash', label: t.cash || 'ካሽ' },
+                        { id: 'bank', label: t.bank || 'ባንክ' },
+                        { id: 'telebirr', label: t.telebirr || 'ቴሌብር' }
+                      ].map((pay) => (
+                        <button
+                          key={pay.id}
+                          type="button"
+                          onClick={() => setCreditPaymentType(pay.id)}
+                          style={{
+                            flex: 1,
+                            padding: '3px 2px',
+                            fontSize: '9px',
+                            borderRadius: '3px',
+                            border: creditPaymentType === pay.id ? '1px solid #0d6efd' : '1px solid #ccc',
+                            background: creditPaymentType === pay.id ? '#0d6efd' : '#fff',
+                            color: creditPaymentType === pay.id ? '#fff' : '#333',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {pay.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. በብድር የቀረው ዕዳ */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#dc3545', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #ffd8a8' }}>
                   <span>በዕዳ የቀረው፦</span>
-                  <span>{remainingAmount.toFixed(2)} {t.birr}</span>
+                  <span>{remainingAmount.toFixed(2)} {t.birr || 'ብር'}</span>
                 </div>
               </div>
             )}
@@ -250,7 +286,7 @@ function CartPanel({
                 cursor: loading ? 'not-allowed' : 'pointer'
               }}
             >
-              {loading ? t.processing : t.completeSale}
+              {loading ? (t.processing || 'በማስኬድ ላይ...') : (t.completeSale || 'ሽያጩን ጨርስ')}
             </button>
 
           </div>

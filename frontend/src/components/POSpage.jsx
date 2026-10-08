@@ -18,11 +18,13 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [paidAmountInput, setPaidAmountInput] = useState('');
   const [dueDateInput, setDueDateInput] = useState('');
 
+  // 👉 1. በዱቤ ጊዜ ቅድመ ክፍያው የተከፈለበትን መንገድ መያዣ State
+  const [creditPaymentType, setCreditPaymentType] = useState('cash');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
-  // 1. credit እዚች ጋር ተጨምራለች
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, credit: 0, total: 0 });
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
@@ -129,34 +131,49 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
     const isCredit = paymentMethod.toLowerCase() === 'credit';
 
-const orderPayload = {
-  items: cart.map(item => ({
-    ...item,
-    productId: item.productId || item._id,
-    productName: item.name || item.productName || '',
-    price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
-    boughtPrice: item.boughtPrice || item.costPrice || 0,
-    cartQty: item.cartQty,
-    quantity: item.cartQty
-  })),
-  subtotal,
-  discountType,
-  discountValue: Number(discountValue || 0),
-  discountAmount: discountBirr,
-  grandTotal,
-  paymentMethod: paymentMethod.toLowerCase(), // 'credit', 'cash', 'bank', 'telebirr'
-  
-  // 👉 በዱቤ ጊዜ ቅድመ ክፍያው የተከፈለበት መንገድ (ተመርጦ ከሆነ Cash, Bank, Telebirr መላክ)
-  creditPaymentType: isCredit ? (creditPaymentType || 'cash').toLowerCase() : undefined,
-  
-  paymentStatus: status,
-  customer: isCredit && selectedCustomer !== '' ? selectedCustomer : null,
-  paidAmount: paid,
-  remainingAmount: remaining,
-  dueDate: isCredit && dueDateInput ? dueDateInput : undefined,
-  businessType: currentBusinessType,
-  soldAtDate: todayDateString
-};
+    if (isCredit && !selectedCustomer) {
+      return alert('እባክዎን ደንበኛ ይምረጡ / Please select a customer');
+    }
+
+    const paid = isCredit ? Number(paidAmountInput || 0) : grandTotal;
+    const remaining = Math.max(0, grandTotal - paid);
+
+    let status = 'Paid';
+    if (isCredit) {
+      if (paid === 0) status = 'Unpaid';
+      else if (paid < grandTotal) status = 'Partial';
+      else status = 'Paid';
+    }
+
+    try {
+      const orderPayload = {
+        items: cart.map(item => ({
+          ...item,
+          productId: item.productId || item._id,
+          productName: item.name || item.productName || '',
+          price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
+          boughtPrice: item.boughtPrice || item.costPrice || 0,
+          cartQty: item.cartQty,
+          quantity: item.cartQty
+        })),
+        subtotal,
+        discountType,
+        discountValue: Number(discountValue || 0),
+        discountAmount: discountBirr,
+        grandTotal,
+        paymentMethod: paymentMethod.toLowerCase(), // 'credit', 'cash', 'bank', 'telebirr'
+        
+        // 👉 በዱቤ ጊዜ ቅድመ ክፍያው የተከፈለበት መንገድ (Cash, Bank, Telebirr)
+        creditPaymentType: isCredit ? (creditPaymentType || 'cash').toLowerCase() : undefined,
+        
+        paymentStatus: status,
+        customer: isCredit && selectedCustomer !== '' ? selectedCustomer : null,
+        paidAmount: paid,
+        remainingAmount: remaining,
+        dueDate: isCredit && dueDateInput ? dueDateInput : undefined,
+        businessType: currentBusinessType,
+        soldAtDate: todayDateString
+      };
 
       if (onCompleteSale) {
         await onCompleteSale(orderPayload);
@@ -283,6 +300,10 @@ const orderPayload = {
             setSelectedCustomer={setSelectedCustomer}
             paidAmount={paidAmountInput}
             setPaidAmount={setPaidAmountInput}
+            
+            // 👉 2. ለ CartPanel ድጋፊ props መላክ
+            creditPaymentType={creditPaymentType}
+            setCreditPaymentType={setCreditPaymentType}
           />
         </div>
       </div>
@@ -310,7 +331,6 @@ const orderPayload = {
                 <strong>{Number(todaySales.telebirr || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
               </div>
               
-              {/* 2. ብድር (Credit) እዚች ጋር ተጨምራለች */}
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0', color: '#dc3545' }}>
                 <span>📝 ብድር (Credit)</span>
                 <strong>{Number(todaySales.credit || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
