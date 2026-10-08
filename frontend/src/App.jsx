@@ -43,9 +43,9 @@ const translations = {
     saleFailed: "ሽያጩ አልተሳካም፡",
     emptyCart: "እባክዎን አስቀድመው ዕቃ ወደ ካርት ያስገቡ!",
     serverError: "ከ server ጋር መገናኘት አልተቻለም",
-    tutorialTitle: "📹 የሥርዓቱ አጠቃቀም Tutorial",
+    tutorialTitle: "📹 የስርዓቱ አጠቃቀም Tutorial",
     expiredTitle: "🔒 የወርሃዊ አገልግሎት ክፍያ ጊዜዎ አልቋል!",
-    expiredMessage: "እባክዎን አገልግሎቱን ለመቀጠል ክፍያ ይፈጽሙ ወይም የሥርዓቱን አስተዳዳሪ (Admin) ያነጋግሩ።"
+    expiredMessage: "እባክዎን አገልግሎቱን ለመቀጠል ክፍያ ይፈጽሙ ወይም የስርዓቱን አስተዳዳሪ (Admin) ያነጋግሩ።"
   },
   om: {
     main: "GURMUU GURBAA",
@@ -352,8 +352,12 @@ function App() {
         discountAmount: discountVal,
         grandTotal: grandTotalVal,
         paymentMethod: saleDetails.paymentMethod || 'Cash',
+        
+        // 👉 1. የብድር ክፍያ አይነት በትክክል ወደ backend መላኩን ማረጋገጫ (Cash, Bank, Telebirr)
+        creditPaymentType: saleDetails.creditPaymentType,
+
         paymentStatus: saleDetails.paymentStatus || 'Paid',
-        customer: saleDetails.customer || saleDetails.selectedCustomer || undefined, // 👈 በዱቤ ለተሸጠው ደንበኛ መላክ አለበት
+        customer: saleDetails.customer || saleDetails.selectedCustomer || undefined,
         paidAmount: saleDetails.paidAmount !== undefined ? Number(saleDetails.paidAmount) : grandTotalVal,
         remainingAmount: saleDetails.remainingAmount !== undefined ? Number(saleDetails.remainingAmount) : 0,
         dueDate: saleDetails.dueDate || undefined,
