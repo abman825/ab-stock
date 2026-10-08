@@ -26,12 +26,15 @@ router.post('/reset-password/:token', authController.resetPassword);
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/forgot-password', authController.forgotPassword);
-router.get('/products/export-all', protect, authController.exportAllUserData)
 
 // ==========================================
 // 2. Protected Routes (Token & Subscription Check)
 // ==========================================
 router.use(protect, checkSubscription);
+
+// 📦 Backup Systems (Export & Import - Protected)
+router.get('/products/export-all', authController.exportAllUserData);
+router.post('/products/import-all', authController.importAllUserData);
 
 // Subscription Check Status
 router.get('/users/check-subscription', protect, checkSubscription, (req, res) => {

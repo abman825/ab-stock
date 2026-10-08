@@ -1,10 +1,17 @@
 const User = require('../models/User');
+const Product = require('../models/Product');
+const Category = require('../models/Category');
+const Customer = require('../models/Customer');
+const Supplier = require('../models/Supplier');
+const Order = require('../models/Order');
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// 1. Forgot Password
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -28,12 +35,13 @@ exports.forgotPassword = async (req, res) => {
       html: `<a href="${resetUrl}">የይለፍ ቃል ቀይር</a>`
     });
 
-    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል' });
+    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተላክዋል' });
   } catch (err) {
     res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
   }
 };
 
+// 2. Register
 exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
@@ -54,6 +62,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// 3. Login
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -74,6 +83,7 @@ exports.login = async (req, res) => {
   }
 };
 
+// 4. Get Profile
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -84,6 +94,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+// 5. Update Profile
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, email, username } = req.body;
@@ -99,6 +110,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+// 6. Change Password
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -116,6 +128,7 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+// 7. Reset Password
 exports.resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
@@ -133,22 +146,34 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// GET /api/products/export-all
+
+// 8. EXPORT ALL DATA (Filter by Business Type)
 exports.exportAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
+    const { businessType } = req.query;
 
-    // የዚህን ተጠቃሚ ዳታዎች ብቻ በሙሉ ከሁሉም ኮሌክሽኖች መሰብሰብ
+    let bFilter = { user: userId };
+    
+    if (businessType && businessType !== 'undefined' && businessType !== 'null') {
+      if (businessType.includes('building')) {
+        bFilter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
+      } else {
+        bFilter.businessType = { $in: ['pharmacy', null, undefined, ''] };
+      }
+    }
+
     const [products, categories, customers, suppliers, orders] = await Promise.all([
-      Product.find({ user: userId }),
-      Category.find({ user: userId }),
+      Product.find(bFilter),
+      Category.find(bFilter),
       Customer.find({ user: userId }),
       Supplier.find({ user: userId }),
-      Order.find({ user: userId })
+      Order.find(bFilter)
     ]);
 
     res.json({
       exportDate: new Date(),
+      businessType: businessType || 'pharmacy',
       products,
       categories,
       customers,
@@ -157,5 +182,65 @@ exports.exportAllUserData = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "መረጃዎችን ማውረድ አልተቻለም፦ " + err.message });
+  }
+};
+
+// 9. IMPORT ALL DATA (Filter & Restore by Business Type)
+exports.importAllUserData = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { products, categories, customers, suppliers, businessType } = req.body;
+
+    const currentBusinessType = businessType || 'pharmacy';
+
+    // 1. Products import
+    if (products && Array.isArray(products) && products.length > 0) {
+      const preparedProducts = products.map(item => {
+        const { _id, createdAt, updatedAt, ...rest } = item;
+        return {
+          ...rest,
+          user: userId,
+          businessType: currentBusinessType
+        };
+      });
+      await Product.insertMany(preparedProducts);
+    }
+
+    // 2. Categories import
+    if (categories && Array.isArray(categories) && categories.length > 0) {
+      for (const cat of categories) {
+        await Category.updateOne(
+          { name: cat.name, user: userId },
+          { $setOnInsert: { name: cat.name, user: userId, businessType: currentBusinessType } },
+          { upsert: true }
+        );
+      }
+    }
+
+    // 3. Customers import
+    if (customers && Array.isArray(customers) && customers.length > 0) {
+      for (const cust of customers) {
+        await Customer.updateOne(
+          { phone: cust.phone, user: userId },
+          { $setOnInsert: { name: cust.name, phone: cust.phone, email: cust.email, address: cust.address, totalDebt: cust.totalDebt || 0, user: userId } },
+          { upsert: true }
+        );
+      }
+    }
+
+    // 4. Suppliers import
+    if (suppliers && Array.isArray(suppliers) && suppliers.length > 0) {
+      for (const sup of suppliers) {
+        await Supplier.updateOne(
+          { name: sup.name, user: userId },
+          { $setOnInsert: { name: sup.name, phone: sup.phone, email: sup.email, user: userId } },
+          { upsert: true }
+        );
+      }
+    }
+
+    res.json({ message: 'መረጃዎቹ በተሳካ ሁኔታ ወደ ሲስተሙ ተመልሰዋል (Imported)!' });
+  } catch (err) {
+    res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም፦ " + err.message });
   }
 };
