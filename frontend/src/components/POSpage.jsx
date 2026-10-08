@@ -13,6 +13,11 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [paidAmountInput, setPaidAmountInput] = useState('');
+  const [dueDateInput, setDueDateInput] = useState('');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
@@ -43,15 +48,17 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const fetchData = async () => {
     try {
       const config = getAuthHeaders();
-      const [prodRes, catRes, salesRes] = await Promise.all([
+      const [prodRes, catRes, salesRes, custRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/products?businessType=${currentBusinessType}`, config),
         axios.get(`${API_BASE_URL}/categories?businessType=${currentBusinessType}`, config),
-        axios.get(`${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, config).catch(() => ({ data: { cash: 0, bank: 0, telebirr: 0, total: 0 } }))
+        axios.get(`${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, config).catch(() => ({ data: { cash: 0, bank: 0, telebirr: 0, total: 0 } })),
+        axios.get(`${API_BASE_URL}/customers`, config).catch(() => ({ data: [] }))
       ]);
 
       if (prodRes.data) setProducts(prodRes.data);
       if (catRes.data) setCategories(catRes.data);
       if (salesRes.data) setTodaySales(salesRes.data);
+      if (custRes.data) setCustomers(custRes.data);
     } catch (err) {
       console.error('Error fetching POS data:', err);
     }
@@ -77,14 +84,14 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
   const addToCart = (product) => {
     const stockQty = product.quantity ?? product.inShop ?? product.stock ?? 0;
-    if (stockQty <= 0) return alert(t.outOfStock);
+    if (stockQty <= 0) return alert(t.outOfStock || 'Out of stock');
 
     const productId = product._id || product.id;
     const existingIndex = cart.findIndex((item) => (item._id || item.id) === productId);
 
     if (existingIndex > -1) {
       const updatedCart = [...cart];
-      if (updatedCart[existingIndex].cartQty + 1 > stockQty) return alert(t.stockLimitExceeded);
+      if (updatedCart[existingIndex].cartQty + 1 > stockQty) return alert(t.stockLimitExceeded || 'Limit reached');
       updatedCart[existingIndex].cartQty += 1;
       setCart(updatedCart);
     } else {
@@ -97,7 +104,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       if ((item._id || item.id) === id) {
         const newQty = item.cartQty + delta;
         const stockQty = item.quantity ?? item.inShop ?? item.stock ?? 999;
-        if (newQty > stockQty) { alert(t.stockLimitExceeded); return item; }
+        if (newQty > stockQty) { alert(t.stockLimitExceeded || 'Limit reached'); return item; }
         return newQty > 0 ? { ...item, cartQty: newQty } : null;
       }
       return item;
@@ -117,22 +124,60 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const grandTotal = Number(Math.max(0, subtotal - discountBirr).toFixed(2));
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return alert(t.cartIsEmpty);
+    if (cart.length === 0) return alert(t.cartIsEmpty || 'Cart is empty');
+
+    const isCredit = paymentMethod.toLowerCase() === 'credit';
+    if (isCredit && !selectedCustomer) {
+      return alert('እባክዎ ደንበኛ ይምረጡ / Please select a customer');
+    }
+
+    const paid = isCredit ? Number(paidAmountInput || 0) : grandTotal;
+    const remaining = Math.max(0, grandTotal - paid);
+    let status = 'Paid';
+    if (isCredit) {
+      if (paid === 0) status = 'Unpaid';
+      else if (paid < grandTotal) status = 'Partial';
+    }
+
     try {
       const orderPayload = {
-        items: cart.map(item => ({ ...item, productId: item.productId || item._id, productName: item.name || item.productName || '', price: Number(Number(item.customPrice || item.price || 0).toFixed(2)), boughtPrice: item.boughtPrice || item.costPrice || 0, cartQty: item.cartQty, quantity: item.cartQty })),
-        subtotal, discountType, discountValue: Number(discountValue || 0), discountAmount: discountBirr, grandTotal, paymentMethod, businessType: currentBusinessType, soldAtDate: todayDateString
+        items: cart.map(item => ({
+          ...item,
+          productId: item.productId || item._id,
+          productName: item.name || item.productName || '',
+          price: Number(Number(item.customPrice || item.price || 0).toFixed(2)),
+          boughtPrice: item.boughtPrice || item.costPrice || 0,
+          cartQty: item.cartQty,
+          quantity: item.cartQty
+        })),
+        subtotal,
+        discountType,
+        discountValue: Number(discountValue || 0),
+        discountAmount: discountBirr,
+        grandTotal,
+        paymentMethod: paymentMethod.toLowerCase(),
+        paymentStatus: status,
+        customer: isCredit ? selectedCustomer : undefined,
+        paidAmount: paid,
+        remainingAmount: remaining,
+        dueDate: isCredit && dueDateInput ? dueDateInput : undefined,
+        businessType: currentBusinessType,
+        soldAtDate: todayDateString
       };
 
-      if (onCompleteSale) await onCompleteSale(orderPayload);
-      else {
+      if (onCompleteSale) {
+        await onCompleteSale(orderPayload);
+      } else {
         await axios.post(`${API_BASE_URL}/orders`, orderPayload, getAuthHeaders());
-        alert(t.saleSuccess);
+        alert(t.saleSuccess || 'Sale completed successfully');
         setCart([]);
+        setSelectedCustomer('');
+        setPaidAmountInput('');
+        setDueDateInput('');
       }
       await fetchData();
     } catch (err) {
-      alert(t.checkoutFailed);
+      alert(t.checkoutFailed || 'Checkout failed');
     }
   };
 
@@ -159,7 +204,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   return (
     <div style={{ padding: '20px', flex: 1, background: '#f4f6f8', fontFamily: 'sans-serif' }}>
       
-      {/* የላይኛው መፈለጊያ እና ማጠቃለያ ባር */}
+      {/* Search Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '10px', background: '#fff', padding: '6px 12px', borderRadius: '6px', border: '1px solid #ced4da', flex: '1 1 300px' }}>
           <input
@@ -179,7 +224,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           </select>
         </div>
 
-        {/* የዛሬ ሽያጭ እና አነስተኛ ስቶክ ካርዶች */}
         <div style={{ display: 'flex', gap: '10px' }}>
           <div onClick={() => setIsSalesModalOpen(true)} style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div>
@@ -198,10 +242,10 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         </div>
       </div>
 
-      {/* ዋናው የልዩነት/የካርድ ማሳያ እና Cart Panel */}
+      {/* Grid Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '20px', height: 'calc(100vh - 160px)' }}>
         
-        {/* የግራ በኩል ምርቶች */}
+        {/* Products */}
         <div style={{ overflowY: 'auto', paddingRight: '5px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px' }}>
             {filteredProducts.map((product) => {
@@ -221,29 +265,75 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           </div>
         </div>
 
-        {/* የቀኝ በኩል የቅርጫት (Cart) Component */}
-        <CartPanel
-          cart={cart}
-          removeFromCart={removeFromCart}
-          updateQty={updateQty}
-          updateSoldAtDate={updateSoldAtDate}
-          isBuildingMode={isBuildingMode}
-          discountValue={discountValue}
-          setDiscountValue={setDiscountValue}
-          discountType={discountType}
-          setDiscountType={setDiscountType}
-          discountBirr={discountBirr}
-          subtotal={subtotal}
-          grandTotal={grandTotal}
-          paymentMethod={paymentMethod}
-          setPaymentMethod={setPaymentMethod}
-          handleCheckout={handleCheckout}
-          loading={loading}
-          t={t}
-        />
+        {/* Cart Panel & Credit Form Integration */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {paymentMethod.toLowerCase() === 'credit' && (
+            <div style={{ background: '#fff3cd', padding: '12px', borderRadius: '6px', border: '1px solid #ffeeba', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <strong>📋 የዱቤ መረጃ፦</strong>
+              <div>
+                <label style={{ display: 'block', marginBottom: '2px' }}>ደንበኛ ይምረጡ፦</label>
+                <select 
+                  value={selectedCustomer} 
+                  onChange={(e) => setSelectedCustomer(e.target.value)}
+                  style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                  <option value="">-- ደንበኛ ይምረጡ --</option>
+                  {customers.map(c => <option key={c._id} value={c._id}>{c.name} ({c.phone})</option>)}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '2px' }}>የከፈለው ገንዘብ፦</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00" 
+                    value={paidAmountInput} 
+                    onChange={(e) => setPaidAmountInput(e.target.value)}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '2px' }}>የቀጠሮ ቀን፦</label>
+                  <input 
+                    type="date" 
+                    value={dueDateInput} 
+                    onChange={(e) => setDueDateInput(e.target.value)}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <CartPanel
+            cart={cart}
+            removeFromCart={removeFromCart}
+            updateQty={updateQty}
+            updateSoldAtDate={updateSoldAtDate}
+            isBuildingMode={isBuildingMode}
+            discountValue={discountValue}
+            setDiscountValue={setDiscountValue}
+            discountType={discountType}
+            setDiscountType={setDiscountType}
+            discountBirr={discountBirr}
+            subtotal={subtotal}
+            grandTotal={grandTotal}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            handleCheckout={handleCheckout}
+            loading={loading}
+            t={t}
+            customers={customers}
+            selectedCustomer={selectedCustomer}
+            setSelectedCustomer={setSelectedCustomer}
+            paidAmount={paidAmountInput}
+            setPaidAmount={setPaidAmountInput}
+          />
+        </div>
       </div>
 
-      {/* የዛሬ ሽያጭ ዝርዝር Modal (Pop-up) */}
+      {/* Sales Summary Modal */}
       {isSalesModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', width: '350px', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>

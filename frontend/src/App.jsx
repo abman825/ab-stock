@@ -352,6 +352,11 @@ function App() {
         discountAmount: discountVal,
         grandTotal: grandTotalVal,
         paymentMethod: saleDetails.paymentMethod || 'Cash',
+        paymentStatus: saleDetails.paymentStatus || 'Paid',
+        customer: saleDetails.customer || saleDetails.selectedCustomer || undefined, // 👈 በዱቤ ለተሸጠው ደንበኛ መላክ አለበት
+        paidAmount: saleDetails.paidAmount !== undefined ? Number(saleDetails.paidAmount) : grandTotalVal,
+        remainingAmount: saleDetails.remainingAmount !== undefined ? Number(saleDetails.remainingAmount) : 0,
+        dueDate: saleDetails.dueDate || undefined,
         businessType: saleDetails.businessType || localStorage.getItem('businessType') || 'pharmacy',
         soldAtDate: saleDetails.soldAtDate || new Date().toISOString().split('T')[0]
       };

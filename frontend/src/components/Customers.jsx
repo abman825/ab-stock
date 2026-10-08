@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-// Multi-language translations
 const translations = {
   am: {
     title: "የደንበኞች አስተዳደር (Customer Management)",
@@ -18,8 +17,14 @@ const translations = {
     name: "ስም",
     phone: "ስልክ",
     email: "ኢሜይል",
-    noCustomers: "ምንም የተመዘገበ ደንበኛ የለም።",
-    fillRequired: "እባክዎን ስም እና ስልክ ቁጥር ያስገቡ!"
+    addressCol: "አድራሻ",
+    totalDebt: "ጠቅላላ ዕዳ (ዱቤ)",
+    actions: "ተግባር",
+    payDebt: "ዕዳ ክፈል",
+    noCustomers: " ምንም የተመዘገበ ደንበኛ የለም።",
+    fillRequired: "እባክዎን ስም እና ስልክ ቁጥር ያስገቡ!",
+    enterPaymentAmount: "እባክዎን የከፈለውን የገንዘብ መጠን ያስገቡ!",
+    payDebtModalTitle: "የዱቤ ክፍያ መቀበያ"
   },
   om: {
     title: "Gulaala Maamiltootaa (Customer Management)",
@@ -34,8 +39,14 @@ const translations = {
     name: "Maqaa",
     phone: "Bilbila",
     email: "E-mail",
+    addressCol: "Teessoo",
+    totalDebt: "Idaa Waliigalaa",
+    actions: "Tarkaanfii",
+    payDebt: "Idaa Kaffali",
     noCustomers: "Maamilli galmeeffame tokkollee hin jiru.",
-    fillRequired: "Maaloo maqaa fi lakkoofsa bilbilaa galchaa!"
+    fillRequired: "Maaloo maqaa fi lakkoofsa bilbilaa galchaa!",
+    enterPaymentAmount: "Mallaqa kaffalame galchaa!",
+    payDebtModalTitle: "Kaffaltii Idaa Fudhachuu"
   },
   en: {
     title: "Customer Management",
@@ -50,15 +61,24 @@ const translations = {
     name: "Name",
     phone: "Phone",
     email: "Email",
+    addressCol: "Address",
+    totalDebt: "Total Debt",
+    actions: "Actions",
+    payDebt: "Pay Debt",
     noCustomers: "No customers found.",
-    fillRequired: "Please enter both name and phone number!"
+    fillRequired: "Please enter both name and phone number!",
+    enterPaymentAmount: "Please enter payment amount!",
+    payDebtModalTitle: "Receive Debt Payment"
   }
 };
 
 function Customers({ currentLang }) {
   const [customers, setCustomers] = useState([]);
-  
-  // Setting ላይ የተመረጠውን ቋንቋ ይቀበላል
+  const [customerDebts, setCustomerDebts] = useState({});
+  const [selectedCustForPay, setSelectedCustForPay] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+
   const lang = currentLang || localStorage.getItem('appLanguage') || 'am';
   const t = translations[lang] || translations.am;
 
@@ -70,7 +90,6 @@ function Customers({ currentLang }) {
   });
   const [loading, setLoading] = useState(false);
 
-  // Helper Function for Auth Headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -80,20 +99,35 @@ function Customers({ currentLang }) {
   };
 
   useEffect(() => {
-    fetchCustomers();
+    fetchCustomersAndDebts();
   }, []);
 
-  const fetchCustomers = async () => {
+  const fetchCustomersAndDebts = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/customers`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCustomers(data);
+      const headers = getAuthHeaders();
+      const [custRes, ordersRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/customers`, { headers }),
+        fetch(`${API_BASE_URL}/orders`, { headers }).catch(() => ({ ok: false }))
+      ]);
+
+      if (custRes.ok) {
+        const custData = await custRes.json();
+        setCustomers(custData);
+      }
+
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        const debts = {};
+        ordersData.forEach(order => {
+          if (order.customer && order.remainingAmount > 0) {
+            const custId = typeof order.customer === 'object' ? order.customer._id : order.customer;
+            debts[custId] = (debts[custId] || 0) + Number(order.remainingAmount || 0);
+          }
+        });
+        setCustomerDebts(debts);
       }
     } catch (err) {
-      console.log("Error fetching customers:", err);
+      console.log("Error fetching customers/debts:", err);
     }
   };
 
@@ -120,17 +154,45 @@ function Customers({ currentLang }) {
         const newCustomer = await res.json();
         setCustomers([newCustomer, ...customers]);
         setFormData({ name: '', email: '', phone: '', address: '' });
-      } else {
-        const newCustomer = { ...formData, _id: Date.now().toString() };
-        setCustomers([newCustomer, ...customers]);
-        setFormData({ name: '', email: '', phone: '', address: '' });
       }
     } catch (err) {
-      const newCustomer = { ...formData, _id: Date.now().toString() };
-      setCustomers([newCustomer, ...customers]);
-      setFormData({ name: '', email: '', phone: '', address: '' });
+      console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenPayModal = (cust) => {
+    setSelectedCustForPay(cust);
+    setPayAmount('');
+    setIsPayModalOpen(true);
+  };
+
+  const handleProcessDebtPayment = async () => {
+    if (!payAmount || Number(payAmount) <= 0) {
+      alert(t.enterPaymentAmount);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/pay-debt`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          customerId: selectedCustForPay._id,
+          amount: Number(payAmount)
+        })
+      });
+
+      if (res.ok) {
+        alert("የዱቤ ክፍያ በተሳካ ሁኔታ ተመዝግቧል!");
+        setIsPayModalOpen(false);
+        fetchCustomersAndDebts();
+      } else {
+        alert("ክፍያውን ለመመዝገብ አልተቻለም።");
+      }
+    } catch (err) {
+      alert("ስህተት ተከሰቷል።");
     }
   };
 
@@ -213,30 +275,93 @@ function Customers({ currentLang }) {
             <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
               <th style={{ padding: '10px', color: '#495057' }}>{t.name}</th>
               <th style={{ padding: '10px', color: '#495057' }}>{t.phone}</th>
-              <th style={{ padding: '10px', color: '#495057' }}>{t.email}</th>
-              <th style={{ padding: '10px', color: '#495057' }}>{t.address}</th>
+              <th style={{ padding: '10px', color: '#495057' }}>{t.addressCol}</th>
+              <th style={{ padding: '10px', color: '#dc3545' }}>{t.totalDebt}</th>
+              <th style={{ padding: '10px', color: '#495057' }}>{t.actions}</th>
             </tr>
           </thead>
           <tbody>
             {customers.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ padding: '15px', textAlign: 'center', color: '#6c757d' }}>
+                <td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#6c757d' }}>
                   {t.noCustomers}
                 </td>
               </tr>
             ) : (
-              customers.map((cust) => (
-                <tr key={cust._id} style={{ borderBottom: '1px solid #e9ecef' }}>
-                  <td style={{ padding: '10px', fontWeight: '500' }}>{cust.name}</td>
-                  <td style={{ padding: '10px' }}>{cust.phone}</td>
-                  <td style={{ padding: '10px' }}>{cust.email || '-'}</td>
-                  <td style={{ padding: '10px' }}>{cust.address || '-'}</td>
-                </tr>
-              ))
+              customers.map((cust) => {
+                const debt = customerDebts[cust._id] || 0;
+                return (
+                  <tr key={cust._id} style={{ borderBottom: '1px solid #e9ecef' }}>
+                    <td style={{ padding: '10px', fontWeight: '500' }}>{cust.name}</td>
+                    <td style={{ padding: '10px' }}>{cust.phone}</td>
+                    <td style={{ padding: '10px' }}>{cust.address || '-'}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold', color: debt > 0 ? '#dc3545' : '#198754' }}>
+                      {debt.toFixed(2)} ETB
+                    </td>
+                    <td style={{ padding: '10px' }}>
+                      {debt > 0 && (
+                        <button
+                          onClick={() => handleOpenPayModal(cust)}
+                          style={{
+                            padding: '4px 10px',
+                            backgroundColor: '#198754',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          💳 {t.payDebt}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pay Debt Modal */}
+      {isPayModalOpen && selectedCustForPay && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', width: '320px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>{t.payDebtModalTitle}</h3>
+            <p style={{ fontSize: '13px', margin: '5px 0' }}><strong>ደንበኛ:</strong> {selectedCustForPay.name}</p>
+            <p style={{ fontSize: '13px', margin: '5px 0', color: '#dc3545' }}><strong>ያለበት ዕዳ:</strong> {(customerDebts[selectedCustForPay._id] || 0).toFixed(2)} ETB</p>
+            
+            <div style={{ marginTop: '15px' }}>
+              <label style={{ fontSize: '12px', display: 'block', marginBottom: '5px' }}>የከፈለው መጠን (ብር):</label>
+              <input
+                type="number"
+                placeholder="0.00"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                onClick={() => setIsPayModalOpen(false)}
+                style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: '#6c757d', color: '#fff' }}
+              >
+                ሰርዝ
+              </button>
+              <button
+                onClick={handleProcessDebtPayment}
+                style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: '#198754', color: '#fff', fontWeight: 'bold' }}
+              >
+                ክፍያ መዝግብ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

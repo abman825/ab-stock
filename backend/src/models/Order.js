@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
+
 const orderSchema = new mongoose.Schema({
   items: [
     {
       productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
       productName: String,
       name: String,
-      price: Number,        // نرخى فروش
-      costPrice: Number,    // نرخى كڕين (Snapshot)
-      boughtPrice: Number,  // بۆ پشتگیری هەر دوو ناوەکە
+      price: Number,
+      costPrice: Number,
+      boughtPrice: Number,
       cartQty: Number
     }
   ],
@@ -16,13 +17,26 @@ const orderSchema = new mongoose.Schema({
   grandTotal: { type: Number, required: true },
   paymentMethod: {
     type: String,
-    enum: ['Cash', 'Bank', 'Telebirr', 'cash', 'bank', 'telebirr'],
+    enum: ['Cash', 'Bank', 'Telebirr', 'Credit', 'cash', 'bank', 'telebirr', 'credit'],
     default: 'Cash'
   },
-  businessType: { 
-    type: String, 
-    enum: ['pharmacy', 'building', 'building_materials'], 
-    default: 'pharmacy' 
+  paymentStatus: {
+    type: String,
+    enum: ['Paid', 'Unpaid', 'Partial'],
+    default: 'Paid'
+  },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Customer',
+    required: function() { return this.paymentMethod.toLowerCase() === 'credit'; }
+  },
+  paidAmount: { type: Number, default: 0 },
+  remainingAmount: { type: Number, default: 0 },
+  dueDate: { type: Date },
+  businessType: {
+    type: String,
+    enum: ['pharmacy', 'building', 'building_materials'],
+    default: 'pharmacy'
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
