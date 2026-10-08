@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const Customer = require('../models/Customer'); // 1. Customer Model ተጨምሯል
+const Customer = require('../models/Customer');
 
 const getLocalTodayDate = () => {
   const now = new Date();
@@ -19,7 +19,7 @@ exports.getOrders = async (req, res) => {
     }
 
     const orders = await Order.find(filter)
-      .populate('customer', 'name phone') // የደንበኛውን ስም እና ስልክ አብሮ ለማየት
+      .populate('customer', 'name phone')
       .sort({ createdAt: -1 });
       
     res.json(orders);
@@ -36,6 +36,7 @@ exports.createOrder = async (req, res) => {
       discountAmount, 
       grandTotal, 
       paymentMethod, 
+      creditPaymentType, // 👉 1. ከ Frontend የተላከውን የብድር ክፍያ አይነት ተቀበልን
       paymentStatus,
       customer, 
       paidAmount, 
@@ -55,7 +56,7 @@ exports.createOrder = async (req, res) => {
     const customerId = (customer && typeof customer === 'object') ? customer._id : customer;
 
     if (normalizedMethod === 'credit' && (!customerId || customerId === '')) {
-      return res.status(400).json({ error: 'ለብድር ክፍያ እባክዎ ደንበኛ ይምረጡ' });
+      return res.status(400).json({ error: 'ለብድር ክፍያ እባክዎን ደንበኛ ይምረጡ' });
     }
 
     let totalCostPrice = 0;
@@ -113,6 +114,8 @@ exports.createOrder = async (req, res) => {
       totalCost: totalCostPrice,
       profit: Number((safeGrandTotal - totalCostPrice).toFixed(2)),
       paymentMethod: normalizedMethod,
+      // 👉 2. ብድር በሚሆንበት ጊዜ ቅድመ ክፍያው የተከፈለበትን መንገድ (cash, bank, telebirr) ሴቭ እናደርጋለን
+      creditPaymentType: normalizedMethod === 'credit' ? (creditPaymentType || 'cash').toLowerCase() : undefined,
       paymentStatus: calculatedStatus,
       customer: (normalizedMethod === 'credit' && customerId) ? customerId : undefined,
       paidAmount: safePaidAmount,
@@ -124,7 +127,7 @@ exports.createOrder = async (req, res) => {
 
     const savedOrder = await order.save();
 
-    // 👉 1. የደንበኛውን ዕዳ (totalDebt) በዳታቤዝ ላይ መደመር
+    // 1. የደንበኛውን ዕዳ (totalDebt) በዳታቤዝ ላይ መደመር
     if (normalizedMethod === 'credit' && customerId && safeRemainingAmount > 0) {
       await Customer.findByIdAndUpdate(
         customerId,
@@ -166,7 +169,7 @@ exports.getTodaySalesSummary = async (req, res) => {
 
     const filter = {
       user: req.user.id,
-      $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday, $lte: endOfToday } }]
+      $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday,$lte: endOfToday } }]
     };
     if (businessType) filter.businessType = businessType;
 
@@ -181,10 +184,10 @@ exports.getTodaySalesSummary = async (req, res) => {
       const remaining = Number(order.remainingAmount ?? Math.max(0, grandTotal - paid));
 
       if (method === 'credit') {
-        // 👉 1. ያልተከፈለው በዱቤ የቀረው መጠን ወደ Credit ይገባል
+        // 1. ያልተከፈለው በዕዳ የቀረው መጠን ወደ Credit ይገባል
         credit += remaining;
 
-        // 👉 2. በዱቤ ጊዜ የተከፈለ ቅድመ ክፍያ ካለ በተመረጠው የክፍያ ዓይነት ይደመራል
+        // 2. በዕዳ ጊዜ የተከፈለ ቅድመ ክፍያ ካለ በተመረጠው የክፍያ አይነት ይደመራል
         const creditPayMethod = (order.creditPaymentType || 'cash').toLowerCase();
         if (creditPayMethod === 'telebirr') {
           telebirr += paid;
@@ -209,13 +212,14 @@ exports.getTodaySalesSummary = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // የደንበኛ ዕዳ ክፍያ መቀበያ (Pay Debt)
 exports.payDebt = async (req, res) => {
   try {
     const { customerId, amount, paymentMethod } = req.body;
 
     if (!customerId || !amount || Number(amount) <= 0) {
-      return res.status(400).json({ error: 'እባክዎ ትክክለኛ የደንበኛ መረጃ እና የገንዘብ መጠን ያስገቡ' });
+      return res.status(400).json({ error: 'እባክዎን ትክክለኛ የደንበኛ መረጃ እና የገንዘብ መጠን ያስገቡ' });
     }
 
     const payAmount = Number(amount);
@@ -231,7 +235,7 @@ exports.payDebt = async (req, res) => {
     customer.totalDebt = newDebt;
     await customer.save();
 
-    // 2. የዕዳ ክፍያውን እንደ አንድ ገቢ/Order መመዝገብ (የዛሬ ሽያጭ እና የክፍያ አይነት መዝገብ ላይ እንዲካተት)
+    // 2. የዕዳ ክፍያውን እንደ አንድ ገቢ/Order መመዝገብ
     const debtOrder = new Order({
       user: req.user.id,
       items: [],
@@ -240,7 +244,7 @@ exports.payDebt = async (req, res) => {
       grandTotal: payAmount,
       totalCost: 0,
       profit: payAmount,
-      paymentMethod: method, // 👉 ካሽ፣ ባንክ ወይም ቴሌብር
+      paymentMethod: method,
       paymentStatus: 'Paid',
       customer: customerId,
       paidAmount: payAmount,
