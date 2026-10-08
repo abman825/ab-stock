@@ -10,7 +10,6 @@ exports.getAnalytics = async (req, res) => {
       filter.user = req.user.id;
     }
 
-    // businessType ከተላከ ብቻ ፊልተር ያደርጋል፤ ባዶ ከሆነ ግን ሁሉንም ያመጣል
     if (businessType && businessType !== 'undefined' && businessType !== 'null') {
       if (businessType.includes('building')) {
         filter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
@@ -21,7 +20,6 @@ exports.getAnalytics = async (req, res) => {
 
     let orders = await Order.find(filter);
 
-    // ፊልተር ተደርጎ ዳታ ካልተገኘ ያለ businessType ፊልተር ሁሉንም የዚህን user ኦርደሮች ያመጣል
     if (orders.length === 0 && filter.user) {
       orders = await Order.find({ user: req.user.id });
     }
@@ -40,34 +38,68 @@ exports.getAnalytics = async (req, res) => {
     };
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // የዛሬ ቀን
+    const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    // የ 7 ቀን በፊት ቀን (ለሳምንት ስሌት)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
     orders.forEach((order) => {
-      const orderDateStr = new Date(order.createdAt).toISOString().split('T')[0];
-      const grandTotal = order.grandTotal || order.subtotal || order.total || order.totalAmount || 0;
+      const orderDate = new Date(order.createdAt);
+      const orderDateStr = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}-${String(orderDate.getDate()).padStart(2, '0')}`;
+      
+      const grandTotal = Number(order.grandTotal || order.subtotal || order.total || order.totalAmount || 0);
 
+      // ትርፍ ማሰሊያ
       let orderProfit = 0;
       if (order.items && Array.isArray(order.items)) {
         order.items.forEach((item) => {
           const sellPrice = Number(item.price || item.unitPrice || item.sellPrice || 0);
-          const costPrice = Number(item.costPrice || item.buyPrice || 0);
-          const qty = Number(item.quantity || 1);
+          const costPrice = Number(item.costPrice || item.buyPrice || item.boughtPrice || 0);
+          const qty = Number(item.cartQty || item.quantity || 1);
           orderProfit += (sellPrice - costPrice) * qty;
         });
 
         if (order.discountAmount) {
           orderProfit -= Number(order.discountAmount);
         }
-      } else if (order.netProfit) {
+      } else if (order.profit !== undefined) {
+        orderProfit = Number(order.profit);
+      } else if (order.netProfit !== undefined) {
         orderProfit = Number(order.netProfit);
       }
 
+      // 1. ጠቅላላ (Total All Time)
       stats.totalSales += grandTotal;
       stats.totalProfit += orderProfit;
 
+      // 2. የዛሬ (Daily)
       if (orderDateStr === todayStr) {
         stats.dailySales += grandTotal;
         stats.dailyProfit += orderProfit;
+      }
+
+      // 3. የሳምንት (Weekly - ባለፉት 7 ቀናት ውስጥ የተሸጠ)
+      if (orderDate >= sevenDaysAgo) {
+        stats.weeklySales += grandTotal;
+        stats.weeklyProfit += orderProfit;
+      }
+
+      // 4. የወር (Monthly - በዚህ ወር ውስጥ የተሸጠ)
+      if (orderDate.getFullYear() === currentYear && orderDate.getMonth() === currentMonth) {
+        stats.monthlySales += grandTotal;
+        stats.monthlyProfit += orderProfit;
+      }
+
+      // 5. የዓመት (Yearly - በዚህ ዓመት ውስጥ የተሸጠ)
+      if (orderDate.getFullYear() === currentYear) {
+        stats.yearlySales += grandTotal;
+        stats.yearlyProfit += orderProfit;
       }
     });
 
