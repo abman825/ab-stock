@@ -18,12 +18,14 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [paidAmountInput, setPaidAmountInput] = useState('');
   const [dueDateInput, setDueDateInput] = useState('');
 
-  // 1. በብድር ጊዜ ቅድመ ክፍያው የተከፈለበትን መንገድ መያዣ State (cash, bank, telebirr)
+  // State ya kozwa lolenge ya kofuta na nyongo (cash, bank, telebirr)
   const [creditPaymentType, setCreditPaymentType] = useState('cash');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  // State soki olingi komona kaka biloko oyo etikali moke esila (expiring within 6 months)
+  const [showExpiringOnly, setShowExpiringOnly] = useState(false);
 
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, credit: 0, total: 0 });
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
@@ -84,6 +86,20 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       window.removeEventListener('languageChanged', handleLangChange);
     };
   }, [rawType]);
+
+  // Fonction ya kotala soki eloko etikali na sanza 6 (180 days) liboso esila
+  const isExpiringSoon = (product) => {
+    if (isBuildingMode) return false;
+    const expDate = product.expiryDate || product.expirationDate;
+    if (!expDate) return false;
+
+    const exp = new Date(expDate);
+    const today = new Date();
+    const sixMonthsInMs = 180 * 24 * 60 * 60 * 1000; // 180 mikolo
+    const diffTime = exp - today;
+
+    return diffTime <= sixMonthsInMs;
+  };
 
   const addToCart = (product) => {
     const stockQty = product.quantity ?? product.inShop ?? product.stock ?? 0;
@@ -163,7 +179,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         grandTotal,
         paymentMethod: paymentMethod.toLowerCase(),
         
-        // 👉 በብድር ጊዜ ቅድመ ክፍያው የተከፈለበት መንገድ (Cash, Bank, Telebirr)
         creditPaymentType: isCredit ? (creditPaymentType || 'cash').toLowerCase() : undefined,
         
         paymentStatus: status,
@@ -182,12 +197,11 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         alert(t.saleSuccess || 'Sale completed successfully');
       }
 
-      // ከሽያጭ በኋላ ፎርሞችን ማጽዳት
       setCart([]);
       setSelectedCustomer('');
       setPaidAmountInput('');
       setDueDateInput('');
-      setCreditPaymentType('cash'); // Reset to default cash
+      setCreditPaymentType('cash');
 
       await fetchData();
     } catch (err) {
@@ -205,15 +219,19 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     const matchesSearch = !p.name || p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All Categories' || p.category === selectedCategory;
     const matchesLowStock = showLowStockOnly ? isProductLowStock(p) : true;
+    const matchesExpiring = showExpiringOnly ? isExpiringSoon(p) : true;
+    
     const prodType = (p.businessType || p.businessMode || '').toLowerCase();
     const matchesMode = isBuildingMode 
       ? (prodType.includes('building') || Boolean(p.materialType) || Boolean(p.unit) || (!p.specificType && !p.expiryDate))
       : (prodType.includes('pharmacy') || Boolean(p.specificType) || Boolean(p.expiryDate));
 
-    return matchesSearch && matchesCategory && matchesLowStock && matchesMode;
+    return matchesSearch && matchesCategory && matchesLowStock && matchesExpiring && matchesMode;
   });
 
   const lowStockCount = products.filter(p => isProductLowStock(p)).length;
+  // Motángo ya biloko oyo etikali mikolo moke (sanza 6 to nano moke) esila
+  const expiringSoonCount = products.filter(p => isExpiringSoon(p)).length;
 
   return (
     <div style={{ padding: '20px', flex: 1, background: '#f4f6f8', fontFamily: 'sans-serif' }}>
@@ -239,20 +257,34 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
+          {/* Box ya Teko ya Lelo */}
           <div onClick={() => setIsSalesModalOpen(true)} style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div>
-              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.todaysSales}</div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(todaySales.total || 0).toFixed(2)} {t.birr}</div>
+              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.todaysSales || 'የዛሬ ሽያጭ'}</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(todaySales.total || 0).toFixed(2)} {t.birr || 'ብር'}</div>
             </div>
             <span style={{ fontSize: '16px' }}>🛒</span>
           </div>
-          <div onClick={() => setShowLowStockOnly(!showLowStockOnly)} style={{ background: showLowStockOnly ? '#ffebee' : '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+          {/* Box ya Low Stock */}
+          <div onClick={() => { setShowLowStockOnly(!showLowStockOnly); setShowExpiringOnly(false); }} style={{ background: showLowStockOnly ? '#ffebee' : '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div>
-              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.lowStock}</div>
+              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.lowStock || 'አነስተኛ ስቶክ'}</div>
               <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#dc3545' }}>{lowStockCount}</div>
             </div>
             <span style={{ fontSize: '16px' }}>⚠️</span>
           </div>
+
+          {/* Box ya biloko oyo etikali moke esila (Expiring in 6 months) */}
+          {!isBuildingMode && (
+            <div onClick={() => { setShowExpiringOnly(!showExpiringOnly); setShowLowStockOnly(false); }} style={{ background: showExpiringOnly ? '#fff3cd' : '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div>
+                <div style={{ fontSize: '10px', color: '#856404', fontWeight: 'bold' }}>ቀናቸው ሊያልፍ የተቃረቡ</div>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#856404' }}>{expiringSoonCount}</div>
+              </div>
+              <span style={{ fontSize: '16px' }}>⏳</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -270,6 +302,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
                   product={product}
                   isAdded={cart.some((item) => (item._id || item.id) === productId)}
                   isLowStock={isProductLowStock(product)}
+                  isExpiringSoon={isExpiringSoon(product)}
                   isBuildingMode={isBuildingMode}
                   addToCart={addToCart}
                   t={t}
@@ -304,8 +337,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
             setSelectedCustomer={setSelectedCustomer}
             paidAmount={paidAmountInput}
             setPaidAmount={setPaidAmountInput}
-            
-            // 👉 ለ CartPanel props መላካቸውን ማረጋገጫ
             creditPaymentType={creditPaymentType}
             setCreditPaymentType={setCreditPaymentType}
           />
