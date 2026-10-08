@@ -163,29 +163,38 @@ exports.getTodaySalesSummary = async (req, res) => {
 
     const filter = {
       user: req.user.id,
-      $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday,$lte: endOfToday } }]
+      $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday, $lte: endOfToday } }]
     };
     if (businessType) filter.businessType = businessType;
 
     const orders = await Order.find(filter);
 
-    let cash = 0, bank = 0, telebirr = 0;
+    let cash = 0, bank = 0, telebirr = 0, credit = 0;
+
     orders.forEach((order) => {
       const method = (order.paymentMethod || 'cash').toLowerCase();
-      
-      // ብድር ከሆነ አሁን የተቀበለው ክፍያ ካለ ወደ Cash ይሰላል
+      const grandTotal = Number(order.grandTotal || 0);
+      const paid = Number(order.paidAmount || 0);
+
       if (method === 'credit') {
-        cash += Number(order.paidAmount || 0);
+        // ብድር ከሆነ በዕዳ የቀረው መጠን ወደ credit ይገባል
+        const remaining = Number(order.remainingAmount ?? (grandTotal - paid));
+        credit += remaining;
+        // በብድር ጊዜ አሁን የተከፈለው ካሽ ካለ ወደ cash ይደመራል
+        cash += paid;
       } else if (method === 'cash') {
-        cash += Number(order.grandTotal || 0);
+        cash += grandTotal;
       } else if (method === 'bank') {
-        bank += Number(order.grandTotal || 0);
+        bank += grandTotal;
       } else if (method === 'telebirr') {
-        telebirr += Number(order.grandTotal || 0);
+        telebirr += grandTotal;
       }
     });
 
-    res.json({ cash, bank, telebirr, total: cash + bank + telebirr });
+    // አጠቃላይ ድምር (Total) = Cash + Bank + Telebirr + Credit (ሙሉ የዕቃው ዋጋ ይደመራል)
+    const total = cash + bank + telebirr + credit;
+
+    res.json({ cash, bank, telebirr, credit, total });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -22,7 +22,8 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
-  const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, total: 0 });
+  // 1. credit እዚች ጋር ተጨምራለች
+  const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, credit: 0, total: 0 });
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
 
   const [discountValue, setDiscountValue] = useState(0);
@@ -51,7 +52,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
       const [prodRes, catRes, salesRes, custRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/products?businessType=${currentBusinessType}`, config),
         axios.get(`${API_BASE_URL}/categories?businessType=${currentBusinessType}`, config),
-        axios.get(`${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, config).catch(() => ({ data: { cash: 0, bank: 0, telebirr: 0, total: 0 } })),
+        axios.get(`${API_BASE_URL}/orders/today-summary?businessType=${currentBusinessType}`, config).catch(() => ({ data: { cash: 0, bank: 0, telebirr: 0, credit: 0, total: 0 } })),
         axios.get(`${API_BASE_URL}/customers`, config).catch(() => ({ data: [] }))
       ]);
 
@@ -128,7 +129,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
     const isCredit = paymentMethod.toLowerCase() === 'credit';
     
-    // 1. በብድር ጊዜ ደንበኛ የግዴታ መመረጥ አለበት
     if (isCredit && !selectedCustomer) {
       return alert('እባክዎ ደንበኛ ይምረጡ / Please select a customer');
     }
@@ -269,7 +269,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           </div>
         </div>
 
-        {/* Cart Panel & Credit Form Integration */}
+        {/* Cart Panel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <CartPanel
             cart={cart}
@@ -303,31 +303,38 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', width: '350px', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>{t.todaysSalesBreakdown}</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>{t.todaysSalesBreakdown || 'የዛሬ ሽያጭ ዝርዝር'}</h3>
               <button onClick={() => setIsSalesModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✖</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>💵 {t.cash}</span>
-                <strong>{Number(todaySales.cash || 0).toFixed(2)} {t.birr}</strong>
+                <span>💵 {t.cash || 'ካሽ'}</span>
+                <strong>{Number(todaySales.cash || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>🏦 {t.bank}</span>
-                <strong>{Number(todaySales.bank || 0).toFixed(2)} {t.birr}</strong>
+                <span>🏦 {t.bank || 'ባንክ'}</span>
+                <strong>{Number(todaySales.bank || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>📱 {t.telebirr}</span>
-                <strong>{Number(todaySales.telebirr || 0).toFixed(2)} {t.birr}</strong>
+                <span>📱 {t.telebirr || 'ቴሌብር'}</span>
+                <strong>{Number(todaySales.telebirr || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
               </div>
+              
+              {/* 2. ብድር (Credit) እዚች ጋር ተጨምራለች */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0', color: '#dc3545' }}>
+                <span>📝 ብድር (Credit)</span>
+                <strong>{Number(todaySales.credit || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', color: '#28a745', fontSize: '15px', fontWeight: 'bold' }}>
-                <span>{t.total}</span>
-                <span>{Number(todaySales.total || 0).toFixed(2)} {t.birr}</span>
+                <span>{t.total || 'የመጨረሻ ዋጋ'}</span>
+                <span>{Number(todaySales.total || 0).toFixed(2)} {t.birr || 'ብር'}</span>
               </div>
             </div>
 
             <button onClick={() => setIsSalesModalOpen(false)} style={{ width: '100%', background: '#0d6efd', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', marginTop: '15px', cursor: 'pointer', fontWeight: 'bold' }}>
-              {t.close}
+              {t.close || 'ዝጋ'}
             </button>
           </div>
         </div>
