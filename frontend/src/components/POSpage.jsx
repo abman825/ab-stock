@@ -127,16 +127,20 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     if (cart.length === 0) return alert(t.cartIsEmpty || 'Cart is empty');
 
     const isCredit = paymentMethod.toLowerCase() === 'credit';
+    
+    // 1. በብድር ጊዜ ደንበኛ የግዴታ መመረጥ አለበት
     if (isCredit && !selectedCustomer) {
       return alert('እባክዎ ደንበኛ ይምረጡ / Please select a customer');
     }
 
     const paid = isCredit ? Number(paidAmountInput || 0) : grandTotal;
     const remaining = Math.max(0, grandTotal - paid);
+    
     let status = 'Paid';
     if (isCredit) {
       if (paid === 0) status = 'Unpaid';
       else if (paid < grandTotal) status = 'Partial';
+      else status = 'Paid';
     }
 
     try {
@@ -157,7 +161,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         grandTotal,
         paymentMethod: paymentMethod.toLowerCase(),
         paymentStatus: status,
-        customer: isCredit ? selectedCustomer : undefined,
+        customer: isCredit && selectedCustomer !== '' ? selectedCustomer : null,
         paidAmount: paid,
         remainingAmount: remaining,
         dueDate: isCredit && dueDateInput ? dueDateInput : undefined,
@@ -267,45 +271,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
         {/* Cart Panel & Credit Form Integration */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {paymentMethod.toLowerCase() === 'credit' && (
-            <div style={{ background: '#fff3cd', padding: '12px', borderRadius: '6px', border: '1px solid #ffeeba', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <strong>📋 የዱቤ መረጃ፦</strong>
-              <div>
-                <label style={{ display: 'block', marginBottom: '2px' }}>ደንበኛ ይምረጡ፦</label>
-                <select 
-                  value={selectedCustomer} 
-                  onChange={(e) => setSelectedCustomer(e.target.value)}
-                  style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
-                >
-                  <option value="">-- ደንበኛ ይምረጡ --</option>
-                  {customers.map(c => <option key={c._id} value={c._id}>{c.name} ({c.phone})</option>)}
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '2px' }}>የከፈለው ገንዘብ፦</label>
-                  <input 
-                    type="number" 
-                    placeholder="0.00" 
-                    value={paidAmountInput} 
-                    onChange={(e) => setPaidAmountInput(e.target.value)}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '2px' }}>የቀጠሮ ቀን፦</label>
-                  <input 
-                    type="date" 
-                    value={dueDateInput} 
-                    onChange={(e) => setDueDateInput(e.target.value)}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
           <CartPanel
             cart={cart}
             removeFromCart={removeFromCart}

@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Customer = require('../models/Customer'); // 1. Customer Model ተጨምሯል
 
 const getLocalTodayDate = () => {
   const now = new Date();
@@ -17,7 +18,10 @@ exports.getOrders = async (req, res) => {
         : 'pharmacy';
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    const orders = await Order.find(filter)
+      .populate('customer', 'name phone') // የደንበኛውን ስም እና ስልክ አብሮ ለማየት
+      .sort({ createdAt: -1 });
+      
     res.json(orders);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -26,9 +30,29 @@ exports.getOrders = async (req, res) => {
 
 exports.createOrder = async (req, res) => {
   try {
-    const { items, subtotal, discountAmount, grandTotal, paymentMethod, soldAtDate, businessType } = req.body;
+    const { 
+      items, 
+      subtotal, 
+      discountAmount, 
+      grandTotal, 
+      paymentMethod, 
+      paymentStatus,
+      customer, 
+      paidAmount, 
+      remainingAmount, 
+      dueDate, 
+      soldAtDate, 
+      businessType 
+    } = req.body;
+
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'ቢያንስ አንድ እቃ ማሰገባት ያስፈልጋል' });
+      return res.status(400).json({ error: 'ቢያንስ አንድ ዕቃ ማሰገባት ያስፈልጋል' });
+    }
+
+    // 2. በብድር ጊዜ ደንበኛ የግዴታ ያስፈልጋል
+    const normalizedMethod = (paymentMethod || 'Cash').toLowerCase();
+    if (normalizedMethod === 'credit' && (!customer || customer === '')) {
+      return res.status(400).json({ error: 'ለብድር ክፍያ እባክዎ ደንበኛ ይምረጡ' });
     }
 
     let totalCostPrice = 0;
@@ -64,6 +88,20 @@ exports.createOrder = async (req, res) => {
     const safeDiscount = Number(Number(discountAmount || 0).toFixed(2));
     const safeGrandTotal = Number(Number(grandTotal || (safeSubtotal - safeDiscount)).toFixed(2));
 
+    const safePaidAmount = normalizedMethod === 'credit' 
+      ? Number(Number(paidAmount || 0).toFixed(2)) 
+      : safeGrandTotal;
+
+    const safeRemainingAmount = Math.max(0, safeGrandTotal - safePaidAmount);
+
+    let calculatedStatus = paymentStatus || 'Paid';
+    if (normalizedMethod === 'credit') {
+      if (safePaidAmount === 0) calculatedStatus = 'Unpaid';
+      else if (safePaidAmount < safeGrandTotal) calculatedStatus = 'Partial';
+      else calculatedStatus = 'Paid';
+    }
+
+    // 3. አዲስ Order መፍጠር
     const order = new Order({
       user: req.user.id,
       items: processedItems,
@@ -72,13 +110,27 @@ exports.createOrder = async (req, res) => {
       grandTotal: safeGrandTotal,
       totalCost: totalCostPrice,
       profit: Number((safeGrandTotal - totalCostPrice).toFixed(2)),
-      paymentMethod: paymentMethod || 'Cash',
+      paymentMethod: normalizedMethod,
+      paymentStatus: calculatedStatus,
+      customer: (normalizedMethod === 'credit' && customer) ? customer : undefined,
+      paidAmount: safePaidAmount,
+      remainingAmount: safeRemainingAmount,
+      dueDate: dueDate || undefined,
       soldAtDate: soldAtDate || getLocalTodayDate(),
       businessType: (businessType === 'building' ? 'building_materials' : (businessType || req.user?.businessType || 'pharmacy'))
     });
 
     const savedOrder = await order.save();
 
+    // 4. ዕዳ ካለ የደንበኛውን totalDebt በዳታቤዝ ላይ መደመር
+    if (normalizedMethod === 'credit' && customer && safeRemainingAmount > 0) {
+      await Customer.findOneAndUpdate(
+        { _id: customer, user: req.user.id },
+        { $inc: { totalDebt: safeRemainingAmount } }
+      );
+    }
+
+    // 5. የዕቃዎች ብዛት ከስቶክ መቀነስ
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);
@@ -91,7 +143,9 @@ exports.createOrder = async (req, res) => {
       };
     }).filter(op => op.updateOne.filter._id);
 
-    if (bulkStockOperations.length > 0) await Product.bulkWrite(bulkStockOperations);
+    if (bulkStockOperations.length > 0) {
+      await Product.bulkWrite(bulkStockOperations);
+    }
 
     res.status(201).json(savedOrder);
   } catch (err) {
@@ -108,6 +162,7 @@ exports.getTodaySalesSummary = async (req, res) => {
     const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
 
     const filter = {
+      user: req.user.id,
       $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday,$lte: endOfToday } }]
     };
     if (businessType) filter.businessType = businessType;
@@ -116,11 +171,18 @@ exports.getTodaySalesSummary = async (req, res) => {
 
     let cash = 0, bank = 0, telebirr = 0;
     orders.forEach((order) => {
-      const amount = Number(order.grandTotal || order.total || 0);
-      const method = (order.paymentMethod || 'Cash').toLowerCase();
-      if (method === 'cash') cash += amount;
-      else if (method === 'bank') bank += amount;
-      else if (method === 'telebirr') telebirr += amount;
+      const method = (order.paymentMethod || 'cash').toLowerCase();
+      
+      // ብድር ከሆነ አሁን የተቀበለው ክፍያ ካለ ወደ Cash ይሰላል
+      if (method === 'credit') {
+        cash += Number(order.paidAmount || 0);
+      } else if (method === 'cash') {
+        cash += Number(order.grandTotal || 0);
+      } else if (method === 'bank') {
+        bank += Number(order.grandTotal || 0);
+      } else if (method === 'telebirr') {
+        telebirr += Number(order.grandTotal || 0);
+      }
     });
 
     res.json({ cash, bank, telebirr, total: cash + bank + telebirr });
