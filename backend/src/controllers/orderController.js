@@ -158,7 +158,6 @@ exports.createOrder = async (req, res) => {
     res.status(500).json({ error: err.message || 'ሽያጩን ማስመዝገብ አልተቻለም' });
   }
 };
-
 exports.getTodaySalesSummary = async (req, res) => {
   try {
     const { businessType } = req.query;
@@ -169,7 +168,7 @@ exports.getTodaySalesSummary = async (req, res) => {
 
     const filter = {
       user: req.user.id,
-      $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday,$lte: endOfToday } }]
+      $or: [{ soldAtDate: todayStr }, { createdAt: { $gte: startOfToday, $lte: endOfToday } }]
     };
     if (businessType) filter.businessType = businessType;
 
@@ -194,7 +193,7 @@ exports.getTodaySalesSummary = async (req, res) => {
         } else if (creditPayMethod === 'bank') {
           bank += paid;
         } else {
-          cash += paid; // Default Cash ይሆናል
+          cash += paid;
         }
       } else if (method === 'cash') {
         cash += grandTotal;
@@ -216,14 +215,13 @@ exports.getTodaySalesSummary = async (req, res) => {
 // የደንበኛ ዕዳ ክፍያ መቀበያ (Pay Debt)
 exports.payDebt = async (req, res) => {
   try {
-    const { customerId, amount, paymentMethod } = req.body;
+    const { customerId, amount } = req.body;
 
     if (!customerId || !amount || Number(amount) <= 0) {
       return res.status(400).json({ error: 'እባክዎን ትክክለኛ የደንበኛ መረጃ እና የገንዘብ መጠን ያስገቡ' });
     }
 
     const payAmount = Number(amount);
-    const method = (paymentMethod || 'cash').toLowerCase();
 
     // 1. ደንበኛውን መፈለግ እና ዕዳውን መቀነስ
     const customer = await Customer.findOne({ _id: customerId, user: req.user.id });
@@ -235,25 +233,8 @@ exports.payDebt = async (req, res) => {
     customer.totalDebt = newDebt;
     await customer.save();
 
-    // 2. የዕዳ ክፍያውን እንደ አንድ ገቢ/Order መመዝገብ
-    const debtOrder = new Order({
-      user: req.user.id,
-      items: [],
-      subtotal: payAmount,
-      discountAmount: 0,
-      grandTotal: payAmount,
-      totalCost: 0,
-      profit: payAmount,
-      paymentMethod: method,
-      paymentStatus: 'Paid',
-      customer: customerId,
-      paidAmount: payAmount,
-      remainingAmount: 0,
-      soldAtDate: getLocalTodayDate(),
-      businessType: req.user?.businessType || 'pharmacy'
-    });
-
-    await debtOrder.save();
+    // 🔴 አዲስ Order መፍጠር ተወግዷል! 
+    // ይህም የደንበኛው ዕዳ ብቻ እንዲቀነስ ያደርጋል፤ የዛሬው POS ሽያጭ ላይ ምንም አይነት ብር አይጨምርም።
 
     res.json({ message: 'ክፍያው በትክክል ተመዝግቧል', newDebt });
   } catch (err) {

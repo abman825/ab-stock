@@ -18,13 +18,13 @@ const translations = {
     phone: "ስልክ",
     email: "ኢሜይል",
     addressCol: "አድራሻ",
-    totalDebt: "ጠቅላላ ዕዳ (ዱቤ)",
+    totalDebt: "ጠቅላላ ዕዳ (ብር)",
     actions: "ተግባር",
     payDebt: "ዕዳ ክፈል",
-    noCustomers: " ምንም የተመዘገበ ደንበኛ የለም።",
+    noCustomers: "ምንም የተመዘገበ ደንበኛ የለም።",
     fillRequired: "እባክዎን ስም እና ስልክ ቁጥር ያስገቡ!",
     enterPaymentAmount: "እባክዎን የከፈለውን የገንዘብ መጠን ያስገቡ!",
-    payDebtModalTitle: "የዱቤ ክፍያ መቀበያ"
+    payDebtModalTitle: "የዕዳ ክፍያ መቀበያ"
   },
   om: {
     title: "Gulaala Maamiltootaa (Customer Management)",
@@ -101,7 +101,6 @@ function Customers({ currentLang }) {
     fetchCustomers();
   }, []);
 
-  // ደንበኞችንና የዕዳ መጠናቸውን ከዳታቤዝ በቀጥታ መውሰድ
   const fetchCustomers = async () => {
     try {
       const headers = getAuthHeaders();
@@ -154,33 +153,34 @@ function Customers({ currentLang }) {
   };
 
   const handleProcessDebtPayment = async () => {
-  if (!payAmount || Number(payAmount) <= 0) {
-    alert(t.enterPaymentAmount);
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/orders/pay-debt`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        customerId: selectedCustForPay._id,
-        amount: Number(payAmount),
-        paymentMethod: payMethod // 👉 የተመረጠውን የክፍያ መንገድ መላክ
-      })
-    });
-
-    if (res.ok) {
-      alert("የዱቤ ክፍያው በጥሩ ሁኔታ ተመዝግቧል!");
-      setIsPayModalOpen(false);
-      fetchCustomers();
-    } else {
-      alert("ክፍያውን ለመመዝገብ አልተቻለም።");
+    if (!payAmount || Number(payAmount) <= 0) {
+      alert(t.enterPaymentAmount);
+      return;
     }
-  } catch (err) {
-    alert("ስህተት ተከሰቷል።");
-  }
-};
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/pay-debt`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          customerId: selectedCustForPay._id,
+          amount: Number(payAmount),
+          paymentMethod: 'Cash' // 👈 Backend ክፍያ መንገድ ከፈለገ በቋሚነት Cash ሆኖ ይላካል
+        })
+      });
+
+      if (res.ok) {
+        alert("የዕዳ ክፍያው በጥሩ ሁኔታ ተመዝግቧል!");
+        setIsPayModalOpen(false);
+        fetchCustomers();
+      } else {
+        const errData = await res.json();
+        alert(errData.message || "ክፍያውን ለመመዝገብ አልተቻለም");
+      }
+    } catch (err) {
+      alert("ስህተት ተከሰቷል።");
+    }
+  };
 
   return (
     <div style={{ padding: '25px', width: '100%', boxSizing: 'border-box' }}>
@@ -319,8 +319,9 @@ function Customers({ currentLang }) {
             <p style={{ fontSize: '13px', margin: '5px 0' }}><strong>ደንበኛ:</strong> {selectedCustForPay.name}</p>
             <p style={{ fontSize: '13px', margin: '5px 0', color: '#dc3545' }}><strong>ያለበት ዕዳ:</strong> {Number(selectedCustForPay.totalDebt || 0).toFixed(2)} ETB</p>
             
+            {/* የክፍያ መጠን */}
             <div style={{ marginTop: '15px' }}>
-              <label style={{ fontSize: '12px', display: 'block', marginBottom: '5px' }}>የከፈለው መጠን (ብር):</label>
+              <label style={{ fontSize: '12px', display: 'block', marginBottom: '5px' }}>የከፈለዉ መጠን (ብር):</label>
               <input
                 type="number"
                 placeholder="0.00"
