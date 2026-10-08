@@ -46,12 +46,15 @@ exports.createOrder = async (req, res) => {
     } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'ቢያንስ አንድ ዕቃ ማሰገባት ያስፈልጋል' });
+      return res.status(400).json({ error: 'ቢያንስ አንድ ዕቃ ማስገባት ያስፈልጋል' });
     }
 
-    // 2. በብድር ጊዜ ደንበኛ የግዴታ ያስፈልጋል
     const normalizedMethod = (paymentMethod || 'Cash').toLowerCase();
-    if (normalizedMethod === 'credit' && (!customer || customer === '')) {
+    
+    // የደንበኛውን ID ማውጣት (Object ከሆነ ወይም String ከሆነ)
+    const customerId = (customer && typeof customer === 'object') ? customer._id : customer;
+
+    if (normalizedMethod === 'credit' && (!customerId || customerId === '')) {
       return res.status(400).json({ error: 'ለብድር ክፍያ እባክዎ ደንበኛ ይምረጡ' });
     }
 
@@ -101,7 +104,6 @@ exports.createOrder = async (req, res) => {
       else calculatedStatus = 'Paid';
     }
 
-    // 3. አዲስ Order መፍጠር
     const order = new Order({
       user: req.user.id,
       items: processedItems,
@@ -112,7 +114,7 @@ exports.createOrder = async (req, res) => {
       profit: Number((safeGrandTotal - totalCostPrice).toFixed(2)),
       paymentMethod: normalizedMethod,
       paymentStatus: calculatedStatus,
-      customer: (normalizedMethod === 'credit' && customer) ? customer : undefined,
+      customer: (normalizedMethod === 'credit' && customerId) ? customerId : undefined,
       paidAmount: safePaidAmount,
       remainingAmount: safeRemainingAmount,
       dueDate: dueDate || undefined,
@@ -122,15 +124,16 @@ exports.createOrder = async (req, res) => {
 
     const savedOrder = await order.save();
 
-    // 4. ዕዳ ካለ የደንበኛውን totalDebt በዳታቤዝ ላይ መደመር
-    if (normalizedMethod === 'credit' && customer && safeRemainingAmount > 0) {
-      await Customer.findOneAndUpdate(
-        { _id: customer, user: req.user.id },
-        { $inc: { totalDebt: safeRemainingAmount } }
+    // 👉 1. የደንበኛውን ዕዳ (totalDebt) በዳታቤዝ ላይ መደመር
+    if (normalizedMethod === 'credit' && customerId && safeRemainingAmount > 0) {
+      await Customer.findByIdAndUpdate(
+        customerId,
+        { $inc: { totalDebt: safeRemainingAmount } },
+        { new: true }
       );
     }
 
-    // 5. የዕቃዎች ብዛት ከስቶክ መቀነስ
+    // የዕቃዎች ብዛት ከስቶክ መቀነስ
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);

@@ -1,26 +1,24 @@
 const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   name: {
     type: String,
     required: true
   },
-  user: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: 'User',
-  required: true
-},
   phone: {
     type: String,
     required: true
   },
-  email: {
-    type: String,
-    default: ''
-  },
-  address: {
-    type: String,
-    default: ''
+  email: String,
+  address: String,
+  totalDebt: {
+    type: Number,
+    default: 0 // 👉 default 0 መሆኑን አረጋግጥ
   }
 }, { timestamps: true });
 
