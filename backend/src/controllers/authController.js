@@ -183,22 +183,25 @@ exports.exportAllUserData = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "መረጃዎችን ማውረድ አልተቻለም፦ " + err.message });
   }
-};
+};// 9. FULL IMPORT ALL DATA
 exports.importAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
     const { products, categories, customers, suppliers, orders, businessType } = req.body;
     
-    // Business Type ማስተካከያ
     let currentBusinessType = businessType || 'pharmacy';
     if (currentBusinessType.includes('building')) {
       currentBusinessType = 'building_materials';
     }
 
-    // 1. Categories Import
+    // 1. Categories Import (Duplicate ID ጸገም ዝፈትሕ)
     if (categories && Array.isArray(categories) && categories.length > 0) {
       for (const cat of categories) {
-        const { _id, createdAt, updatedAt, ...rest } = cat;
+        const { _id, createdAt, updatedAt, categoryId, ...rest } = cat;
+        
+        // categoryId ድሮ እንተሃልዩ ይጥቀመሉ፣ እንተዘይሃልዩ ጥራይ ሓዱሽ ፍሉይ ID ይፈጥር
+        const finalCategoryId = categoryId || (Date.now() + Math.floor(Math.random() * 10000)).toString();
+
         await Category.updateOne(
           { user: userId, name: cat.name },
           { 
@@ -206,10 +209,10 @@ exports.importAllUserData = async (req, res) => {
               ...rest,
               user: userId,
               businessType: currentBusinessType,
-              categoryId: cat.categoryId || Math.floor(100000 + Math.random() * 900000).toString()
+              categoryId: finalCategoryId
             }
           },
-          { upsert: true }
+          { upsert: true } // እንተሃልዩ Update ይገብሮ፣ እንተዘይሃልዩ የእትዎ (Duplicate Error ኣየምጽእን)
         );
       }
     }
@@ -265,9 +268,9 @@ exports.importAllUserData = async (req, res) => {
       await Order.insertMany(preparedOrders, { ordered: false }).catch(() => {});
     }
 
-    res.json({ message: 'ሁሉም መረጃዎች በተሳካ ሁኔታ ተመልሰዋል!' });
+    res.json({ message: 'ብሉጽ! ኩሉ ዳታ ብትክክል ተመሊሱ ኣሎ።' });
   } catch (err) {
     console.error("Import Error Detail:", err);
-    res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም፡ " + err.message });
+    res.status(500).json({ error: "ዳታ ምእታው ኣይተኻእለን፡ " + err.message });
   }
 };
