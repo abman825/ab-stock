@@ -185,6 +185,7 @@ exports.exportAllUserData = async (req, res) => {
   }
 };
 // 9. FULL IMPORT ALL DATA
+// 9. FULL IMPORT ALL DATA
 exports.importAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -195,13 +196,12 @@ exports.importAllUserData = async (req, res) => {
       currentBusinessType = 'building_materials';
     }
 
-    // 1. Categories Import
+    // 1. Categories Import (Conflict እንዳይፈጠር $set እና $setOnInsert ተለይተዋል)
     if (categories && Array.isArray(categories) && categories.length > 0) {
       for (const cat of categories) {
-        const { _id, createdAt, updatedAt, ...rest } = cat;
+        // categoryId-ን ከ rest እንለያዋለን
+        const { _id, createdAt, updatedAt, categoryId, ...rest } = cat;
 
-        // categoryId በስተቀር ሌላውን ዳታ ብቻ ማስተካከያ ያደርጋል
-        // categoryId duplicate ሆኖ ኤረር እንዳያመጣ $setOnInsert እንጠቀማለን
         await Category.updateOne(
           { user: userId, name: cat.name },
           { 
@@ -211,7 +211,7 @@ exports.importAllUserData = async (req, res) => {
               businessType: currentBusinessType
             },
             $setOnInsert: {
-              categoryId: cat.categoryId || (Date.now() + Math.floor(Math.random() * 10000)).toString()
+              categoryId: categoryId || (Date.now() + Math.floor(Math.random() * 10000)).toString()
             }
           },
           { upsert: true }
