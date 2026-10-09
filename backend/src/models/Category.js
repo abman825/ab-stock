@@ -4,7 +4,7 @@ const categorySchema = new mongoose.Schema({
   categoryId: {
     type: String,
     required: true,
-    default: () => Math.floor(1000 + Math.random() * 9000).toString() // 4-digit ID
+    default: () => Math.floor(100000 + Math.random() * 900000).toString() // 6-digit ID ለተሻለ ልዩነት
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -18,7 +18,7 @@ const categorySchema = new mongoose.Schema({
   },
   businessType: {
     type: String,
-    enum: ['pharmacy', 'building_materials'],
+    enum: ['pharmacy', 'building', 'building_materials', 'buildingMaterials'],
     default: 'pharmacy'
   },
   productsCount: {

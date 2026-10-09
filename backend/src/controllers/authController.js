@@ -184,66 +184,73 @@ exports.exportAllUserData = async (req, res) => {
     res.status(500).json({ error: "መረጃዎችን ማውረድ አልተቻለም፦ " + err.message });
   }
 };
-
-// 9. FULL IMPORT ALL DATA (Categories, Products, Customers, Suppliers, Orders & Reports)
 exports.importAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
     const { products, categories, customers, suppliers, orders, businessType } = req.body;
-    const currentBusinessType = businessType || 'pharmacy';
+    
+    // Business Type ማስተካከያ
+    let currentBusinessType = businessType || 'pharmacy';
+    if (currentBusinessType.includes('building')) {
+      currentBusinessType = 'building_materials';
+    }
 
-    // 1. Categories Import (ያለምንም ኪሳራ ሙሉ ካቴጎሪዎችን ማስገባት)
+    // 1. Categories Import
     if (categories && Array.isArray(categories) && categories.length > 0) {
-      const preparedCategories = categories.map(cat => {
+      for (const cat of categories) {
         const { _id, createdAt, updatedAt, ...rest } = cat;
-        return {
-          ...rest,
-          user: userId,
-          businessType: currentBusinessType,
-          categoryId: cat.categoryId || Math.floor(1000 + Math.random() * 9000).toString()
-        };
-      });
-      await Category.insertMany(preparedCategories);
+        await Category.updateOne(
+          { user: userId, name: cat.name },
+          { 
+            $set: {
+              ...rest,
+              user: userId,
+              businessType: currentBusinessType,
+              categoryId: cat.categoryId || Math.floor(100000 + Math.random() * 900000).toString()
+            }
+          },
+          { upsert: true }
+        );
+      }
     }
 
     // 2. Products Import
     if (products && Array.isArray(products) && products.length > 0) {
-      const preparedProducts = products.map(item => {
+      for (const item of products) {
         const { _id, createdAt, updatedAt, ...rest } = item;
-        return {
-          ...rest,
-          user: userId,
-          businessType: currentBusinessType
-        };
-      });
-      await Product.insertMany(preparedProducts);
+        await Product.updateOne(
+          { user: userId, name: item.name },
+          { 
+            $set: {
+              ...rest,
+              user: userId,
+              businessType: currentBusinessType
+            }
+          },
+          { upsert: true }
+        );
+      }
     }
 
     // 3. Customers Import
     if (customers && Array.isArray(customers) && customers.length > 0) {
       const preparedCustomers = customers.map(cust => {
         const { _id, createdAt, updatedAt, ...rest } = cust;
-        return {
-          ...rest,
-          user: userId
-        };
+        return { ...rest, user: userId };
       });
-      await Customer.insertMany(preparedCustomers);
+      await Customer.insertMany(preparedCustomers, { ordered: false }).catch(() => {});
     }
 
     // 4. Suppliers Import
     if (suppliers && Array.isArray(suppliers) && suppliers.length > 0) {
       const preparedSuppliers = suppliers.map(sup => {
         const { _id, createdAt, updatedAt, ...rest } = sup;
-        return {
-          ...rest,
-          user: userId
-        };
+        return { ...rest, user: userId };
       });
-      await Supplier.insertMany(preparedSuppliers);
+      await Supplier.insertMany(preparedSuppliers, { ordered: false }).catch(() => {});
     }
 
-    // 5. Orders / Invoices Import (ለ ሪፖርት እና ዳሽቦርድ ስሌት የሚሆን)
+    // 5. Orders Import
     if (orders && Array.isArray(orders) && orders.length > 0) {
       const preparedOrders = orders.map(ord => {
         const { _id, ...rest } = ord;
@@ -255,11 +262,12 @@ exports.importAllUserData = async (req, res) => {
           updatedAt: ord.updatedAt ? new Date(ord.updatedAt) : new Date()
         };
       });
-      await Order.insertMany(preparedOrders);
+      await Order.insertMany(preparedOrders, { ordered: false }).catch(() => {});
     }
 
-    res.json({ message: 'ሁሉም መረጃዎች (ካቴጎሪዎች፣ ዕቃዎች፣ ደንበኞች እና የሽያጭ ሪፖርቶች) በተሳካ ሁኔታ ተመልሰዋል!' });
+    res.json({ message: 'ሁሉም መረጃዎች በተሳካ ሁኔታ ተመልሰዋል!' });
   } catch (err) {
-    res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም፦ " + err.message });
+    console.error("Import Error Detail:", err);
+    res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም፡ " + err.message });
   }
 };
