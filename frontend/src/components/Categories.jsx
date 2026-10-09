@@ -5,6 +5,7 @@ import Papa from 'papaparse';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// 3ti languages er dictionary translations
 const translations = {
   am: {
     buildingTitle: "የሕንፃ መሣሪያዎች ምድብ አስተዳደር",
@@ -223,11 +224,11 @@ function Categories() {
       complete: async (results) => {
         try {
           const formattedCategories = results.data.map((item) => ({
-            name: item.name || item.CategoryName || item.Name,
+            name: item.name || item.CategoryName || item.Name || item['የምድብ ስም'],
             categoryId: item.categoryId || item.CategoryId || Math.floor(1000 + Math.random() * 9000).toString(),
-            productsCount: Number(item.productsCount) || 0,
+            productsCount: Number(item.productsCount || item.ProductsCount) || 0,
             businessType: currentBusinessType
-          })).filter(c => c.name);
+          })).filter(c => c.name && c.name.trim() !== '');
 
           if (formattedCategories.length === 0) {
             alert(t.csvEmpty);
@@ -249,14 +250,14 @@ function Categories() {
 
   const handleCSVExport = () => {
     if (categories.length === 0) {
-      alert('No categories to export!');
+      alert('ምንም የሚወጣ ምድብ የለም!');
       return;
     }
 
     const dataToExport = categories.map(cat => ({
-      CategoryId: cat.categoryId || '',
-      CategoryName: cat.name || '',
-      ProductsCount: cat.productsCount || 0
+      name: cat.name || '',
+      categoryId: cat.categoryId || '',
+      productsCount: cat.productsCount || 0
     }));
 
     const csv = Papa.unparse(dataToExport);

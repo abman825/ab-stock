@@ -81,15 +81,24 @@ exports.createCategoriesBulk = async (req, res) => {
       return res.status(400).json({ message: 'አስፈላጊው የዳታ ስብስብ አልተላከም!' });
     }
 
+    const currentBusinessType = req.user?.businessType || 'pharmacy';
+
     const formattedCategories = categories.map((cat) => ({
-      ...cat,
+      name: cat.name || cat.CategoryName || cat.Name,
+      categoryId: cat.categoryId || cat.CategoryId || Math.floor(1000 + Math.random() * 9000).toString(),
+      productsCount: Number(cat.productsCount || cat.ProductsCount) || 0,
       user: req.user.id,
-      categoryId: cat.categoryId || Math.floor(1000 + Math.random() * 9000).toString()
-    }));
+      businessType: cat.businessType || currentBusinessType
+    })).filter(c => c.name); // ስም የሌላቸውን ያወጣል
+
+    if (formattedCategories.length === 0) {
+      return res.status(400).json({ message: 'በፋይሉ ውስጥ ምንም ትክክለኛ የምድብ ስም አልተገኘም!' });
+    }
 
     const savedCategories = await Category.insertMany(formattedCategories);
     res.status(201).json(savedCategories);
   } catch (err) {
+    console.error('Bulk Import Error:', err);
     res.status(500).json({ error: err.message });
   }
 };
