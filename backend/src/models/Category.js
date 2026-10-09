@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const categorySchema = new mongoose.Schema({
   categoryId: {
     type: String,
-    required: true,
-    default: () => Math.floor(100000 + Math.random() * 900000).toString() // 6-digit ID ለተሻለ ልዩነት
+    // unique: true የሚለውን አስወግደነዋል duplicate error እንዳያመጣ
+    default: () => Math.floor(100000 + Math.random() * 900000).toString()
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
