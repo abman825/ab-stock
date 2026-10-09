@@ -191,18 +191,19 @@ exports.importAllUserData = async (req, res) => {
     const userId = req.user.id;
     const { products, categories, customers, suppliers, orders, businessType } = req.body;
     
+    // Rumbeng nga agpadpada ti pormat iti Analytics Filter
     let currentBusinessType = businessType || 'pharmacy';
     if (currentBusinessType.includes('building')) {
       currentBusinessType = 'building_materials';
+    } else {
+      currentBusinessType = 'pharmacy';
     }
 
-    // 1. Categories Import (SAFE UPSERT WITH TRY-CATCH)
+    // 1. Categories Import
     if (categories && Array.isArray(categories) && categories.length > 0) {
       for (const cat of categories) {
         try {
           const { _id, createdAt, updatedAt, categoryId, ...rest } = cat;
-          
-          // categoryId ከሌለው አዲስ ልዩ ID ይሰጠዋል
           const newCategoryId = categoryId || (Date.now() + Math.floor(Math.random() * 10000)).toString();
 
           await Category.updateOne(
@@ -218,7 +219,6 @@ exports.importAllUserData = async (req, res) => {
             { upsert: true }
           );
         } catch (catErr) {
-          // Category ላይ Duplicate Index ቢኖር እንኳ ሰርቨሩ እንዳይቋረጥ ኤረሩን አልፎ ያልፋል
           console.log(`Skipping category error for ${cat.name}:`, catErr.message);
         }
       }
@@ -264,24 +264,28 @@ exports.importAllUserData = async (req, res) => {
       await Supplier.insertMany(preparedSuppliers, { ordered: false }).catch(() => {});
     }
 
-    // 5. Orders Import
+    // 5. Orders / Reports Import (PASTING BUSINESS TYPE PARAN REPORT)
     if (orders && Array.isArray(orders) && orders.length > 0) {
       const preparedOrders = orders.map(ord => {
         const { _id, ...rest } = ord;
         return {
           ...rest,
           user: userId,
-          businessType: currentBusinessType,
+          businessType: currentBusinessType, // Isilpo nga adda a sadiay businessType ti kada order
           createdAt: ord.createdAt ? new Date(ord.createdAt) : new Date(),
           updatedAt: ord.updatedAt ? new Date(ord.updatedAt) : new Date()
         };
       });
-      await Order.insertMany(preparedOrders, { ordered: false }).catch(() => {});
+      
+      // Tapno masigurado a ma-update ken maikkat ti saan a gapu kadagiti lumain a duplicates
+      for (const ord of preparedOrders) {
+        await Order.create(ord).catch(err => console.log('Order import skip:', err.message));
+      }
     }
 
-    res.json({ message: 'ሁሉም መረጃዎች በተሳካ ሁኔታ ተመልሰዋል!' });
+    res.json({ message: 'Nailugan a sibubukel dagiti ammos (Data imported successfully)!' });
   } catch (err) {
     console.error("Import Error Detail:", err);
-    res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም፡ " + err.message });
+    res.status(500).json({ error: "Saan a maipalaing ti ammos: " + err.message });
   }
 };
