@@ -185,15 +185,31 @@ exports.exportAllUserData = async (req, res) => {
   }
 };
 
-// 9. IMPORT ALL DATA (Filter & Restore by Business Type)
 exports.importAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { products, categories, customers, suppliers, businessType } = req.body;
-
+    const { products, categories, customers, suppliers, orders, businessType } = req.body;
     const currentBusinessType = businessType || 'pharmacy';
 
-    // 1. Products import
+    // 1. Categories Import (ነባሩን categoryId ሳይቀይርና ሳይደግም ማስገባት)
+    if (categories && Array.isArray(categories) && categories.length > 0) {
+      for (const cat of categories) {
+        await Category.updateOne(
+          { name: cat.name, user: userId },
+          { 
+            $setOnInsert: { 
+              name: cat.name, 
+              categoryId: cat.categoryId || Math.floor(1000 + Math.random() * 9000).toString(),
+              user: userId, 
+              businessType: currentBusinessType 
+            } 
+          },
+          { upsert: true }
+        );
+      }
+    }
+
+    // 2. Products Import
     if (products && Array.isArray(products) && products.length > 0) {
       const preparedProducts = products.map(item => {
         const { _id, createdAt, updatedAt, ...rest } = item;
@@ -206,40 +222,59 @@ exports.importAllUserData = async (req, res) => {
       await Product.insertMany(preparedProducts);
     }
 
-    // 2. Categories import
-    if (categories && Array.isArray(categories) && categories.length > 0) {
-      for (const cat of categories) {
-        await Category.updateOne(
-          { name: cat.name, user: userId },
-          { $setOnInsert: { name: cat.name, user: userId, businessType: currentBusinessType } },
-          { upsert: true }
-        );
-      }
-    }
-
-    // 3. Customers import
+    // 3. Customers Import
     if (customers && Array.isArray(customers) && customers.length > 0) {
       for (const cust of customers) {
         await Customer.updateOne(
           { phone: cust.phone, user: userId },
-          { $setOnInsert: { name: cust.name, phone: cust.phone, email: cust.email, address: cust.address, totalDebt: cust.totalDebt || 0, user: userId } },
+          { 
+            $setOnInsert: { 
+              name: cust.name, 
+              phone: cust.phone, 
+              email: cust.email || '', 
+              address: cust.address || '', 
+              totalDebt: cust.totalDebt || 0, 
+              user: userId 
+            } 
+          },
           { upsert: true }
         );
       }
     }
 
-    // 4. Suppliers import
+    // 4. Suppliers Import
     if (suppliers && Array.isArray(suppliers) && suppliers.length > 0) {
       for (const sup of suppliers) {
         await Supplier.updateOne(
           { name: sup.name, user: userId },
-          { $setOnInsert: { name: sup.name, phone: sup.phone, email: sup.email, user: userId } },
+          { 
+            $setOnInsert: { 
+              name: sup.name, 
+              phone: sup.phone || '', 
+              email: sup.email || '', 
+              user: userId 
+            } 
+          },
           { upsert: true }
         );
       }
     }
 
-    res.json({ message: 'መረጃዎቹ በተሳካ ሁኔታ ወደ ሲስተሙ ተመልሰዋል (Imported)!' });
+    // 5. Orders ( የሽያጭ መዝገቦች / Invoices) Import
+    if (orders && Array.isArray(orders) && orders.length > 0) {
+      const preparedOrders = orders.map(ord => {
+        const { _id, createdAt, updatedAt, ...rest } = ord;
+        return {
+          ...rest,
+          user: userId,
+          businessType: currentBusinessType,
+          createdAt: ord.createdAt ? new Date(ord.createdAt) : new Date()
+        };
+      });
+      await Order.insertMany(preparedOrders);
+    }
+
+    res.json({ message: 'ሁሉም መረጃዎች (የሽያጭ መዝገብን ጨምሮ) በተሳካ ሁኔታ ተመልሰዋል!' });
   } catch (err) {
     res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም፦ " + err.message });
   }
