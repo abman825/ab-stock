@@ -4,11 +4,18 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+
+// Root route no UptimeRobot heɓira jam
 app.get('/', (req, res) => {
   res.send('AB Stock Server is running!');
 });
+
 // 1. Middlewares Setup
-app.use(cors());
+app.use(cors({
+  origin: ['https://ab-stock.vercel.app', 'http://localhost:5173'],
+  credentials: true
+}));
+
 // Express limit for Base64 photos & large JSON data
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -16,8 +23,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // 2. MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/pharmacy';
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB በተካካ ሁኔታ ተገናኝቷል'))
-  .catch((err) => console.error('❌ የ DB ስህተት:', err.message));
+  .then(() => console.log('✅ MongoDB jokkiima no feewi'))
+  .catch((err) => console.error('❌ Juumre DB:', err.message));
 
 // 3. Centralized API Routes
 const mainRoutes = require('./src/routes/mainRoutes');
@@ -25,4 +32,4 @@ app.use('/api', mainRoutes);
 
 // 4. Server Start
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 ab Stock Server በ Port ${PORT} ላይ እየሰራ ይገኛል`));
+app.listen(PORT, () => console.log(`🚀 AB Stock Server ina golloroo e Port ${PORT}`));

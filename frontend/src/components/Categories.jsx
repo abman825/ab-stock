@@ -5,7 +5,6 @@ import Papa from 'papaparse';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-// 3ti languages er dictionary translations
 const translations = {
   am: {
     buildingTitle: "የሕንፃ መሣሪያዎች ምድብ አስተዳደር",
@@ -13,6 +12,7 @@ const translations = {
     searchPlaceholder: "ይፈልጉ...",
     addCategory: "+ ምድብ ጨምር",
     import: "📥 አስገባ (Import)",
+    export: "📤 ላክ (Export)",
     thCategoryId: "የምድብ መታወቂያ (ID)",
     thName: "ስም",
     thProducts: "የምርቶች ብዛት",
@@ -24,8 +24,8 @@ const translations = {
     addTitle: "ምድብ ጨምር",
     categoryIdLabel: "የምድብ መታወቂያ (አማራጭ)",
     categoryNameLabel: "የምድብ ስም",
-    buildingPlaceholder: "ምሳሌ፡ ሲምንቶ፣ ብረት፣ ኤሌክትሪክ",
-    pharmacyPlaceholder: "ምሳሌ፡ መድኃኒት፣ ሽሮፕ፣ ታብሌት",
+    buildingPlaceholder: "ምሳሌ፤ ሲሚንቶ፣ ብረት፣ ኤሌክትሪክ",
+    pharmacyPlaceholder: "ምሳሌ፤ መድኃኒት፣ ሲሮፕ፣ ታብሌት",
     cancel: "ሰርዝ",
     update: "አዘምን",
     save: "አስቀምጥ",
@@ -40,6 +40,7 @@ const translations = {
     searchPlaceholder: "Barbaadi...",
     addCategory: "+ Ramaddii Dabali",
     import: "📥 Galchuu (Import)",
+    export: "📤 Baasuu (Export)",
     thCategoryId: "EEYYAMA RAMADDII (ID)",
     thName: "MAQAA",
     thProducts: "BAAY'INA OOMISHAALEE",
@@ -67,6 +68,7 @@ const translations = {
     searchPlaceholder: "Search...",
     addCategory: "+ Add Category",
     import: "Import",
+    export: "Export",
     thCategoryId: "CATEGORY ID",
     thName: "NAME",
     thProducts: "PRODUCTS",
@@ -91,7 +93,6 @@ const translations = {
 };
 
 function Categories() {
-  // Multi-language State setup
   const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
   const t = translations[lang] || translations.am;
 
@@ -107,7 +108,6 @@ function Categories() {
     name: ''
   });
 
-  // Business Mode dynamically detect
   const rawType = localStorage.getItem('businessType') || 'pharmacy';
   const isBuildingMode = rawType.toLowerCase().includes('building');
   const currentBusinessType = isBuildingMode ? 'building_materials' : 'pharmacy';
@@ -247,6 +247,29 @@ function Categories() {
     e.target.value = '';
   };
 
+  const handleCSVExport = () => {
+    if (categories.length === 0) {
+      alert('No categories to export!');
+      return;
+    }
+
+    const dataToExport = categories.map(cat => ({
+      CategoryId: cat.categoryId || '',
+      CategoryName: cat.name || '',
+      ProductsCount: cat.productsCount || 0
+    }));
+
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${currentBusinessType}_categories.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const filteredCategories = categories.filter((cat) =>
     (cat.name && cat.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (cat.categoryId && cat.categoryId.toString().includes(searchTerm))
@@ -318,6 +341,24 @@ function Categories() {
             }}
           >
             {t.import}
+          </button>
+
+          <button
+            onClick={handleCSVExport}
+            style={{
+              backgroundColor: '#198754',
+              color: '#fff',
+              border: 'none',
+              padding: '7px 12px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            {t.export}
           </button>
         </div>
       </div>
