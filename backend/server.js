@@ -4,7 +4,9 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-
+app.get('/', (req, res) => {
+  res.send('AB Stock Server is running!');
+});
 // 1. Middlewares Setup
 app.use(cors());
 // Express limit for Base64 photos & large JSON data
