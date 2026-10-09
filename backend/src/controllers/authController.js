@@ -185,28 +185,25 @@ exports.exportAllUserData = async (req, res) => {
   }
 };
 
+// 9. FULL IMPORT ALL DATA (Categories, Products, Customers, Suppliers, Orders & Reports)
 exports.importAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
     const { products, categories, customers, suppliers, orders, businessType } = req.body;
     const currentBusinessType = businessType || 'pharmacy';
 
-    // 1. Categories Import (ነባሩን categoryId ሳይቀይርና ሳይደግም ማስገባት)
+    // 1. Categories Import (ያለምንም ኪሳራ ሙሉ ካቴጎሪዎችን ማስገባት)
     if (categories && Array.isArray(categories) && categories.length > 0) {
-      for (const cat of categories) {
-        await Category.updateOne(
-          { name: cat.name, user: userId },
-          { 
-            $setOnInsert: { 
-              name: cat.name, 
-              categoryId: cat.categoryId || Math.floor(1000 + Math.random() * 9000).toString(),
-              user: userId, 
-              businessType: currentBusinessType 
-            } 
-          },
-          { upsert: true }
-        );
-      }
+      const preparedCategories = categories.map(cat => {
+        const { _id, createdAt, updatedAt, ...rest } = cat;
+        return {
+          ...rest,
+          user: userId,
+          businessType: currentBusinessType,
+          categoryId: cat.categoryId || Math.floor(1000 + Math.random() * 9000).toString()
+        };
+      });
+      await Category.insertMany(preparedCategories);
     }
 
     // 2. Products Import
@@ -224,57 +221,44 @@ exports.importAllUserData = async (req, res) => {
 
     // 3. Customers Import
     if (customers && Array.isArray(customers) && customers.length > 0) {
-      for (const cust of customers) {
-        await Customer.updateOne(
-          { phone: cust.phone, user: userId },
-          { 
-            $setOnInsert: { 
-              name: cust.name, 
-              phone: cust.phone, 
-              email: cust.email || '', 
-              address: cust.address || '', 
-              totalDebt: cust.totalDebt || 0, 
-              user: userId 
-            } 
-          },
-          { upsert: true }
-        );
-      }
+      const preparedCustomers = customers.map(cust => {
+        const { _id, createdAt, updatedAt, ...rest } = cust;
+        return {
+          ...rest,
+          user: userId
+        };
+      });
+      await Customer.insertMany(preparedCustomers);
     }
 
     // 4. Suppliers Import
     if (suppliers && Array.isArray(suppliers) && suppliers.length > 0) {
-      for (const sup of suppliers) {
-        await Supplier.updateOne(
-          { name: sup.name, user: userId },
-          { 
-            $setOnInsert: { 
-              name: sup.name, 
-              phone: sup.phone || '', 
-              email: sup.email || '', 
-              user: userId 
-            } 
-          },
-          { upsert: true }
-        );
-      }
+      const preparedSuppliers = suppliers.map(sup => {
+        const { _id, createdAt, updatedAt, ...rest } = sup;
+        return {
+          ...rest,
+          user: userId
+        };
+      });
+      await Supplier.insertMany(preparedSuppliers);
     }
 
-    // 5. Orders ( የሽያጭ መዝገቦች / Invoices) Import
+    // 5. Orders / Invoices Import (ለ ሪፖርት እና ዳሽቦርድ ስሌት የሚሆን)
     if (orders && Array.isArray(orders) && orders.length > 0) {
       const preparedOrders = orders.map(ord => {
-        const { _id, createdAt, updatedAt, ...rest } = ord;
+        const { _id, ...rest } = ord;
         return {
           ...rest,
           user: userId,
           businessType: currentBusinessType,
-          createdAt: ord.createdAt ? new Date(ord.createdAt) : new Date()
+          createdAt: ord.createdAt ? new Date(ord.createdAt) : new Date(),
+          updatedAt: ord.updatedAt ? new Date(ord.updatedAt) : new Date()
         };
       });
       await Order.insertMany(preparedOrders);
     }
 
-    res.json({ message: 'ሁሉም መረጃዎች (የሽያጭ መዝገብን ጨምሮ) በተሳካ ሁኔታ ተመልሰዋል!' });
+    res.json({ message: 'ሁሉም መረጃዎች (ካቴጎሪዎች፣ ዕቃዎች፣ ደንበኞች እና የሽያጭ ሪፖርቶች) በተሳካ ሁኔታ ተመልሰዋል!' });
   } catch (err) {
     res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም፦ " + err.message });
   }
