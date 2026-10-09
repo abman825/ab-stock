@@ -72,39 +72,40 @@ exports.deleteCategory = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 exports.createCategoriesBulk = async (req, res) => {
   try {
     const categories = req.body;
     if (!Array.isArray(categories) || categories.length === 0) {
-      return res.status(400).json({ message: 'Ga go na data yeo e amogetšwego!' });
+      return res.status(400).json({ message: 'አስፈላጊው የዳታ ስብስብ አልተላከም!' });
     }
 
     const currentBusinessType = req.user?.businessType || 'pharmacy';
 
-    // 1. Hlwekisa dintlha le go aba ID ye mpsha gore go se be le kganetšano
+    // 1. የዳታ ማስተካከያ እና አዲስ Random ID መስጠት (የ ID ግጭትን ለማስቀረት)
     const formattedCategories = categories.map((cat) => ({
       name: (cat.name || cat.CategoryName || cat.Name || '').trim(),
-      categoryId: cat.categoryId || cat.CategoryId || Math.floor(100000 + Math.random() * 900000).toString(),
+      categoryId: Math.floor(100000 + Math.random() * 900000).toString(),
       productsCount: Number(cat.productsCount || cat.ProductsCount) || 0,
       user: req.user.id,
       businessType: cat.businessType || currentBusinessType
     })).filter(c => c.name !== '');
 
     if (formattedCategories.length === 0) {
-      return res.status(400).json({ message: 'Ga go na maina a dikategori a go amogelesega go CSV!' });
+      return res.status(400).json({ message: 'በፋይሉ ውስጥ ምንም ትክክለኛ የምድብ ስም አልተገኘም!' });
     }
 
-    // 2. Tsenya di-category ka database le go šomiša { ordered: false } gore e se ke ya kgaotša ge go na le duplicate
+    // 2. ordered: false በመጠቀም Duplicate ቢኖር እንኳን ኤረር ሳይወረውር አዲሶቹን ማስገባት
     const savedCategories = await Category.insertMany(formattedCategories, { ordered: false });
     
     res.status(201).json(savedCategories);
   } catch (err) {
     console.error('Bulk Import Error:', err);
-    // Ge e ba phošo e le ya di-duplicate, e swanetše go se lahlele phošo ya 500
+    
+    // Duplicate Error ካለ 500 ሳይሆን 201 መልስ በመስጠት የገቡትን መመዝገብ
     if (err.code === 11000 || err.name === 'MongoBulkWriteError') {
-      return res.status(201).json({ message: 'Tše dingwe di tsentšwe, kodutši tša go swana di tlogetšwe!' });
+      return res.status(201).json({ message: 'አዲሶቹ ምድቦች በደህና ገብተዋል፤ ቀደም ብለው የነበሩት አልፈዋል!' });
     }
+    
     res.status(500).json({ error: err.message });
   }
 };
