@@ -95,7 +95,7 @@ function Transfer() {
   const [formData, setFormData] = useState({
     from: 'store',
     to: 'shop',
-    transferredBy: 'ab'
+    transferredBy: ''
   });
 
   const getAuthHeaders = () => {
