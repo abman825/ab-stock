@@ -3,12 +3,11 @@ import React, { useState, useEffect } from 'react';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-// 3ti languages er dictionary translations
 const translations = {
   am: {
     title: "የምርት ዝውውር (Product Transfer)",
-    pharmacyBadge: "💊 የፋርማሲ ሁነታ",
-    buildingBadge: "🏗️ የሕንፃ መሣሪያ ሁነታ",
+    pharmacyBadge: "💊 የፋርማሲ ሁኔታ",
+    buildingBadge: "🏗️ የሕንፃ መሣሪያ ሁኔታ",
     subtitle: "ምርቶችን ከመጋዘን ወደ ሱቅ ወይም ከሱቅ ወደ መጋዘን ያዛውሩ።",
     subInfo: "ከመጋዘን ወደ ሱቅ የተዛወሩ ምርቶች በቀጥታ ሽያጭ ገጽ ላይ ይጨመራሉ።",
     btnTransfer: "+ ምርት አዛውር",
@@ -16,7 +15,7 @@ const translations = {
     thFrom: "ከወዴት (FROM)",
     thTo: "ወደ የት (TO)",
     thBy: "ያዛወረው ሰው",
-    noRecords: "ምንም የተመዘገበ የዝውውር መረጃ አልተገኘም።",
+    noRecords: " ምንም የተመዘገበ የዝውውር መረጃ አልተገኘም።",
     modalTitle: "አዲስ ምርት ማዛወሪያ",
     labelFrom: "ከወዴት (From)",
     labelTo: "ወደ የት (To)",
@@ -80,14 +79,12 @@ const translations = {
 };
 
 function Transfer() {
-  // Multi-language state
   const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
   const t = translations[lang] || translations.am;
 
   const [transfers, setTransfers] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
-  // Business type switch (pharmacy / building_materials)
   const [businessType, setBusinessType] = useState(
     localStorage.getItem('businessType') || 'pharmacy'
   );
@@ -101,7 +98,6 @@ function Transfer() {
     transferredBy: 'ab'
   });
 
-  // Authorization Headers
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -110,7 +106,6 @@ function Transfer() {
     };
   };
 
-  // Sync mode & language changes
   useEffect(() => {
     const handleModeChange = () => {
       const currentMode = localStorage.getItem('businessType') || 'pharmacy';
@@ -135,7 +130,6 @@ function Transfer() {
     };
   }, []);
 
-  // Fetch transfers based on active business type
   useEffect(() => {
     fetchTransfers();
   }, [businessType]);
@@ -162,7 +156,6 @@ function Transfer() {
     }
   };
 
-  // Create new transfer submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -186,31 +179,64 @@ function Transfer() {
   };
 
   return (
-    <div style={{ padding: '25px', backgroundColor: '#f8f9fa', flex: 1, overflowY: 'auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ padding: '15px', backgroundColor: '#f8f9fa', flex: 1, overflowY: 'auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
+      <style>{`
+        .transfer-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .action-btn {
+          width: auto;
+        }
+        .modal-content {
+          width: 90%;
+          max-width: 400px;
+        }
+        @media (max-width: 600px) {
+          .transfer-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .action-btn {
+            width: 100%;
+            text-align: center;
+          }
+          .modal-content {
+            width: 95%;
+            padding: 15px;
+          }
+        }
+      `}</style>
+
       {/* Header Area */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="transfer-header">
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#212529', margin: 0 }}>{t.title}</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#212529', margin: 0 }}>{t.title}</h2>
           <span style={{ fontSize: '11px', color: '#0d6efd', fontWeight: 'bold', textTransform: 'uppercase', display: 'inline-block', marginTop: '4px' }}>
             {isBuilding ? t.buildingBadge : t.pharmacyBadge}
           </span>
-          <p style={{ fontSize: '13px', color: '#6c757d', margin: '5px 0 0 0' }}>
+          <p style={{ fontSize: '12px', color: '#6c757d', margin: '5px 0 0 0' }}>
             {t.subtitle}<br />
-            <span style={{ fontSize: '12px', color: '#8c98a4' }}>
+            <span style={{ fontSize: '11px', color: '#8c98a4' }}>
               {t.subInfo}
             </span>
           </p>
         </div>
         
         <button 
+          className="action-btn"
           onClick={() => setShowModal(true)}
           style={{
             backgroundColor: '#0d6efd',
             color: '#fff',
             border: 'none',
-            padding: '8px 16px',
-            borderRadius: '5px',
+            padding: '10px 16px',
+            borderRadius: '6px',
             fontSize: '13px',
             fontWeight: '500',
             cursor: 'pointer'
@@ -222,31 +248,31 @@ function Transfer() {
 
       {/* Table Section */}
       <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e9ecef', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '550px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '450px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '1px solid #dee2e6', color: '#6c757d', fontSize: '11px', textTransform: 'uppercase' }}>
-              <th style={{ padding: '12px 15px' }}>{t.thDate}</th>
-              <th style={{ padding: '12px 15px' }}>{t.thFrom}</th>
-              <th style={{ padding: '12px 15px' }}>{t.thTo}</th>
-              <th style={{ padding: '12px 15px' }}>{t.thBy}</th>
+              <th style={{ padding: '10px 12px' }}>{t.thDate}</th>
+              <th style={{ padding: '10px 12px' }}>{t.thFrom}</th>
+              <th style={{ padding: '10px 12px' }}>{t.thTo}</th>
+              <th style={{ padding: '10px 12px' }}>{t.thBy}</th>
             </tr>
           </thead>
           <tbody>
             {transfers.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+                <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#6c757d', fontSize: '12px' }}>
                   {t.noRecords} ({isBuilding ? t.modeBuilding : t.modePharmacy})
                 </td>
               </tr>
             ) : (
               transfers.map((item, idx) => (
                 <tr key={item._id || idx} style={{ borderBottom: '1px solid #f1f3f5' }}>
-                  <td style={{ padding: '12px 15px', color: '#495057' }}>
+                  <td style={{ padding: '10px 12px', color: '#495057' }}>
                     {new Date(item.date || item.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
-                  <td style={{ padding: '12px 15px', color: '#495057', textTransform: 'capitalize' }}>{item.from}</td>
-                  <td style={{ padding: '12px 15px', color: '#495057', textTransform: 'capitalize' }}>{item.to}</td>
-                  <td style={{ padding: '12px 15px', color: '#495057' }}>{item.transferredBy}</td>
+                  <td style={{ padding: '10px 12px', color: '#495057', textTransform: 'capitalize' }}>{item.from}</td>
+                  <td style={{ padding: '10px 12px', color: '#495057', textTransform: 'capitalize' }}>{item.to}</td>
+                  <td style={{ padding: '10px 12px', color: '#495057' }}>{item.transferredBy}</td>
                 </tr>
               ))
             )}
@@ -256,21 +282,21 @@ function Transfer() {
 
       {/* Transfer Modal */}
       {showModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '10px' }}>
-          <div style={{ backgroundColor: '#fff', width: '100%', maxWidth: '400px', borderRadius: '8px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', boxSizing: 'border-box' }}>
-            <h3 style={{ marginTop: 0, fontSize: '16px', borderBottom: '1px solid #eee', paddingBottom: '10px', color: '#212529' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '10px' }}>
+          <div className="modal-content" style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', boxSizing: 'border-box' }}>
+            <h3 style={{ marginTop: 0, fontSize: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px', color: '#212529' }}>
               {t.modalTitle} ({isBuilding ? t.modeBuilding : t.modePharmacy})
             </h3>
             
             <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 'bold', color: '#495057' }}>
                   {t.labelFrom}
                 </label>
                 <select 
                   value={formData.from}
                   onChange={(e) => setFormData({ ...formData, from: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
                 >
                   <option value="store">{t.optStore}</option>
                   <option value="stock">{t.optStock}</option>
@@ -278,14 +304,14 @@ function Transfer() {
                 </select>
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 'bold', color: '#495057' }}>
                   {t.labelTo}
                 </label>
                 <select 
                   value={formData.to}
                   onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
                 >
                   <option value="shop">{t.optShop}</option>
                   <option value="stock">{t.optStock}</option>
@@ -302,7 +328,7 @@ function Transfer() {
                   required
                   value={formData.transferredBy}
                   onChange={(e) => setFormData({ ...formData, transferredBy: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -310,13 +336,13 @@ function Transfer() {
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)} 
-                  style={{ padding: '6px 12px', border: '1px solid #ccc', background: '#fff', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                  style={{ padding: '8px 14px', border: '1px solid #ccc', background: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
                 >
                   {t.btnCancel}
                 </button>
                 <button 
                   type="submit" 
-                  style={{ padding: '6px 12px', border: 'none', background: '#0d6efd', color: '#fff', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+                  style={{ padding: '8px 14px', border: 'none', background: '#0d6efd', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
                 >
                   {t.btnSubmit}
                 </button>

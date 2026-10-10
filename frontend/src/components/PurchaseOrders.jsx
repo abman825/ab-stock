@@ -6,7 +6,7 @@ const API_BASE_URL = `${BASE_URL}/api`;
 // 3ti languages er dictionary translations
 const translations = {
   am: {
-    title: "የግዢ ማዘዣዎች (Purchase Orders)",
+    title: "የግዢ ትዕዛዞች (Purchase Orders)",
     subtitle: "አዲስ የግዢ ትዕዛዝ በማዘጋጀት ምርት ያስገቡ።",
     subInfo: "ምርቱ በቀጥታ ወደ መጋዘንዎ ገቢ ይደረጋል።",
     btnCreate: "+ አዲስ ግዢ መዝግብ",
@@ -17,7 +17,7 @@ const translations = {
     thSupplier: "አቅራቢ",
     thInvoice: "የኢንቮይስ ቁጥር",
     noOrders: "ምንም የተመዘገበ የግዢ መረጃ የለም።",
-    modalTitle: "አዲስ የግዢ ማዘዣ መመዝገቢያ",
+    modalTitle: "አዲስ የግዢ ትዕዛዝ መመዝገቢያ",
     labelSupplier: "አቅራቢ *",
     selectSupplier: "-- አቅራቢ ይምረጡ --",
     labelProduct: "ምርት *",
@@ -104,7 +104,6 @@ const translations = {
 };
 
 function PurchaseOrders() {
-  // Multi-language state
   const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
   const t = translations[lang] || translations.am;
 
@@ -122,7 +121,6 @@ function PurchaseOrders() {
     invoiceNumber: ''
   });
 
-  // Authorization Header
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -131,7 +129,6 @@ function PurchaseOrders() {
     };
   };
 
-  // Data Fetching
   const fetchData = async () => {
     try {
       const config = { headers: getAuthHeaders() };
@@ -171,7 +168,6 @@ function PurchaseOrders() {
     };
   }, []);
 
-  // CSV Import Functionality
   const handleImportCSV = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -247,7 +243,6 @@ function PurchaseOrders() {
     }
   };
 
-  // Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -278,26 +273,73 @@ function PurchaseOrders() {
   };
 
   return (
-    <div style={{ padding: '24px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ padding: '16px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
+      <style>{`
+        .po-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .po-buttons {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          width: auto;
+        }
+        .po-btn {
+          flex: 1;
+          justify-content: center;
+          white-space: nowrap;
+        }
+        .form-grid-modal {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .modal-card {
+          width: 95%;
+          max-width: 420px;
+        }
+        @media (max-width: 600px) {
+          .po-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .po-buttons {
+            width: 100%;
+          }
+          .form-grid-modal {
+            grid-template-columns: 1fr;
+          }
+          .modal-card {
+            padding: 16px;
+          }
+        }
+      `}</style>
+
       {/* Top Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="po-header">
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#1e293b', margin: 0 }}>{t.title}</h2>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '6px 0 0 0' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', margin: 0 }}>{t.title}</h2>
+          <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
             {t.subtitle}<br />
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>{t.subInfo}</span>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t.subInfo}</span>
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="po-buttons">
           <button
+            className="po-btn"
             onClick={() => setShowModal(true)}
             style={{
               backgroundColor: '#2563eb',
               color: '#fff',
               border: 'none',
-              padding: '9px 16px',
+              padding: '10px 14px',
               borderRadius: '6px',
               fontWeight: '500',
               cursor: 'pointer',
@@ -310,13 +352,13 @@ function PurchaseOrders() {
             {t.btnCreate}
           </button>
 
-          {/* Import Purchases Label/Button */}
           <label
+            className="po-btn"
             style={{
               backgroundColor: '#fff',
               color: '#334155',
               border: '1px solid #cbd5e1',
-              padding: '9px 16px',
+              padding: '10px 14px',
               borderRadius: '6px',
               fontWeight: '500',
               cursor: 'pointer',
@@ -339,37 +381,37 @@ function PurchaseOrders() {
 
       {/* Table */}
       <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '650px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '550px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '11px', textTransform: 'uppercase' }}>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thDate}</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thItems}</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thTotal}</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thSupplier}</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thInvoice}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thDate}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thItems}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thTotal}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thSupplier}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thInvoice}</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '12px' }}>
                   {t.noOrders}
                 </td>
               </tr>
             ) : (
               orders.map((po) => (
                 <tr key={po._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '14px 20px', color: '#64748b' }}>
+                  <td style={{ padding: '12px 14px', color: '#64748b' }}>
                     {new Date(po.createdAt || Date.now()).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                   </td>
-                  <td style={{ padding: '14px 20px', fontWeight: '500', color: '#0f172a' }}>
+                  <td style={{ padding: '12px 14px', fontWeight: '500', color: '#0f172a' }}>
                     {po.quantity} {po.quantity > 1 ? t.itemsText : t.itemText} ({po.productName})
                   </td>
-                  <td style={{ padding: '14px 20px', fontWeight: '500', color: '#0f172a' }}>
+                  <td style={{ padding: '12px 14px', fontWeight: '500', color: '#0f172a' }}>
                     ETB {po.totalCost ? po.totalCost.toLocaleString() : (po.quantity * po.unitCost || 0).toLocaleString()}
                   </td>
-                  <td style={{ padding: '14px 20px', color: '#475569' }}>{po.supplierName}</td>
-                  <td style={{ padding: '14px 20px', color: '#64748b', fontFamily: 'monospace' }}>
+                  <td style={{ padding: '12px 14px', color: '#475569' }}>{po.supplierName}</td>
+                  <td style={{ padding: '12px 14px', color: '#64748b', fontFamily: 'monospace' }}>
                     {po.invoiceNumber || 'N/A'}
                   </td>
                 </tr>
@@ -381,21 +423,21 @@ function PurchaseOrders() {
 
       {/* Modal Form */}
       {showModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '100%', maxWidth: '420px', boxSizing: 'border-box' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '16px', color: '#0f172a', fontWeight: '600' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
+          <div className="modal-card" style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxSizing: 'border-box' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '15px', color: '#0f172a', fontWeight: '600' }}>
               {t.modalTitle}
             </h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                   {t.labelSupplier}
                 </label>
                 <select
                   required
                   value={formData.supplierName}
                   onChange={(e) => setFormData({ ...formData, supplierName: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 >
                   <option value="">{t.selectSupplier}</option>
                   {suppliers.map((s) => (
@@ -405,14 +447,14 @@ function PurchaseOrders() {
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                   {t.labelProduct}
                 </label>
                 <select
                   required
                   value={formData.productId}
                   onChange={handleProductSelect}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 >
                   <option value="">{t.selectProduct}</option>
                   {products.map((p) => (
@@ -421,9 +463,9 @@ function PurchaseOrders() {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="form-grid-modal">
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                     {t.labelQuantity}
                   </label>
                   <input
@@ -432,11 +474,11 @@ function PurchaseOrders() {
                     required
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                     {t.labelUnitCost}
                   </label>
                   <input
@@ -445,13 +487,13 @@ function PurchaseOrders() {
                     required
                     value={formData.unitCost}
                     onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                   {t.labelInvoice}
                 </label>
                 <input
@@ -459,21 +501,21 @@ function PurchaseOrders() {
                   placeholder="INV-XXXXXX"
                   value={formData.invoiceNumber}
                   onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)} 
-                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
                 >
                   {t.btnCancel}
                 </button>
                 <button 
                   type="submit" 
-                  style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+                  style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
                 >
                   {t.btnSave}
                 </button>

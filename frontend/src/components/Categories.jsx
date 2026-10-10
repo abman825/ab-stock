@@ -5,46 +5,45 @@ import Papa from 'papaparse';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-// 3ti languages er dictionary translations
 const translations = {
   am: {
-    buildingTitle: "የሕንፃ መሣሪያዎች ምድብ አስተዳደር",
-    pharmacyTitle: "የፋርማሲ ምድብ አስተዳደር",
-    searchPlaceholder: "ይፈልጉ...",
-    addCategory: "+ ምድብ ጨምር",
-    import: "📥 አስገባ (Import)",
-    export: "📤 ላክ (Export)",
-    thCategoryId: "የምድብ መታወቂያ (ID)",
+    buildingTitle: "የሕንፃ መሣሪያዎች ምድብ",
+    pharmacyTitle: "የፋርማሲ ምድብ",
+    searchPlaceholder: "ፈልግ...",
+    addCategory: "+ ጨምር",
+    import: "📥 አስገባ",
+    export: "📤 ላክ",
+    thCategoryId: "ID",
     thName: "ስም",
-    thProducts: "የምርቶች ብዛት",
+    thProducts: "ምርቶች",
     thActions: "ድርጊቶች",
     edit: "አስተካክል",
     delete: "ሰርዝ",
     noCategories: "ምንም ምድብ አልተገኘም።",
     editTitle: "ምድብ አስተካክል",
     addTitle: "ምድብ ጨምር",
-    categoryIdLabel: "የምድብ መታወቂያ (አማራጭ)",
+    categoryIdLabel: "የምድብ መለያ (አማራጭ)",
     categoryNameLabel: "የምድብ ስም",
-    buildingPlaceholder: "ምሳሌ፤ ሲሚንቶ፣ ብረት፣ ኤሌክትሪክ",
-    pharmacyPlaceholder: "ምሳሌ፤ መድኃኒት፣ ሲሮፕ፣ ታብሌት",
+    buildingPlaceholder: "ምሳሌ፤ ሲሚንቶ፣ ብረት",
+    pharmacyPlaceholder: "ምሳሌ፤ መድኃኒት፣ ሲሮፕ",
     cancel: "ሰርዝ",
-    update: "አዘምን",
+    update: "አድስ",
     save: "አስቀምጥ",
     confirmDelete: "እርግጠኛ ነዎት ይህንን ምድብ መሰረዝ ይፈልጋሉ?",
-    csvEmpty: "በCSV ፋይሉ ውስጥ ምንም ትክክለኛ መረጃ አልተገኘም!",
+    csvEmpty: "በCSV ፋይል ውስጥ ምንም ትክክለኛ መረጃ አልተገኘም!",
     csvSuccess: " ምድቦች በጥሩ ሁኔታ ገብተዋል!",
     csvError: "በማስገባት ሂደት ላይ ስህተት ተፈጥሯል!"
   },
   om: {
-    buildingTitle: "Bulchiinsa Ramaddii Meeshaalee Ijaarsaa",
-    pharmacyTitle: "Bulchiinsa Ramaddii Faarmaasii",
+    buildingTitle: "Ramaddii Meeshaalee Ijaarsaa",
+    pharmacyTitle: "Ramaddii Faarmaasii",
     searchPlaceholder: "Barbaadi...",
-    addCategory: "+ Ramaddii Dabali",
-    import: "📥 Galchuu (Import)",
-    export: "📤 Baasuu (Export)",
-    thCategoryId: "EEYYAMA RAMADDII (ID)",
+    addCategory: "+ Dabali",
+    import: "📥 Galchuu",
+    export: "📤 Baasuu",
+    thCategoryId: "ID",
     thName: "MAQAA",
-    thProducts: "BAAY'INA OOMISHAALEE",
+    thProducts: "OOMISHAALEE",
     thActions: "TARKANFIISSA",
     edit: "Gulaali",
     delete: "Haqi",
@@ -53,8 +52,8 @@ const translations = {
     addTitle: "Ramaddii Dabali",
     categoryIdLabel: "Eeyyama Ramaddii (Filannoo)",
     categoryNameLabel: "Maqaa Ramaddii",
-    buildingPlaceholder: "Simbirroo, Sibila, Elektiriikii",
-    pharmacyPlaceholder: "Qoricha, Sirooppii, Tabeelaa",
+    buildingPlaceholder: "Simbirroo, Sibila",
+    pharmacyPlaceholder: "Qoricha, Sirooppii",
     cancel: "Dhiisi",
     update: "Haaromsi",
     save: "Olka'i",
@@ -64,13 +63,13 @@ const translations = {
     csvError: "Dogoggorri uumameera faayila galchuu irratti!"
   },
   en: {
-    buildingTitle: "Building Materials Category Management",
-    pharmacyTitle: "Pharmacy Category Management",
+    buildingTitle: "Building Categories",
+    pharmacyTitle: "Pharmacy Categories",
     searchPlaceholder: "Search...",
-    addCategory: "+ Add Category",
+    addCategory: "+ Add",
     import: "Import",
     export: "Export",
-    thCategoryId: "CATEGORY ID",
+    thCategoryId: "ID",
     thName: "NAME",
     thProducts: "PRODUCTS",
     thActions: "ACTIONS",
@@ -81,7 +80,7 @@ const translations = {
     addTitle: "Add Category",
     categoryIdLabel: "Category ID (Optional)",
     categoryNameLabel: "Category Name",
-    buildingPlaceholder: "e.g. Cement, Steel, Electrical",
+    buildingPlaceholder: "e.g. Cement, Steel",
     pharmacyPlaceholder: "e.g. Syrup, Tablet",
     cancel: "Cancel",
     update: "Update",
@@ -277,43 +276,92 @@ function Categories() {
   );
 
   return (
-    <div style={{ padding: '20px', flex: 1, backgroundColor: '#f4f6f8' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#333', margin: 0 }}>
+    <div style={{ padding: '12px', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f4f6f8', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      
+      <style>{`
+        .cat-top-bar {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+        .cat-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: '#333';
+          margin: 0;
+        }
+        .cat-controls {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          width: 100%;
+        }
+        .cat-search-input {
+          flex: 1;
+          min-width: 0;
+          padding: 6px 10px;
+          border: 1px solid #ccc;
+          border-radius: 6px;
+          font-size: 12px;
+          background-color: #fff;
+          box-sizing: border-box;
+        }
+        .cat-action-btn {
+          padding: 6px 10px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          white-space: nowrap;
+          border: none;
+        }
+        .table-wrapper {
+          flex: 1;
+          background-color: #fff;
+          border-radius: 8px;
+          border: 1px solid #e0e0e0;
+          overflow: auto;
+        }
+        .modal-card-cat {
+          width: 95%;
+          max-width: 360px;
+        }
+        @media (min-width: 600px) {
+          .cat-top-bar {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .cat-controls {
+            width: auto;
+          }
+          .cat-search-input {
+            width: 150px;
+            flex: none;
+          }
+        }
+      `}</style>
+
+      {/* Control Panel Header */}
+      <div className="cat-top-bar">
+        <h2 className="cat-title">
           {isBuildingMode ? t.buildingTitle : t.pharmacyTitle}
         </h2>
         
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="cat-controls">
           <input
             type="text"
+            className="cat-search-input"
             placeholder={t.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: '7px 12px',
-              border: '1px solid #ccc',
-              borderRadius: '5px',
-              width: '160px',
-              fontSize: '13px',
-              backgroundColor: '#fff'
-            }}
           />
 
           <button
+            className="cat-action-btn"
             onClick={() => { setEditingId(null); setShowModal(true); }}
-            style={{
-              backgroundColor: '#0d6efd',
-              color: '#fff',
-              border: 'none',
-              padding: '7px 14px',
-              borderRadius: '5px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
+            style={{ backgroundColor: '#0d6efd', color: '#fff' }}
           >
             {t.addCategory}
           </button>
@@ -327,76 +375,57 @@ function Categories() {
           />
 
           <button
+            className="cat-action-btn"
             onClick={() => fileInputRef.current.click()}
-            style={{
-              backgroundColor: '#fff',
-              color: '#333',
-              border: '1px solid #ccc',
-              padding: '7px 12px',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
+            style={{ backgroundColor: '#fff', color: '#333', border: '1px solid #ccc' }}
           >
             {t.import}
           </button>
 
           <button
+            className="cat-action-btn"
             onClick={handleCSVExport}
-            style={{
-              backgroundColor: '#198754',
-              color: '#fff',
-              border: 'none',
-              padding: '7px 12px',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
+            style={{ backgroundColor: '#198754', color: '#fff' }}
           >
             {t.export}
           </button>
         </div>
       </div>
 
-      <div style={{ backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '600px' }}>
+      {/* Main Table Content - Full Screen Viewport Fit */}
+      <div className="table-wrapper">
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
           <thead>
-            <tr style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #e0e0e0', color: '#666', fontSize: '11px', letterSpacing: '0.5px' }}>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thCategoryId}</th>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thName}</th>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thProducts}</th>
-              <th style={{ padding: '10px 16px', fontWeight: '600' }}>{t.thActions}</th>
+            <tr style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #e0e0e0', color: '#666', fontSize: '11px', letterSpacing: '0.5px', position: 'sticky', top: 0, zIndex: 1 }}>
+              <th style={{ padding: '8px 10px', fontWeight: '600' }}>{t.thCategoryId}</th>
+              <th style={{ padding: '8px 10px', fontWeight: '600' }}>{t.thName}</th>
+              <th style={{ padding: '8px 10px', fontWeight: '600' }}>{t.thProducts}</th>
+              <th style={{ padding: '8px 10px', fontWeight: '600', textAlign: 'right' }}>{t.thActions}</th>
             </tr>
           </thead>
           <tbody>
             {filteredCategories.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: '#888' }}>
+                <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#888', fontSize: '12px' }}>
                   {t.noCategories}
                 </td>
               </tr>
             ) : (
               filteredCategories.map((cat) => (
                 <tr key={cat._id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '12px 16px', color: '#555' }}>{cat.categoryId}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: '500', color: '#222' }}>{cat.name}</td>
-                  <td style={{ padding: '12px 16px', color: '#555' }}>{cat.productsCount || 0}</td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td style={{ padding: '8px 10px', color: '#555', fontFamily: 'monospace' }}>{cat.categoryId}</td>
+                  <td style={{ padding: '8px 10px', fontWeight: '500', color: '#222' }}>{cat.name}</td>
+                  <td style={{ padding: '8px 10px', color: '#555' }}>{cat.productsCount || 0}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button
                       onClick={() => handleEditClick(cat)}
                       style={{
                         background: 'transparent',
                         color: '#0d6efd',
                         border: 'none',
-                        marginRight: '12px',
+                        marginRight: '8px',
                         cursor: 'pointer',
-                        fontSize: '13px',
+                        fontSize: '12px',
                         fontWeight: '500'
                       }}
                     >
@@ -409,7 +438,7 @@ function Categories() {
                         color: '#dc3545',
                         border: 'none',
                         cursor: 'pointer',
-                        fontSize: '13px',
+                        fontSize: '12px',
                         fontWeight: '500'
                       }}
                     >
@@ -423,41 +452,42 @@ function Categories() {
         </table>
       </div>
 
+      {/* Responsive Form Modal */}
       {showModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '6px', width: '380px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px', color: '#333' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
+          <div className="modal-card-cat" style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', boxSizing: 'border-box' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '14px', fontSize: '14px', color: '#333', fontWeight: '600' }}>
               {editingId ? t.editTitle : t.addTitle}
             </h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.categoryIdLabel}</label>
+                <label style={{ fontSize: '11px', color: '#666', marginBottom: '3px', display: 'block' }}>{t.categoryIdLabel}</label>
                 <input
                   type="text"
                   placeholder="e.g. 2813"
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '12px', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '11px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.categoryNameLabel}</label>
+                <label style={{ fontSize: '11px', color: '#666', marginBottom: '3px', display: 'block' }}>{t.categoryNameLabel}</label>
                 <input
                   type="text"
                   required
                   placeholder={isBuildingMode ? t.buildingPlaceholder : t.pharmacyPlaceholder}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '12px', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-                <button type="button" onClick={handleCloseModal} style={{ backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                <button type="button" onClick={handleCloseModal} style={{ backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
                   {t.cancel}
                 </button>
-                <button type="submit" style={{ backgroundColor: '#0d6efd', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+                <button type="submit" style={{ backgroundColor: '#0d6efd', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}>
                   {editingId ? t.update : t.save}
                 </button>
               </div>

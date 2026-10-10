@@ -7,44 +7,44 @@ const API_BASE_URL = `${BASE_URL}/api`;
 const translations = {
   am: {
     settingsTitle: "የአካውንት ማስተካከያ (Settings)",
-    settingsDesc: "የግል መረጃዎን፣ የንግድ አይነትዎን፣ የመረጃ ጥበቃን እና የደህንነት ቅንብሮችን እዚህ ያስተካክሉ።",
+    settingsDesc: "የግል መረጃዎችን፣ የንግድ አይነቶችን፣ የመረጃ ጥንቃቄ እና የደህንነት ቅንብሮችን እዚህ ያስተካክሉ።",
     profileTab: "👤 የፕሮፋይል መረጃ",
     businessTab: "🏢 የንግድ አይነት (Business Mode)",
-    backupTab: "📦 የመረጃ ጥበቃ (Data Backup)",
-    securityTab: "🔒 ፓስወርድ እና ደህንነት",
+    backupTab: "📦 የመረጃ ጥንቃቄ (Data Backup)",
+    securityTab: "🔒 ምስጢር እና ደህንነት",
     languageTab: "🌐 ቋንቋ (Language)",
     langSelectTitle: "የመተግበሪያውን ቋንቋ ይምረጡ",
-    langSelectDesc: "በሚመችዎት ቋንቋ መተግበሪያውን ይጠቀሙ።",
+    langSelectDesc: "በሚቀጥሉት ቋንቋዎች መተግበሪያውን ይጠቀሙ።",
     username: "የተጠቃሚ ስም (Username)",
     fullName: "ሙሉ ስም (Full Name)",
     email: "ኢሜይል (Email Address)",
     phone: "ስልክ ቁጥር (Phone Number)",
-    role: "ድርሻ (Role)",
-    saveBtn: "ለውጦችን አስቀምጥ",
-    savingBtn: "በማስቀመጥ ላይ...",
-    passCurrent: "አሁን የሚጠቀሙበት ፓስወርድ",
-    passNew: "አዲስ ፓስወርድ",
-    passConfirm: "አዲሱን ፓስወርድ ያረጋግጡ",
-    passBtn: "ፓስወርድ ቀይር",
+    role: "ድረሻ (Role)",
+    saveBtn: "ለውጦች ማስተካከያ",
+    savingBtn: "በማስተካከል ላይ...",
+    passCurrent: "አሁን የሚጠቀሙበት ምስጢር",
+    passNew: "አዲስ ምስጢር",
+    passConfirm: "አዲሱን ምስጢር ማረጋገጫ",
+    passBtn: "ምስጢር ቀይር",
     pharmacyTitle: "ፋርማሲ (Pharmacy / Medicine)",
-    pharmacyDesc: "የመድኃኒት ማለቂያ ቀን (Expiry Date)፣ የሲሮፕ/ታብሌት አይነት እና ልዩ የመድኃኒት መግለጫዎችን ያካተተ ቅጽ።",
+    pharmacyDesc: "የመድኃኒት ማለፊያ ቀን (Expiry Date)፣ የሲሮፕ/ታብሌት አይነት እና ልዩ የመድኃኒት መግለጫዎችን የሚያካተት ቅጽ።",
     buildingTitle: "ሕንፃ መሣሪያ (Building Materials)",
-    buildingDesc: "የመደብ አይነት (Material Type)፣ የክፍያ/መለኪያ Unit (በካሬ፣ በሜትር፣ በኪሎ፣ በቁጥር) የሚያካተት ቅጽ።",
-    backupTitle: "የመረጃ ባካፕ እና ማውረጃ (Full Data Backup & Restore)",
-    backupDesc: "የምርቶችዎን፣ የደንበኞችዎን፣ የአቅራቢዎችዎን እና የሽያጭ ታሪክዎን ሙሉ በሙሉ በአንድ ፋይል አውርደው ያስቀምጡ ወይም የነበረውን ይመልሱ።",
+    buildingDesc: "የቁሳቁስ አይነት እና የማካፍ/መለኪያ Unit (በካሬ፣ በሜትር፣ በኪሎ፣ በቁጥር) የሚያካተት ቅጽ።",
+    backupTitle: "የመረጃ ባክአፕ እና ማደስ (Full Data Backup & Restore)",
+    backupDesc: "የምርቶችዎን፣ የደንበኞችዎን፣ የአቅራቢዎቻችንን እና የሽያጭ ታሪኮቻችንን ሙሉ በሙሉ በአንድ ፋይል አውርዶ ማስቀመጥ ወይም የነበረውን መመለስ።",
     exportBtn: "📥 ሁሉንም መረጃዎች አውርድ (Export All)",
-    importBtn: "📤 መረጃዎችን ይመልሱ (Import Backup)",
+    importBtn: "📤 መረጃዎችን ይመለሱ (Import Backup)",
     importingBtn: "በማስገባት ላይ...",
-    successProfile: "ፕሮፋይሉ በተሳካ ሁኔታ ተዘምኗል!",
-    successBusiness: "የንግድ አይነት በስኬት ተቀይሯል!",
-    successPass: "ፓስወርዱ በተሳካ ሁኔታ ተቀይሯል!",
-    profileSubtitle: "የግል መረጃዎን እና የመገናኛ አድራሻዎን ያዘምኑ።",
-    businessSubtitle: "የሚሰሩበትን የንግድ ዘርፍ ይምረጡ። በምርጫዎ መሰረት እቃዎች መመዝገቢያ እና ገጾች በራሳቸው የተቀየራሉ።",
-    securitySubtitle: "አካውንትዎን ደህንነቱ የተጠበቀ ለማድረግ ጠንካራ ፓስወርድ ይጠቀሙ።",
-    emptyPassErr: "እባክዎን ሁሉንም የፓስወርድ ቦታዎች ይሙሉ!",
-    matchPassErr: "አዲሱ ፓስወርድ እና ማረጋገጫው አልተመሳሰሉም!",
-    lenPassErr: "አዲሱ ፓስወርድ ቢያንስ 6 ፊደላት/ቁጥሮች መሆን አለበት!",
-    failPassErr: "ፓስወርድ መቀየር አልተቻለም! አሁን የሚጠቀሙበትን ፓስወርድ ያረጋግጡ።"
+    successProfile: "ፕሮፋይሉ በሳካ ሁኔታ ተስተካክሏል!",
+    successBusiness: "የንግድ አይነት በሳካ ሁኔታ ተቀባይቷል!",
+    successPass: "ምስጢሩ በሳካ ሁኔታ ተቀባይቷል!",
+    profileSubtitle: "የግል መረጃዎችን እና የመገናኛ አድራሻዎችን ይያዙ።",
+    businessSubtitle: "የሚሰሩበትን የንግድ ስንጥ ይምረጡ። በመምረጫው መሰረት እቅዶች መመዝገቢያ እና ዎች በማዕረጋቸው ተቀናብረዋል።",
+    securitySubtitle: "አካውንቱ ደህንነቱ የተጠበቀ ለማድረግ ጠንካራ ምስጢር ይጠቀሙ።",
+    emptyPassErr: "እባክዎ ሁለቱም የምስጢር ቦታዎች ይሙሉ!",
+    matchPassErr: "አዲስ ምስጢር እና ማረጋገጫው አልተሳሰሩም!",
+    lenPassErr: "አዲስ ምስጢር ቢያንስ 6 ቃላት/ቁጥሮች መሆን አለበት!",
+    failPassErr: "ምስጢር መቅየር አልተቻለም! አሁን የሚጠቀሙበትን ምስጢር ማረጋገጫ።"
   },
   om: {
     settingsTitle: "Qindaa'ina Akkaawuntii (Settings)",
@@ -131,7 +131,8 @@ const translations = {
 };
 
 function Settings() {
-  const [activeTab, setActiveTab] = useState('profile');
+  // Accordion state: openSection walla null so alla ko udditii
+  const [openSection, setOpenSection] = useState(null);
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
@@ -164,6 +165,15 @@ function Settings() {
     newPassword: '',
     confirmPassword: ''
   });
+
+  const toggleSection = (sectionName) => {
+    setMessage({ type: '', text: '' });
+    if (openSection === sectionName) {
+      setOpenSection(null);
+    } else {
+      setOpenSection(sectionName);
+    }
+  };
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -212,7 +222,6 @@ function Settings() {
     fetchUserProfile();
   }, []);
 
-  // 📦 Export All Function (Filter by Business Type)
   const handleExportAllData = async () => {
     setExportLoading(true);
     setMessage({ type: '', text: '' });
@@ -229,7 +238,7 @@ function Settings() {
       downloadAnchor.click();
       downloadAnchor.remove();
 
-      setMessage({ type: 'success', text: `የ${businessType === 'pharmacy' ? 'ፋርማሲ' : 'ሕንፃ መሣሪያ'} ሙሉ መረጃ በተሳካ ሁኔታ ወርዷል!` });
+      setMessage({ type: 'success', text: `የ${businessType === 'pharmacy' ? 'ፋርማሲ' : 'ሕንፃ መሣሪያ'} ሙሉ መረጃ በሳካ ሁኔታ ወርዷል!` });
     } catch (err) {
       setMessage({ type: 'error', text: 'መረጃዎችን ማውረድ አልተቻለም!' });
     } finally {
@@ -237,7 +246,6 @@ function Settings() {
     }
   };
 
-  // 📤 Import All Function (Filter & Restore by Business Type)
   const handleImportAllData = (e) => {
     const fileReader = new FileReader();
     const file = e.target.files[0];
@@ -257,9 +265,9 @@ function Settings() {
           { headers: getAuthHeaders() }
         );
 
-        setMessage({ type: 'success', text: 'መረጃዎቹ በተሳካ ሁኔታ ወደ ሲስተሙ ተመልሰዋል!' });
+        setMessage({ type: 'success', text: 'መረጃዎች በሳካ ሁኔታ ወደ ሰርቨር ተመልሰዋል!' });
       } catch (err) {
-        setMessage({ type: 'error', text: 'የፋይል መረጃውን ማስገባት አልተቻለም! እባክዎን ትክክለኛ የ JSON ፋይል ይምረጡ።' });
+        setMessage({ type: 'error', text: 'የፋይል መረጃውን ማስተጓጎል አልተቻለም! እባክዎ ትክክለኛ የ JSON ፋይል ይምረጡ።' });
       } finally {
         setImportLoading(false);
       }
@@ -361,26 +369,22 @@ function Settings() {
     <div style={{ padding: '20px', backgroundColor: '#f8f9fa', minHeight: '100vh', width: '100%', boxSizing: 'border-box' }}>
       
       <style>{`
-        .settings-container { display: flex; gap: 25px; max-width: 1100px; margin: 0 auto; }
-        .settings-sidebar { width: 240px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .settings-content { flex: 1; background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e9ecef; }
+        .accordion-container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+        .accordion-item { background: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .accordion-header { width: 100%; padding: 16px 20px; text-align: left; background: #ffffff; border: none; font-size: 15px; font-weight: 600; color: #212529; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.2s; }
+        .accordion-header:hover { background: #f1f3f5; }
+        .accordion-body { padding: 20px; border-top: 1px solid #e9ecef; background: #ffffff; }
         .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .tab-button { width: 100%; padding: 12px 16px; text-align: left; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease; }
-        .mode-card { border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 15px; }
+        .mode-card { border: 2px solid #e9ecef; border-radius: 10px; padding: 15px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 15px; }
         .mode-card.active { border-color: #0d6efd; background-color: #f0f7ff; }
-        .lang-card { border: 2px solid #e9ecef; border-radius: 10px; padding: 15px 20px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; }
+        .lang-card { border: 2px solid #e9ecef; border-radius: 10px; padding: 12px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; }
         .lang-card.active { border-color: #198754; background-color: #f0fff4; }
         @media (max-width: 768px) {
-          .settings-container { flex-direction: column; }
-          .settings-sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
-          .settings-sidebar::-webkit-scrollbar { display: none; }
-          .tab-button { text-align: center; white-space: nowrap; padding: 10px 14px; font-size: 12px; }
           .form-grid-2 { grid-template-columns: 1fr; }
-          .settings-content { padding: 15px; }
         }
       `}</style>
 
-      <div style={{ maxWidth: '1100px', margin: '0 auto 20px auto' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto 20px auto' }}>
         <h2 style={{ fontSize: '22px', color: '#212529', margin: '0 0 5px 0', fontWeight: '700' }}>
           {t.settingsTitle}
         </h2>
@@ -389,107 +393,36 @@ function Settings() {
         </p>
       </div>
 
-      <div className="settings-container">
-        
-        {/* Sidebar */}
-        <div className="settings-sidebar">
-          <button
-            className="tab-button"
-            onClick={() => { setActiveTab('profile'); setMessage({ type: '', text: '' }); }}
+      <div className="accordion-container">
+
+        {message.text && (
+          <div
             style={{
-              backgroundColor: activeTab === 'profile' ? '#0d6efd' : '#ffffff',
-              color: activeTab === 'profile' ? '#ffffff' : '#495057',
-              boxShadow: activeTab === 'profile' ? '0 2px 6px rgba(13,110,253,0.3)' : 'none',
-              border: activeTab === 'profile' ? 'none' : '1px solid #dee2e6'
+              padding: '12px 15px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500',
+              backgroundColor: message.type === 'success' ? '#d1e7dd' : '#f8d7da',
+              color: message.type === 'success' ? '#0f5132' : '#842029',
+              border: `1px solid ${message.type === 'success' ? '#badbcc' : '#f5c2c7'}`
             }}
           >
-            {t.profileTab}
+            {message.type === 'success' ? '✅ ' : '⚠️ '}
+            {message.text}
+          </div>
+        )}
+
+        {/* 1. Profile Accordion */}
+        <div className="accordion-item">
+          <button className="accordion-header" onClick={() => toggleSection('profile')}>
+            <span>{t.profileTab}</span>
+            <span>{openSection === 'profile' ? '▲' : '▼'}</span>
           </button>
-
-          <button
-            className="tab-button"
-            onClick={() => { setActiveTab('businessMode'); setMessage({ type: '', text: '' }); }}
-            style={{
-              backgroundColor: activeTab === 'businessMode' ? '#0d6efd' : '#ffffff',
-              color: activeTab === 'businessMode' ? '#ffffff' : '#495057',
-              boxShadow: activeTab === 'businessMode' ? '0 2px 6px rgba(13,110,253,0.3)' : 'none',
-              border: activeTab === 'businessMode' ? 'none' : '1px solid #dee2e6'
-            }}
-          >
-            {t.businessTab}
-          </button>
-
-          <button
-            className="tab-button"
-            onClick={() => { setActiveTab('backup'); setMessage({ type: '', text: '' }); }}
-            style={{
-              backgroundColor: activeTab === 'backup' ? '#0d6efd' : '#ffffff',
-              color: activeTab === 'backup' ? '#ffffff' : '#495057',
-              boxShadow: activeTab === 'backup' ? '0 2px 6px rgba(13,110,253,0.3)' : 'none',
-              border: activeTab === 'backup' ? 'none' : '1px solid #dee2e6'
-            }}
-          >
-            {t.backupTab}
-          </button>
-
-          <button
-            className="tab-button"
-            onClick={() => { setActiveTab('language'); setMessage({ type: '', text: '' }); }}
-            style={{
-              backgroundColor: activeTab === 'language' ? '#0d6efd' : '#ffffff',
-              color: activeTab === 'language' ? '#ffffff' : '#495057',
-              boxShadow: activeTab === 'language' ? '0 2px 6px rgba(13,110,253,0.3)' : 'none',
-              border: activeTab === 'language' ? 'none' : '1px solid #dee2e6'
-            }}
-          >
-            {t.languageTab}
-          </button>
-
-          <button
-            className="tab-button"
-            onClick={() => { setActiveTab('security'); setMessage({ type: '', text: '' }); }}
-            style={{
-              backgroundColor: activeTab === 'security' ? '#0d6efd' : '#ffffff',
-              color: activeTab === 'security' ? '#ffffff' : '#495057',
-              boxShadow: activeTab === 'security' ? '0 2px 6px rgba(13,110,253,0.3)' : 'none',
-              border: activeTab === 'security' ? 'none' : '1px solid #dee2e6'
-            }}
-          >
-            {t.securityTab}
-          </button>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="settings-content">
-          
-          {message.text && (
-            <div
-              style={{
-                padding: '12px 15px',
-                borderRadius: '6px',
-                marginBottom: '20px',
-                fontSize: '13px',
-                fontWeight: '500',
-                backgroundColor: message.type === 'success' ? '#d1e7dd' : '#f8d7da',
-                color: message.type === 'success' ? '#0f5132' : '#842029',
-                border: `1px solid ${message.type === 'success' ? '#badbcc' : '#f5c2c7'}`
-              }}
-            >
-              {message.type === 'success' ? '✅ ' : '⚠️ '}
-              {message.text}
-            </div>
-          )}
-
-          {/* 1. Profile Tab */}
-          {activeTab === 'profile' && (
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
-                {t.profileTab}
-              </h3>
+          {openSection === 'profile' && (
+            <div className="accordion-body">
               <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
                 {t.profileSubtitle}
               </p>
-
               <form onSubmit={handleUpdateProfile}>
                 <div className="form-grid-2" style={{ marginBottom: '15px' }}>
                   <div>
@@ -503,7 +436,6 @@ function Settings() {
                       style={{ width: '100%', padding: '9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
-
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
                       {t.fullName}
@@ -529,7 +461,6 @@ function Settings() {
                       style={{ width: '100%', padding: '9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                   </div>
-
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
                       {t.phone}
@@ -554,8 +485,7 @@ function Settings() {
                     borderRadius: '6px',
                     fontSize: '13px',
                     fontWeight: '600',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    opacity: loading ? 0.7 : 1
+                    cursor: loading ? 'not-allowed' : 'pointer'
                   }}
                 >
                   {loading ? t.savingBtn : t.saveBtn}
@@ -563,25 +493,27 @@ function Settings() {
               </form>
             </div>
           )}
+        </div>
 
-          {/* 2. Business Mode Tab */}
-          {activeTab === 'businessMode' && (
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
-                {t.businessTab}
-              </h3>
+        {/* 2. Business Mode Accordion */}
+        <div className="accordion-item">
+          <button className="accordion-header" onClick={() => toggleSection('businessMode')}>
+            <span>{t.businessTab}</span>
+            <span>{openSection === 'businessMode' ? '▲' : '▼'}</span>
+          </button>
+          {openSection === 'businessMode' && (
+            <div className="accordion-body">
               <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
                 {t.businessSubtitle}
               </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div
                   className={`mode-card ${businessType === 'pharmacy' ? 'active' : ''}`}
                   onClick={() => handleSaveBusinessType('pharmacy')}
                 >
-                  <span style={{ fontSize: '28px' }}>💊</span>
+                  <span style={{ fontSize: '24px' }}>💊</span>
                   <div>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#212529' }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#212529' }}>
                       {t.pharmacyTitle}
                     </h4>
                     <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
@@ -594,9 +526,9 @@ function Settings() {
                   className={`mode-card ${businessType === 'building_materials' ? 'active' : ''}`}
                   onClick={() => handleSaveBusinessType('building_materials')}
                 >
-                  <span style={{ fontSize: '28px' }}>🏗️</span>
+                  <span style={{ fontSize: '24px' }}>🏗️</span>
                   <div>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#212529' }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#212529' }}>
                       {t.buildingTitle}
                     </h4>
                     <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
@@ -607,24 +539,25 @@ function Settings() {
               </div>
             </div>
           )}
+        </div>
 
-          {/* 📦 3. Data Backup Tab */}
-          {activeTab === 'backup' && (
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
-                {t.backupTitle}
-              </h3>
+        {/* 3. Backup Accordion */}
+        <div className="accordion-item">
+          <button className="accordion-header" onClick={() => toggleSection('backup')}>
+            <span>{t.backupTab}</span>
+            <span>{openSection === 'backup' ? '▲' : '▼'}</span>
+          </button>
+          {openSection === 'backup' && (
+            <div className="accordion-body">
               <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
                 {t.backupDesc}
               </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Export Card */}
-                <div style={{ background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div style={{ background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                   <div>
-                    <h4 style={{ margin: '0 0 5px 0', fontSize: '15px', color: '#212529' }}>1. የመረጃ ባካፕ አውርድ (Export Data)</h4>
+                    <h4 style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#212529' }}>1. የመረጃ ባክአፕ አውርድ (Export Data)</h4>
                     <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
-                      የ{businessType === 'pharmacy' ? 'ፋርማሲ' : 'ሕንፃ መሣሪያ'} ምርቶችን፣ ደንበኞችን እና ሽያጮችን ወደ ኮምፒውተርዎ ያውርዱ።
+                      የ{businessType === 'pharmacy' ? 'ፋርማሲ' : 'ሕንፃ መሣሪያ'} መረጃዎችን ይውረዱ።
                     </p>
                   </div>
                   <button
@@ -634,7 +567,7 @@ function Settings() {
                       backgroundColor: '#0d6efd',
                       color: '#fff',
                       border: 'none',
-                      padding: '10px 18px',
+                      padding: '8px 16px',
                       borderRadius: '6px',
                       fontWeight: 'bold',
                       fontSize: '13px',
@@ -645,18 +578,17 @@ function Settings() {
                   </button>
                 </div>
 
-                {/* Import Card */}
-                <div style={{ background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
+                <div style={{ background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                   <div>
-                    <h4 style={{ margin: '0 0 5px 0', fontSize: '15px', color: '#212529' }}>2. የወረደ መረጃ ይመልሱ (Import / Restore)</h4>
+                    <h4 style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#212529' }}>2. የወረደ መረጃ ይመልሱ (Import / Restore)</h4>
                     <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
-                      ቀደም ሲል ያወረዱትን የ JSON ባካፕ ፋይል በመምረጥ ወደ ሲስተሙ ይመልሱ።
+                      የ JSON ባክአፕ ፋይል በመምረጥ ይጫኑ።
                     </p>
                   </div>
                   <label style={{
                     backgroundColor: '#198754',
                     color: '#fff',
-                    padding: '10px 18px',
+                    padding: '8px 16px',
                     borderRadius: '6px',
                     fontWeight: 'bold',
                     fontSize: '13px',
@@ -670,75 +602,68 @@ function Settings() {
               </div>
             </div>
           )}
+        </div>
 
-          {/* 4. Language Tab */}
-          {activeTab === 'language' && (
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
-                {t.langSelectTitle}
-              </h3>
-              <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
+        {/* 4. Language Accordion */}
+        <div className="accordion-item">
+          <button className="accordion-header" onClick={() => toggleSection('language')}>
+            <span>{t.languageTab}</span>
+            <span>{openSection === 'language' ? '▲' : '▼'}</span>
+          </button>
+          {openSection === 'language' && (
+            <div className="accordion-body">
+              <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '15px' }}>
                 {t.langSelectDesc}
               </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div
                   className={`lang-card ${language === 'am' ? 'active' : ''}`}
                   onClick={() => handleLanguageChange('am')}
                 >
-                  <span style={{ fontWeight: '600', fontSize: '14px', color: '#212529' }}>🇪🇹 አማርኛ (Amharic)</span>
+                  <span style={{ fontWeight: '600', fontSize: '14px' }}>🇪🇹 አማርኛ (Amharic)</span>
                   {language === 'am' && <span style={{ color: '#198754', fontWeight: 'bold' }}>✔</span>}
                 </div>
-
                 <div
                   className={`lang-card ${language === 'om' ? 'active' : ''}`}
                   onClick={() => handleLanguageChange('om')}
                 >
-                  <span style={{ fontWeight: '600', fontSize: '14px', color: '#212529' }}>🇪🇹 Afaan Oromoo (Oromo)</span>
+                  <span style={{ fontWeight: '600', fontSize: '14px' }}>🇪🇹 Afaan Oromoo (Oromo)</span>
                   {language === 'om' && <span style={{ color: '#198754', fontWeight: 'bold' }}>✔</span>}
                 </div>
-
                 <div
                   className={`lang-card ${language === 'en' ? 'active' : ''}`}
                   onClick={() => handleLanguageChange('en')}
                 >
-                  <span style={{ fontWeight: '600', fontSize: '14px', color: '#212529' }}>🇬🇧 English</span>
+                  <span style={{ fontWeight: '600', fontSize: '14px' }}>🇬🇧 English</span>
                   {language === 'en' && <span style={{ color: '#198754', fontWeight: 'bold' }}>✔</span>}
                 </div>
               </div>
             </div>
           )}
+        </div>
 
-          {/* 5. Security Tab */}
-          {activeTab === 'security' && (
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: '#212529' }}>
-                {t.securityTab}
-              </h3>
+        {/* 5. Security Accordion */}
+        <div className="accordion-item">
+          <button className="accordion-header" onClick={() => toggleSection('security')}>
+            <span>{t.securityTab}</span>
+            <span>{openSection === 'security' ? '▲' : '▼'}</span>
+          </button>
+          {openSection === 'security' && (
+            <div className="accordion-body">
               <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
                 {t.securitySubtitle}
               </p>
-
               <form onSubmit={handleUpdatePassword}>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
                     {t.passCurrent}
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showCurrentPassword ? 'text' : 'password'}
-                      value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                      style={{ width: '100%', padding: '9px 40px 9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                      {showCurrentPassword ? '🙈' : '👁️'}
-                    </button>
-                  </div>
+                  <input
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
                 </div>
 
                 <div className="form-grid-2" style={{ marginBottom: '20px' }}>
@@ -746,23 +671,13 @@ function Settings() {
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
                       {t.passNew}
                     </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showNewPassword ? 'text' : 'password'}
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        style={{ width: '100%', padding: '9px 40px 9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}
-                      >
-                        {showNewPassword ? '🙈' : '👁️'}
-                      </button>
-                    </div>
+                    <input
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
                   </div>
-
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#495057', marginBottom: '5px' }}>
                       {t.passConfirm}
@@ -787,17 +702,16 @@ function Settings() {
                     borderRadius: '6px',
                     fontSize: '13px',
                     fontWeight: '600',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    opacity: loading ? 0.7 : 1
+                    cursor: loading ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {t.passBtn}
+                  {loading ? t.savingBtn : t.passBtn}
                 </button>
               </form>
             </div>
           )}
-
         </div>
+
       </div>
     </div>
   );

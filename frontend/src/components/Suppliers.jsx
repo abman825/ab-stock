@@ -21,13 +21,13 @@ const translations = {
     labelName: "የአቅራቢ ስም *",
     labelPhone: "ስልክ ቁጥር",
     labelLocation: "አድራሻ / ቦታ",
-    placeholderName: "ምሳሌ፡ ጀነራል አቅራቢ",
-    placeholderPhone: "ምሳሌ፡ +251 911 000 000",
-    placeholderLocation: "ምሳሌ፡ አዲስ አበባ",
+    placeholderName: "ምሳሌ፤ ጄነራል አቅራቢ",
+    placeholderPhone: "ምሳሌ፤ +251 911 000 000",
+    placeholderLocation: "ምሳሌ፤ አዲስ አበባ",
     btnCancel: "ሰርዝ",
     btnSave: "መዝግብ",
-    btnUpdate: "አድስ",
-    confirmDelete: "ይህንን አቅራቢ ለማጥፋት እርግጠኛ ነዎት?",
+    btnUpdate: "አዲስ",
+    confirmDelete: "ይህንንም አቅራቢ ለማጥፋት እርግጠኛ ነዎት?",
     errorDelete: "አቅራቢውን ማጥፋት አልተቻለም",
     errorSave: "መረጃውን ማስቀመጥ አልተቻለም"
   },
@@ -109,7 +109,7 @@ function Suppliers() {
     };
   };
   
-  // Suppliers data backend theke fetch
+  // Suppliers data backend
   const fetchSuppliers = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/suppliers`, {
@@ -204,29 +204,57 @@ function Suppliers() {
   };
 
   return (
-    <div style={{ padding: '24px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ padding: '16px', flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
+      <style>{`
+        .sup-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .sup-btn {
+          width: auto;
+        }
+        .modal-card {
+          width: 95%;
+          max-width: 400px;
+        }
+        @media (max-width: 600px) {
+          .sup-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .sup-btn {
+            width: 100%;
+            text-align: center;
+          }
+        }
+      `}</style>
+
       {/* Top Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="sup-header">
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b', margin: 0 }}>{t.title}</h2>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', margin: 0 }}>{t.title}</h2>
+          <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
             {t.subtitle}
           </p>
         </div>
 
         <button
+          className="sup-btn"
           onClick={() => { setEditingId(null); setShowModal(true); }}
           style={{
             backgroundColor: '#2563eb',
             color: '#fff',
             border: 'none',
-            padding: '9px 16px',
+            padding: '10px 16px',
             borderRadius: '6px',
             fontWeight: '500',
             cursor: 'pointer',
-            fontSize: '13px',
-            transition: 'background 0.2s'
+            fontSize: '13px'
           }}
         >
           {t.addBtn}
@@ -235,29 +263,29 @@ function Suppliers() {
 
       {/* Table */}
       <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '600px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '500px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '11px', textTransform: 'uppercase' }}>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thName}</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thPhone}</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thLocation}</th>
-              <th style={{ padding: '12px 20px', fontWeight: '600' }}>{t.thActions}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thName}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thPhone}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thLocation}</th>
+              <th style={{ padding: '10px 14px', fontWeight: '600' }}>{t.thActions}</th>
             </tr>
           </thead>
           <tbody>
             {suppliers.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '12px' }}>
                   {t.noSuppliers}
                 </td>
               </tr>
             ) : (
               suppliers.map((sup) => (
                 <tr key={sup._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '14px 20px', fontWeight: '500', color: '#0f172a' }}>{sup.name}</td>
-                  <td style={{ padding: '14px 20px', color: '#64748b' }}>{sup.phone || '-'}</td>
-                  <td style={{ padding: '14px 20px', color: '#64748b' }}>{sup.location || '-'}</td>
-                  <td style={{ padding: '14px 20px' }}>
+                  <td style={{ padding: '12px 14px', fontWeight: '500', color: '#0f172a' }}>{sup.name}</td>
+                  <td style={{ padding: '12px 14px', color: '#64748b' }}>{sup.phone || '-'}</td>
+                  <td style={{ padding: '12px 14px', color: '#64748b' }}>{sup.location || '-'}</td>
+                  <td style={{ padding: '12px 14px' }}>
                     <button
                       onClick={() => handleEdit(sup)}
                       style={{ background: 'transparent', color: '#2563eb', border: 'none', marginRight: '12px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
@@ -280,14 +308,14 @@ function Suppliers() {
 
       {/* Modal */}
       {showModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '400px', maxWidth: '90%' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '16px', color: '#0f172a', fontWeight: '600' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
+          <div className="modal-card" style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxSizing: 'border-box' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '15px', color: '#0f172a', fontWeight: '600' }}>
               {editingId ? t.modalTitleEdit : t.modalTitleAdd}
             </h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                   {t.labelName}
                 </label>
                 <input
@@ -296,12 +324,12 @@ function Suppliers() {
                   placeholder={t.placeholderName}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                   {t.labelPhone}
                 </label>
                 <input
@@ -309,12 +337,12 @@ function Suppliers() {
                   placeholder={t.placeholderPhone}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '6px', display: 'block' }}>
+                <label style={{ fontSize: '12px', fontWeight: '500', color: '#475569', marginBottom: '4px', display: 'block' }}>
                   {t.labelLocation}
                 </label>
                 <input
@@ -322,21 +350,21 @@ function Suppliers() {
                   placeholder={t.placeholderLocation}
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button 
                   type="button" 
                   onClick={handleCloseModal} 
-                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+                  style={{ backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
                 >
                   {t.btnCancel}
                 </button>
                 <button 
                   type="submit" 
-                  style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+                  style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
                 >
                   {editingId ? t.btnUpdate : t.btnSave}
                 </button>
