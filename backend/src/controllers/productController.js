@@ -118,14 +118,14 @@ exports.updateProduct = async (req, res) => {
       changes.push(`የግዢ ዋጋ ከ ${oldCost} ብር ወደ ${newCost} ብር`);
     }
 
-    // የብዛት/ስቶክ ቅያሬ (Quantity/Stock)
+    // የብዛት/ሚሸጥ ቅያሬ (Quantity/Stock)
     const oldQty = Number(oldProduct.quantity ?? oldProduct.inShop ?? oldProduct.stock ?? 0);
     const newQty = Number(updated.quantity ?? updated.inShop ?? updated.stock ?? 0);
     if ((req.body.quantity !== undefined || req.body.inShop !== undefined) && oldQty !== newQty) {
       changes.push(`ብዛት ከ ${oldQty} ወደ ${newQty}`);
     }
 
-    // የሱቅ/መጋዘን ብዛት ቅያሬ (InStore)
+    // የሚሸጥ/መጋዘን ብዛት ቅያሬ (InStore)
     const oldStore = Number(oldProduct.inStore || 0);
     const newStore = Number(updated.inStore || 0);
     if (req.body.inStore !== undefined && oldStore !== newStore) {

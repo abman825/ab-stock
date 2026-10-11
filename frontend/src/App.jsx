@@ -22,7 +22,7 @@ const API_BASE_URL = `${BASE_URL}/api`;
 const translations = {
   am: {
     main: "ዋና",
-    inventory: "ዕቃዎችና ስቶክ",
+    inventory: "ዕቃዎችና ሚሸጥ",
     procurement: "ግዢና አቅርቦት",
     salesAndCustomers: "ሽያጭና ደንበኞች",
     pos: "Point of Sale",

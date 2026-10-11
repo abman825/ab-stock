@@ -136,7 +136,7 @@ exports.createOrder = async (req, res) => {
       );
     }
 
-    // የዕቃዎች ብዛት ከስቶክ መቀነስ
+    // የዕቃዎች ብዛት ከሚሸጥ መቀነስ
     const bulkStockOperations = items.map((item) => {
       const productId = item.productId || item._id || item.id;
       const qtyToDeduct = Number(item.cartQty || item.quantity || 1);

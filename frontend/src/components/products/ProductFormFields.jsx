@@ -38,8 +38,8 @@ export function BuildingFields({ formData, setFormData, t }) {
         >
           <option value="">{t?.selectType || 'Select Type'}</option>
           <option value="Cement">{t?.materials?.cement || 'Cement'}</option>
-          <option value="Iron Bar">{t?.materials?.ironBar || 'Iron Bar'}</option>
-          <option value="Roofing Sheet">{t?.materials?.roofingSheet || 'Roofing Sheet'}</option>
+          <option value="IronBar">{t?.materials?.ironBar || 'Iron Bar'}</option>
+          <option value="RoofingSheet">{t?.materials?.roofingSheet || 'Roofing Sheet'}</option>
           <option value="Pipes">{t?.materials?.pipes || 'Pipes'}</option>
           <option value="Paint">{t?.materials?.paint || 'Paint'}</option>
           <option value="Plywood">{t?.materials?.plywood || 'Plywood'}</option>

@@ -18,13 +18,11 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   const [paidAmountInput, setPaidAmountInput] = useState('');
   const [dueDateInput, setDueDateInput] = useState('');
 
-  // State ya kozwa lolenge ya kofuta na nyongo (cash, bank, telebirr)
   const [creditPaymentType, setCreditPaymentType] = useState('cash');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
-  // State soki olingi komona kaka biloko oyo etikali moke esila (expiring within 6 months)
   const [showExpiringOnly, setShowExpiringOnly] = useState(false);
 
   const [todaySales, setTodaySales] = useState({ cash: 0, bank: 0, telebirr: 0, credit: 0, total: 0 });
@@ -87,7 +85,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     };
   }, [rawType]);
 
-  // Fonction ya kotala soki eloko etikali na sanza 6 (180 days) liboso esila
   const isExpiringSoon = (product) => {
     if (isBuildingMode) return false;
     const expDate = product.expiryDate || product.expirationDate;
@@ -95,7 +92,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
     const exp = new Date(expDate);
     const today = new Date();
-    const sixMonthsInMs = 180 * 24 * 60 * 60 * 1000; // 180 mikolo
+    const sixMonthsInMs = 180 * 24 * 60 * 60 * 1000;
     const diffTime = exp - today;
 
     return diffTime <= sixMonthsInMs;
@@ -148,7 +145,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
     const isCredit = paymentMethod.toLowerCase() === 'credit';
 
     if (isCredit && !selectedCustomer) {
-      return alert('እባክዎን ደንበኛ ይምረጡ / Please select a customer');
+      return alert(t.selectCustomer || 'Please select a customer');
     }
 
     const paid = isCredit ? Number(paidAmountInput || 0) : grandTotal;
@@ -178,9 +175,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         discountAmount: discountBirr,
         grandTotal,
         paymentMethod: paymentMethod.toLowerCase(),
-        
         creditPaymentType: isCredit ? (creditPaymentType || 'cash').toLowerCase() : undefined,
-        
         paymentStatus: status,
         customer: isCredit && selectedCustomer !== '' ? selectedCustomer : null,
         paidAmount: paid,
@@ -230,7 +225,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
   });
 
   const lowStockCount = products.filter(p => isProductLowStock(p)).length;
-  // Motángo ya biloko oyo etikali mikolo moke (sanza 6 to nano moke) esila
   const expiringSoonCount = products.filter(p => isExpiringSoon(p)).length;
 
   return (
@@ -241,7 +235,7 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         <div style={{ display: 'flex', gap: '10px', background: '#fff', padding: '6px 12px', borderRadius: '6px', border: '1px solid #ced4da', flex: '1 1 300px' }}>
           <input
             type="text"
-            placeholder={t.searchPlaceholder}
+            placeholder={t.searchPlaceholder || 'Search...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ border: 'none', outline: 'none', width: '100%', fontSize: '13px' }}
@@ -251,35 +245,32 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
             onChange={(e) => setSelectedCategory(e.target.value)}
             style={{ borderLeft: '1px solid #e0e0e0', borderTop: 'none', borderRight: 'none', borderBottom: 'none', outline: 'none', fontSize: '13px' }}
           >
-            <option value="All Categories">{t.allCategories}</option>
+            <option value="All Categories">{t.allCategories || 'All Categories'}</option>
             {categories.map((cat) => <option key={cat._id || cat.id} value={cat.name}>{cat.name}</option>)}
           </select>
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Box ya Teko ya Lelo */}
           <div onClick={() => setIsSalesModalOpen(true)} style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div>
-              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.todaysSales || 'የዛሬ ሽያጭ'}</div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(todaySales.total || 0).toFixed(2)} {t.birr || 'ብር'}</div>
+              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.todaysSales || 'Today Sales'}</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(todaySales.total || 0).toFixed(2)} {t.birr || 'ETB'}</div>
             </div>
             <span style={{ fontSize: '16px' }}>🛒</span>
           </div>
 
-          {/* Box ya Low Stock */}
           <div onClick={() => { setShowLowStockOnly(!showLowStockOnly); setShowExpiringOnly(false); }} style={{ background: showLowStockOnly ? '#ffebee' : '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div>
-              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.lowStock || 'አነስተኛ ስቶክ'}</div>
+              <div style={{ fontSize: '10px', color: '#6c757d', fontWeight: 'bold' }}>{t.lowStock || 'Low Stock'}</div>
               <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#dc3545' }}>{lowStockCount}</div>
             </div>
             <span style={{ fontSize: '16px' }}>⚠️</span>
           </div>
 
-          {/* Box ya biloko oyo etikali moke esila (Expiring in 6 months) */}
           {!isBuildingMode && (
             <div onClick={() => { setShowExpiringOnly(!showExpiringOnly); setShowLowStockOnly(false); }} style={{ background: showExpiringOnly ? '#fff3cd' : '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: '#856404', fontWeight: 'bold' }}>ቀናቸው ሊያልፍ የተቃረቡ</div>
+                <div style={{ fontSize: '10px', color: '#856404', fontWeight: 'bold' }}>{t.expiringSoon || 'Expiring Soon'}</div>
                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#856404' }}>{expiringSoonCount}</div>
               </div>
               <span style={{ fontSize: '16px' }}>⏳</span>
@@ -290,8 +281,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
 
       {/* Grid Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '20px', height: 'calc(100vh - 160px)' }}>
-        
-        {/* Products */}
         <div style={{ overflowY: 'auto', paddingRight: '5px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px' }}>
             {filteredProducts.map((product) => {
@@ -312,7 +301,6 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
           </div>
         </div>
 
-        {/* Cart Panel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <CartPanel
             cart={cart}
@@ -348,37 +336,37 @@ function POS({ cart = [], setCart, onCompleteSale, loading }) {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', width: '350px', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>{t.todaysSalesBreakdown || 'የዛሬ ሽያጭ ዝርዝር'}</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>{t.todaysSalesBreakdown || 'Today Sales Breakdown'}</h3>
               <button onClick={() => setIsSalesModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✖</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>💵 {t.cash || 'ካሽ'}</span>
-                <strong>{Number(todaySales.cash || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
+                <span>💵 {t.cash || 'Cash'}</span>
+                <strong>{Number(todaySales.cash || 0).toFixed(2)} {t.birr || 'ETB'}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>🏦 {t.bank || 'ባንክ'}</span>
-                <strong>{Number(todaySales.bank || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
+                <span>🏦 {t.bank || 'Bank'}</span>
+                <strong>{Number(todaySales.bank || 0).toFixed(2)} {t.birr || 'ETB'}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>📱 {t.telebirr || 'ቴሌብር'}</span>
-                <strong>{Number(todaySales.telebirr || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
+                <span>📱 {t.telebirr || 'Telebirr'}</span>
+                <strong>{Number(todaySales.telebirr || 0).toFixed(2)} {t.birr || 'ETB'}</strong>
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0', color: '#dc3545' }}>
-                <span>📝 ብድር (Credit)</span>
-                <strong>{Number(todaySales.credit || 0).toFixed(2)} {t.birr || 'ብር'}</strong>
+                <span>📝 {t.credit || 'Credit'}</span>
+                <strong>{Number(todaySales.credit || 0).toFixed(2)} {t.birr || 'ETB'}</strong>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', color: '#28a745', fontSize: '15px', fontWeight: 'bold' }}>
-                <span>{t.total || 'የመጨረሻ ዋጋ'}</span>
-                <span>{Number(todaySales.total || 0).toFixed(2)} {t.birr || 'ብር'}</span>
+                <span>{t.total || 'Total'}</span>
+                <span>{Number(todaySales.total || 0).toFixed(2)} {t.birr || 'ETB'}</span>
               </div>
             </div>
 
             <button onClick={() => setIsSalesModalOpen(false)} style={{ width: '100%', background: '#0d6efd', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', marginTop: '15px', cursor: 'pointer', fontWeight: 'bold' }}>
-              {t.close || 'ዝጋ'}
+              {t.close || 'Close'}
             </button>
           </div>
         </div>

@@ -4,10 +4,41 @@ function ProductCard({ product, isAdded, isLowStock, isBuildingMode, addToCart, 
   const qty = product.quantity ?? product.inShop ?? product.stock ?? 0;
   const expDate = product.expiryDate || product.expirationDate;
   
-  // Specific type ebong unit-er jonno translated value paoya gele sheta dekhabe, noyle original value[cite: 10, 11, 12, 13]
-  const rawType = product.specificType || product.materialType;
-  const displayType = t && t[rawType] ? t[rawType] : rawType;
-  const displayUnit = t && t[product.unit] ? t[product.unit] : product.unit;
+  const rawType = product.specificType || product.materialType || '';
+  const rawUnit = product.unit || '';
+
+  // Type ትርጉም በሁሉም ቦታዎች (Root, Lowercase, materials object) በመፈለግ ማግኘት
+  const getTranslatedType = (type) => {
+    if (!type || !t) return type;
+    const lower = type.toLowerCase();
+    
+    return (
+      t[type] || 
+      t[lower] || 
+      t.materials?.[type] || 
+      t.materials?.[lower] || 
+      t.medicines?.[type] || 
+      t.medicines?.[lower] || 
+      type
+    );
+  };
+
+  // Unit ትርጉም በሁሉም ቦታዎች በመፈለግ ማግኘት
+  const getTranslatedUnit = (unit) => {
+    if (!unit || !t) return unit;
+    const lower = unit.toLowerCase();
+    
+    return (
+      t[unit] || 
+      t[lower] || 
+      t.units?.[unit] || 
+      t.units?.[lower] || 
+      unit
+    );
+  };
+
+  const displayType = getTranslatedType(rawType);
+  const displayUnit = getTranslatedUnit(rawUnit);
 
   return (
     <div 
@@ -51,7 +82,7 @@ function ProductCard({ product, isAdded, isLowStock, isBuildingMode, addToCart, 
       {/* Product Name */}
       <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#333' }}>{product.name}</div>
       
-      {/* Product Specific/Material Type (Translated)[cite: 10, 11, 12, 13] */}
+      {/* Product Specific/Material Type (Translated) */}
       {displayType && (
         <div style={{ marginTop: '3px', marginBottom: '3px' }}>
           <span style={{
@@ -73,7 +104,7 @@ function ProductCard({ product, isAdded, isLowStock, isBuildingMode, addToCart, 
         {t?.qty || 'Qty'}: {qty} {displayUnit ? `(${displayUnit})` : ''} {isLowStock && '⚠️'}
       </div>
 
-      {/* Pharmacy mode hoki Expiry Date dekhabe; Building mode hoki "Unit:" text bad porbe */}
+      {/* Expiry Date (Pharmacy Mode ብቻ) */}
       {!isBuildingMode && (
         <div style={{ fontSize: '10px', color: expDate ? '#fd7e14' : '#adb5bd', fontWeight: '500', marginBottom: '8px' }}>
           {t?.exp || 'Exp'}: {expDate ? new Date(expDate).toLocaleDateString() : (t?.na || 'N/A')}

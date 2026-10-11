@@ -9,25 +9,25 @@ const API_BASE_URL = `${BASE_URL}/api`;
 const translations = {
   am: {
     title: "የምርቶች አስተዳደር",
-    buildingMode: "🏗️ የሕንፃ መሣሪያዎች ሁነታ",
+    buildingMode: "🛠️ የግንባታ መሣሪያዎች ሁነታ",
     pharmacyMode: "💊 የፋርማሲ ሁነታ",
     import: "📥 አስገባ (Import)",
     addProduct: "+ ምርት ጨምር",
     searchPlaceholder: "ይፈልጉ...",
-    all: "ሁሉም",
-    inStock: "ስቶክ ላይ ያለ",
-    lowStock: "አነስተኛ ስቶክ",
-    outOfStock: "ያለቀ",
+    all: "ሁሉንም",
+    inStock: "ሚሸጥ ላይ ያለ",
+    lowStock: "አነስተኛ ሚሸጥ",
+    outOfStock: "የአለቀ",
     thName: "ስም",
     thCategory: "ምድብ",
     thProdType: "የምርት ዓይነት",
     thMaterialType: "የቁሳቁስ ዓይነት",
-    thUnit: "ዩኒት",
+    thUnit: "መለኪያ",
     thSpecificType: "የተወሰነ ዓይነት",
     thSalePrice: "የመሸጫ ዋጋ",
-    thBoughtPrice: "የመግዣ ዋጋ",
+    thBoughtPrice: "የግዢ ዋጋ",
     thInStore: "መጋዘን ውስጥ",
-    thInShop: "ሱቅ ውስጥ",
+    thInShop: "ሚሸጥ ውስጥ",
     thInvoice: "ኢንቮይስ #",
     thExpiry: "የማብቂያ ቀን",
     thActions: "ድርጊቶች",
@@ -35,25 +35,78 @@ const translations = {
     delete: "ሰርዝ",
     export: "ምርቶችን አውጣ (Export)",
     noProducts: "ምንም ምርት አልተገኘም።",
-    confirmDelete: "እርግጠኛ ነዎት ይህንን ምርት መሰረዝ ይፈልጋሉ?",
+    confirmDelete: "እርግጠኛ ኖት ይህንን ምርት መሠረዝ ይፈልጋሉ?",
     deleteSuccess: "ምርቱ በጥሩ ሁኔታ ተሰርዟል!",
-    deleteFailed: "ምርቱን መሰረዝ አልተሳካም።",
+    deleteFailed: "ምርቱን መሠረዝ አልተሳካም።",
     csvImportSuccess: "የCSV ፋይል በጥሩ ሁኔታ ገብቷል!",
     csvImportNoData: "በCSV ፋይሉ ውስጥ ምንም ትክክለኛ መረጃ አልተገኘም!",
-    csvImportFailed: "የCSV ፋይል ማስገባት አልተሳካም: ",
-    noExportData: "ለመላክ ምንም ምርት የለም!",
-    enterNameErr: "እባክዎን የምርት ስም ያስገቡ!",
-    selectCatErr: "እባክዎን ምድብ ይምረጡ!",
-    validPriceErr: "እባክዎን ትክክለኛ የመግዣ ዋጋ ያስገቡ!",
+    csvImportFailed: "የCSV ፋይል ማአስገባት አልተሳካም: ",
+    noExportData: "ለማውጣት ምንም ምርት የለም!",
+    enterNameErr: "እባክዎ የምርት ስም ያስገቡ!",
+    selectCatErr: "እባክዎ ምድብ ይምረጡ!",
+    validPriceErr: "እባክዎ ትክክለኛ የግዢ ዋጋ ያስገቡ!",
     updateSuccess: "ምርቱ በጥሩ ሁኔታ ተስተካክሏል!",
     saveSuccess: "ምርቱ በጥሩ ሁኔታ ተመዝግቧል!",
-    saveFailed: "ምርቱን መመዝገብ አልተሳካም: ",
+    saveFailed: "ምርቱን ማመዝገብ አልተሳካም: ",
     birr: "ብር",
-    na: "የለም"
+    na: "የለም",
+
+    // Category & Product Types
+    General: "ጠቅላላ",
+    general: "ጠቅላላ",
+    Stock: "ሚሸጥ",
+    stock: "ሚሸጥ",
+    Service: "አገልግሎት",
+    service: "አገልግሎት",
+
+    // Material & Unit Translations
+    Plywood: "ፕላይዉድ",
+    plywood: "ፕላይዉድ",
+    Nails: "ምስማር",
+    nails: "ምስማር",
+    Electrical: "ኤሌክትሪክ",
+    electrical: "ኤሌክትሪክ",
+    Paint: "ቀለም",
+    paint: "ቀለም",
+    Sanitary: "ሳኒታሪ",
+    sanitary: "ሳኒታሪ",
+    Plumbing: "የቧንቧ",
+    plumbing: "የቧንቧ",
+    Pipes: "ፓይፖች",
+    pipes: "ፓይፖች",
+    Cement: "ሲሚንቶ",
+    cement: "ሲሚንቶ",
+    IronBar: "ባላ ብረት",
+    ironBar: "ባላ ብረት",
+    RoofingSheet: "ቆርቆሮ",
+    roofingSheet: "ቆርቆሮ",
+    Other: "ሌላ",
+    other: "ሌላ",
+
+    Liter: "ሊትር",
+    liter: "ሊትር",
+    Box: "ካርቶን",
+    box: "ካርቶን",
+    Meter: "ሜትር",
+    meter: "ሜትር",
+    Sqm: "ካሬ ሜትር",
+    sqm: "ካሬ ሜትር",
+    Quintal: "ኩንታል",
+    quintal: "ኩንታል",
+    Packet: "ፓኬት",
+    packet: "ፓኬት",
+    Set: "ሴት",
+    set: "ሴት",
+    Roll: "ሮል",
+    roll: "ሮል",
+    Pcs: "በቁጥር (Pcs)",
+    pcs: "በቁጥር (Pcs)",
+    Kg: "ኪሎግራም",
+    kg: "ኪሎግራም"
   },
   om: {
     title: "Bulchiinsa Oomishootaa",
-    buildingMode: "🏗️ Haala Meeshaalee Ijaarsaa",
+    buildingMode: "🛠️ Haala Meeshaalee Ijaarsaa",
     pharmacyMode: "💊 Haala Faarmaasii",
     import: "📥 Galchuu (Import)",
     addProduct: "+ Oomisha Dabali",
@@ -93,11 +146,62 @@ const translations = {
     saveSuccess: "Oomishni milkaa'inaan olka'ameera!",
     saveFailed: "Oomisha olka'uun kuffa'eera: ",
     birr: "Birr",
-    na: "Hingarre"
+    na: "Hingarre",
+
+    General: "Waliigala",
+    general: "Waliigala",
+    Stock: "Stookii",
+    stock: "Stookii",
+    Service: "Tajaajila",
+    service: "Tajaajila",
+
+    Plywood: "Plaaywuudii",
+    plywood: "Plaaywuudii",
+    Nails: "Misooma/Kullii",
+    nails: "Misooma/Kullii",
+    Electrical: "Elektrikii",
+    electrical: "Elektrikii",
+    Paint: "Halluu",
+    paint: "Halluu",
+    Sanitary: "Saaniitaarii",
+    sanitary: "Saaniitaarii",
+    Plumbing: "Ufuraa",
+    plumbing: "Ufuraa",
+    Pipes: "Paayipii",
+    pipes: "Paayipii",
+    Cement: "Samiintoo",
+    cement: "Samiintoo",
+    IronBar: "Sibila",
+    ironBar: "Sibila",
+    RoofingSheet: "Qorqoorroo",
+    roofingSheet: "Qorqoorroo",
+    Other: "Kan biraa",
+    other: "Kan biraa",
+
+    Liter: "Liitira",
+    liter: "Liitira",
+    Box: "Saanduuqa",
+    box: "Saanduuqa",
+    Meter: "Meetira",
+    meter: "Meetira",
+    Sqm: "Sqm",
+    sqm: "Sqm",
+    Quintal: "Kuntaala",
+    quintal: "Kuntaala",
+    Packet: "Paakeetii",
+    packet: "Paakeetii",
+    Set: "Setii",
+    set: "Setii",
+    Roll: "Roolii",
+    roll: "Roolii",
+    Pcs: "Lakkoofsaan",
+    pcs: "Lakkoofsaan",
+    Kg: "Kiiloograama",
+    kg: "Kiiloograama"
   },
   en: {
     title: "Product Management",
-    buildingMode: "🏗️ Building Materials Mode",
+    buildingMode: "🛠️ Building Materials Mode",
     pharmacyMode: "💊 Pharmacy Mode",
     import: "📥 Import",
     addProduct: "+ Add product",
@@ -137,12 +241,62 @@ const translations = {
     saveSuccess: "Product saved successfully!",
     saveFailed: "Failed to save product: ",
     birr: "Birr",
-    na: "N/A"
+    na: "N/A",
+
+    General: "General",
+    general: "General",
+    Stock: "Stock",
+    stock: "Stock",
+    Service: "Service",
+    service: "Service",
+
+    Plywood: "Plywood",
+    plywood: "Plywood",
+    Nails: "Nails",
+    nails: "Nails",
+    Electrical: "Electrical",
+    electrical: "Electrical",
+    Paint: "Paint",
+    paint: "Paint",
+    Sanitary: "Sanitary",
+    sanitary: "Sanitary",
+    Plumbing: "Plumbing",
+    plumbing: "Plumbing",
+    Pipes: "Pipes",
+    pipes: "Pipes",
+    Cement: "Cement",
+    cement: "Cement",
+    IronBar: "Iron Bar",
+    ironBar: "Iron Bar",
+    RoofingSheet: "Roofing Sheet",
+    roofingSheet: "Roofing Sheet",
+    Other: "Other",
+    other: "Other",
+
+    Liter: "Liter",
+    liter: "Liter",
+    Box: "Box",
+    box: "Box",
+    Meter: "Meter",
+    meter: "Meter",
+    Sqm: "Sqm",
+    sqm: "Sqm",
+    Quintal: "Quintal",
+    quintal: "Quintal",
+    Packet: "Packet",
+    packet: "Packet",
+    Set: "Set",
+    set: "Set",
+    Roll: "Roll",
+    roll: "Roll",
+    Pcs: "Pcs",
+    pcs: "Pcs",
+    Kg: "Kg",
+    kg: "Kg"
   }
 };
 
 function Products() {
-  // Language Persistence & Multi-language setup
   const [lang, setLang] = useState(() => localStorage.getItem('appLanguage') || 'am');
   const t = translations[lang] || translations.am;
 
@@ -152,7 +306,6 @@ function Products() {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Business Mode State
   const [businessType, setBusinessType] = useState(
     localStorage.getItem('businessType') || 'pharmacy'
   );
@@ -186,6 +339,31 @@ function Products() {
     expiryDate: ''
   });
 
+  // Translation Helper Functions for Table
+  const getTranslatedType = (type) => {
+    if (!type || !t) return type;
+    const lower = type.toLowerCase();
+    return t[type] || t[lower] || t.materials?.[type] || t.materials?.[lower] || type;
+  };
+
+  const getTranslatedUnit = (unit) => {
+    if (!unit || !t) return unit;
+    const lower = unit.toLowerCase();
+    return t[unit] || t[lower] || t.units?.[unit] || t.units?.[lower] || unit;
+  };
+
+  const getTranslatedCategory = (cat) => {
+    if (!cat || !t) return cat;
+    const lower = cat.toLowerCase();
+    return t[cat] || t[lower] || cat;
+  };
+
+  const getTranslatedProductType = (pType) => {
+    if (!pType || !t) return pType;
+    const lower = pType.toLowerCase();
+    return t[pType] || t[lower] || pType;
+  };
+
   useEffect(() => {
     const handleModeChange = () => {
       const currentMode = localStorage.getItem('businessType') || 'pharmacy';
@@ -210,7 +388,6 @@ function Products() {
     };
   }, []);
 
-  // Fetch Products & Categories
   const fetchData = async () => {
     try {
       const config = { headers: getAuthHeaders() };
@@ -352,7 +529,6 @@ function Products() {
     });
   };
 
-  // Filter products
   const filteredProducts = products.filter((p) => {
     const qty = p.quantity ?? p.inShop ?? 0;
     const matchesSearch = p.name ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
@@ -502,7 +678,6 @@ function Products() {
     }
   };
 
-  // Dynamic filter tab labels mapping
   const filterTabLabels = {
     'All': t.all,
     'In stock': t.inStock,
@@ -713,23 +888,30 @@ function Products() {
               filteredProducts.map((p) => {
                 const exp = p.expiryDate || p.expirationDate;
                 const qty = p.quantity ?? p.inShop ?? 0;
+                
+                const rawType = p.specificType || p.materialType || '';
+                const displayType = getTranslatedType(rawType);
+                const displayUnit = getTranslatedUnit(p.unit);
+                const displayCategory = getTranslatedCategory(p.category);
+                const displayProductType = getTranslatedProductType(p.productType || 'Stock');
+
                 return (
                   <tr key={p._id} style={{ borderBottom: '1px solid #f1f3f5' }}>
                     <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>{p.name}</td>
-                    <td style={{ padding: '8px 10px' }}>{p.category}</td>
-                    <td style={{ padding: '8px 10px' }}>{p.productType || 'Stock'}</td>
+                    <td style={{ padding: '8px 10px' }}>{displayCategory}</td>
+                    <td style={{ padding: '8px 10px' }}>{displayProductType}</td>
                     
                     {isBuilding ? (
                       <>
                         <td style={{ padding: '8px 10px', color: '#0d6efd', fontWeight: '500' }}>
-                          {p.specificType || t.na}
+                          {displayType || t.na}
                         </td>
                         <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>
-                          {p.unit || '-'}
+                          {displayUnit || '-'}
                         </td>
                       </>
                     ) : (
-                      <td style={{ padding: '8px 10px' }}>{p.specificType || t.na}</td>
+                      <td style={{ padding: '8px 10px' }}>{displayType || t.na}</td>
                     )}
 
                     <td style={{ padding: '8px 10px' }}>{p.price} {t.birr}</td>

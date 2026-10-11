@@ -1,6 +1,35 @@
 import React from 'react';
 
 function ProductTable({ filteredProducts, isBuilding, t, handleEditClick, handleDelete }) {
+  
+  // 1. Type ትርጉም መፈለግ (Case-insensitive & Nesting support)
+  const getTranslatedType = (type) => {
+    if (!type || !t) return type;
+    const lower = type.toLowerCase();
+    
+    return (
+      t[type] || 
+      t[lower] || 
+      t.materials?.[type] || 
+      t.materials?.[lower] || 
+      type
+    );
+  };
+
+  // 2. Unit ትርጉም መፈለግ
+  const getTranslatedUnit = (unit) => {
+    if (!unit || !t) return unit;
+    const lower = unit.toLowerCase();
+    
+    return (
+      t[unit] || 
+      t[lower] || 
+      t.units?.[unit] || 
+      t.units?.[lower] || 
+      unit
+    );
+  };
+
   return (
     <div className="table-container">
       <table className="products-table">
@@ -39,6 +68,11 @@ function ProductTable({ filteredProducts, isBuilding, t, handleEditClick, handle
             filteredProducts.map((p) => {
               const exp = p.expiryDate || p.expirationDate;
               const qty = p.quantity ?? p.inShop ?? 0;
+              
+              const rawType = p.specificType || p.materialType || '';
+              const displayType = getTranslatedType(rawType);
+              const displayUnit = getTranslatedUnit(p.unit);
+
               return (
                 <tr key={p._id} style={{ borderBottom: '1px solid #f1f3f5' }}>
                   <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>{p.name}</td>
@@ -48,14 +82,14 @@ function ProductTable({ filteredProducts, isBuilding, t, handleEditClick, handle
                   {isBuilding ? (
                     <>
                       <td style={{ padding: '8px 10px', color: '#0d6efd', fontWeight: '500' }}>
-                        {p.specificType || t.na}
+                        {displayType || t.na}
                       </td>
                       <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>
-                        {p.unit || '-'}
+                        {displayUnit || '-'}
                       </td>
                     </>
                   ) : (
-                    <td style={{ padding: '8px 10px' }}>{p.specificType || t.na}</td>
+                    <td style={{ padding: '8px 10px' }}>{displayType || t.na}</td>
                   )}
 
                   <td style={{ padding: '8px 10px' }}>{p.price} {t.birr}</td>

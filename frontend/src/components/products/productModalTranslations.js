@@ -55,7 +55,7 @@ export const modalTranslations = {
     isSyrup: "ሲሮፕ / ፈሳሽ መድኃኒት ነው?",
     expiryDate: "የአገልግሎት ማብቂያ ቀን",
     inStoreQty: "በመጋዘን ያለ መጠን",
-    inShopQty: "በሱቅ ያለ መጠን",
+    inShopQty: "በሚሸጥ ያለ መጠን",
     cancel: "ሰርዝ",
     update: "አድስ (Update)",
     save: "መዝግብ (Save)"

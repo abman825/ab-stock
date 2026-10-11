@@ -7,12 +7,12 @@ const API_BASE_URL = `${BASE_URL}/api`;
 
 const translations = {
   am: {
-    buildingTitle: "የሕንፃ መሣሪያዎች ምድብ",
-    pharmacyTitle: "የፋርማሲ ምድብ",
-    searchPlaceholder: "ፈልግ...",
-    addCategory: "+ ጨምር",
-    import: "📥 አስገባ",
-    export: "📤 ላክ",
+    buildingTitle: "የግንባታ መሣሪያዎች ምደባ",
+    pharmacyTitle: "የፋርማሲ ምደባ",
+    searchPlaceholder: "ይፈልጉ...",
+    addCategory: "+ ምድብ ጨምር",
+    import: "📥 አስገባ (Import)",
+    export: "ምርቶችን አውጣ (Export)",
     thCategoryId: "ID",
     thName: "ስም",
     thProducts: "ምርቶች",
@@ -24,12 +24,12 @@ const translations = {
     addTitle: "ምድብ ጨምር",
     categoryIdLabel: "የምድብ መለያ (አማራጭ)",
     categoryNameLabel: "የምድብ ስም",
-    buildingPlaceholder: "ምሳሌ፤ ሲሚንቶ፣ ብረት",
-    pharmacyPlaceholder: "ምሳሌ፤ መድኃኒት፣ ሲሮፕ",
+    buildingPlaceholder: "ምሳሌ፦ ሲሚንቶ፣ ብረት",
+    pharmacyPlaceholder: "ምሳሌ፦ መደኃኒት፣ ሲሮፕ",
     cancel: "ሰርዝ",
-    update: "አድስ",
+    update: "አዲስ",
     save: "አስቀምጥ",
-    confirmDelete: "እርግጠኛ ነዎት ይህንን ምድብ መሰረዝ ይፈልጋሉ?",
+    confirmDelete: "እርግጠኛ ኖት ይህንን ምድብ መሠረዝ ይፈልጋሉ?",
     csvEmpty: "በCSV ፋይል ውስጥ ምንም ትክክለኛ መረጃ አልተገኘም!",
     csvSuccess: " ምድቦች በጥሩ ሁኔታ ገብተዋል!",
     csvError: "በማስገባት ሂደት ላይ ስህተት ተፈጥሯል!"
@@ -38,9 +38,9 @@ const translations = {
     buildingTitle: "Ramaddii Meeshaalee Ijaarsaa",
     pharmacyTitle: "Ramaddii Faarmaasii",
     searchPlaceholder: "Barbaadi...",
-    addCategory: "+ Dabali",
-    import: "📥 Galchuu",
-    export: "📤 Baasuu",
+    addCategory: "+ Ramaddii Dabali",
+    import: "📥 Galchuu (Import)",
+    export: "Ramaddii Baasi (Export)",
     thCategoryId: "ID",
     thName: "MAQAA",
     thProducts: "OOMISHAALEE",
@@ -66,9 +66,9 @@ const translations = {
     buildingTitle: "Building Categories",
     pharmacyTitle: "Pharmacy Categories",
     searchPlaceholder: "Search...",
-    addCategory: "+ Add",
+    addCategory: "+ Add Category",
     import: "Import",
-    export: "Export",
+    export: "Export Categories",
     thCategoryId: "ID",
     thName: "NAME",
     thProducts: "PRODUCTS",
@@ -204,6 +204,7 @@ function Categories() {
       if (editingId) {
         await axios.put(`${API_BASE_URL}/categories/${editingId}`, payload, config);
       } else {
+        // ${editingId} የሚለውን እናወጣዋለን ምክንያቱም አዲስ ስንመዘገብ ID አይኖረውም (ወደ /api/categories ብቻ ነው መላክ ያለብን)
         await axios.post(`${API_BASE_URL}/categories`, payload, config);
       }
       handleCloseModal();
@@ -249,7 +250,7 @@ function Categories() {
 
   const handleCSVExport = () => {
     if (categories.length === 0) {
-      alert('ምንም የሚወጣ ምድብ የለም!');
+      alert(lang === 'am' ? 'ለማውጣት ምንም ምድብ የለም!' : lang === 'om' ? 'Oomishni ergame hin jiru!' : 'No categories to export!');
       return;
     }
 
@@ -276,96 +277,59 @@ function Categories() {
   );
 
   return (
-    <div style={{ padding: '12px', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f4f6f8', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ padding: '15px', flex: 1, backgroundColor: '#f8f9fa', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
       <style>{`
         .cat-top-bar {
           display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-bottom: 10px;
-        }
-        .cat-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: '#333';
-          margin: 0;
-        }
-        .cat-controls {
-          display: flex;
-          gap: 6px;
+          justify-content: space-between;
           align-items: center;
-          width: 100%;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .header-actions {
+          display: flex;
+          gap: 10px;
+        }
+        .filter-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
         }
         .cat-search-input {
-          flex: 1;
-          min-width: 0;
-          padding: 6px 10px;
-          border: 1px solid #ccc;
-          border-radius: 6px;
-          font-size: 12px;
-          background-color: #fff;
+          padding: 8px 12px;
+          border: 1px solid #ced4da;
+          border-radius: 4px;
+          width: 250px;
           box-sizing: border-box;
-        }
-        .cat-action-btn {
-          padding: 6px 10px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          white-space: nowrap;
-          border: none;
+          font-size: 13px;
         }
         .table-wrapper {
-          flex: 1;
-          background-color: #fff;
+          background: #fff;
           border-radius: 8px;
-          border: 1px solid #e0e0e0;
-          overflow: auto;
+          border: 1px solid #dee2e6;
+          overflow-x: auto;
+          width: 100%;
         }
-        .modal-card-cat {
-          width: 95%;
-          max-width: 360px;
-        }
-        @media (min-width: 600px) {
-          .cat-top-bar {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-          }
-          .cat-controls {
-            width: auto;
-          }
-          .cat-search-input {
-            width: 150px;
-            flex: none;
-          }
+        .categories-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 12px;
         }
       `}</style>
 
-      {/* Control Panel Header */}
+      {/* Header Bar - Exactly matching Product page structure */}
       <div className="cat-top-bar">
-        <h2 className="cat-title">
-          {isBuildingMode ? t.buildingTitle : t.pharmacyTitle}
-        </h2>
+        <div>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
+            {isBuildingMode ? t.buildingTitle : t.pharmacyTitle}
+          </h2>
+        </div>
         
-        <div className="cat-controls">
-          <input
-            type="text"
-            className="cat-search-input"
-            placeholder={t.searchPlaceholder}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-
-          <button
-            className="cat-action-btn"
-            onClick={() => { setEditingId(null); setShowModal(true); }}
-            style={{ backgroundColor: '#0d6efd', color: '#fff' }}
-          >
-            {t.addCategory}
-          </button>
-
+        <div className="header-actions">
           <input
             type="file"
             accept=".csv"
@@ -374,73 +338,78 @@ function Categories() {
             style={{ display: 'none' }}
           />
 
-          <button
-            className="cat-action-btn"
+          <label 
             onClick={() => fileInputRef.current.click()}
-            style={{ backgroundColor: '#fff', color: '#333', border: '1px solid #ccc' }}
+            style={{ 
+              background: '#6c757d', 
+              color: '#fff', 
+              padding: '8px 16px', 
+              borderRadius: '6px', 
+              fontWeight: 'bold', 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontSize: '13px'
+            }}
           >
             {t.import}
-          </button>
+          </label>
 
           <button
-            className="cat-action-btn"
-            onClick={handleCSVExport}
-            style={{ backgroundColor: '#198754', color: '#fff' }}
+            onClick={() => { setEditingId(null); setShowModal(true); }}
+            style={{ background: '#0d6efd', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
           >
-            {t.export}
+            {t.addCategory}
           </button>
         </div>
       </div>
 
-      {/* Main Table Content - Full Screen Viewport Fit */}
+      {/* Search Input Bar */}
+      <div className="filter-container">
+        <input
+          type="text"
+          className="cat-search-input"
+          placeholder={t.searchPlaceholder}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {/* Table Section */}
       <div className="table-wrapper">
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
+        <table className="categories-table">
           <thead>
-            <tr style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #e0e0e0', color: '#666', fontSize: '11px', letterSpacing: '0.5px', position: 'sticky', top: 0, zIndex: 1 }}>
-              <th style={{ padding: '8px 10px', fontWeight: '600' }}>{t.thCategoryId}</th>
-              <th style={{ padding: '8px 10px', fontWeight: '600' }}>{t.thName}</th>
-              <th style={{ padding: '8px 10px', fontWeight: '600' }}>{t.thProducts}</th>
-              <th style={{ padding: '8px 10px', fontWeight: '600', textAlign: 'right' }}>{t.thActions}</th>
+            <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #dee2e6', color: '#6c757d' }}>
+              <th style={{ padding: '10px' }}>{t.thCategoryId}</th>
+              <th style={{ padding: '10px' }}>{t.thName}</th>
+              <th style={{ padding: '10px' }}>{t.thProducts}</th>
+              <th style={{ padding: '10px', textAlign: 'right' }}>{t.thActions}</th>
             </tr>
           </thead>
           <tbody>
             {filteredCategories.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#888', fontSize: '12px' }}>
+                <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
                   {t.noCategories}
                 </td>
               </tr>
             ) : (
               filteredCategories.map((cat) => (
-                <tr key={cat._id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '8px 10px', color: '#555', fontFamily: 'monospace' }}>{cat.categoryId}</td>
-                  <td style={{ padding: '8px 10px', fontWeight: '500', color: '#222' }}>{cat.name}</td>
-                  <td style={{ padding: '8px 10px', color: '#555' }}>{cat.productsCount || 0}</td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <tr key={cat._id} style={{ borderBottom: '1px solid #f1f3f5' }}>
+                  <td style={{ padding: '8px 10px', color: '#6c757d', fontFamily: 'monospace' }}>{cat.categoryId}</td>
+                  <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>{cat.name}</td>
+                  <td style={{ padding: '8px 10px' }}>{cat.productsCount || 0}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right' }}>
                     <button
                       onClick={() => handleEditClick(cat)}
-                      style={{
-                        background: 'transparent',
-                        color: '#0d6efd',
-                        border: 'none',
-                        marginRight: '8px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}
+                      style={{ background: '#ffc107', color: '#000', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '5px' }}
                     >
                       {t.edit}
                     </button>
                     <button
                       onClick={() => handleDelete(cat._id)}
-                      style={{
-                        background: 'transparent',
-                        color: '#dc3545',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}
+                      style={{ background: '#dc3545', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                     >
                       {t.delete}
                     </button>
@@ -452,42 +421,52 @@ function Categories() {
         </table>
       </div>
 
-      {/* Responsive Form Modal */}
+      {/* Large Export Button at Bottom - Exactly like Product page */}
+      <div style={{ textAlign: 'center', marginTop: '15px' }}>
+        <button
+          onClick={handleCSVExport}
+          style={{ background: '#0d6efd', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          {t.export}
+        </button>
+      </div>
+
+      {/* Modal */}
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '10px' }}>
-          <div className="modal-card-cat" style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', boxSizing: 'border-box' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '14px', fontSize: '14px', color: '#333', fontWeight: '600' }}>
+          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '100%', maxWidth: '360px' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '14px', fontSize: '16px', color: '#333', fontWeight: 'bold' }}>
               {editingId ? t.editTitle : t.addTitle}
             </h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: '#666', marginBottom: '3px', display: 'block' }}>{t.categoryIdLabel}</label>
+                <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.categoryIdLabel}</label>
                 <input
                   type="text"
                   placeholder="e.g. 2813"
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '12px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #ced4da', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '11px', color: '#666', marginBottom: '3px', display: 'block' }}>{t.categoryNameLabel}</label>
+                <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.categoryNameLabel}</label>
                 <input
                   type="text"
                   required
                   placeholder={isBuildingMode ? t.buildingPlaceholder : t.pharmacyPlaceholder}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '12px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '4px', border: '1px solid #ced4da', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
-                <button type="button" onClick={handleCloseModal} style={{ backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+                <button type="button" onClick={handleCloseModal} style={{ backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
                   {t.cancel}
                 </button>
-                <button type="submit" style={{ backgroundColor: '#0d6efd', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}>
+                <button type="submit" style={{ backgroundColor: '#0d6efd', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
                   {editingId ? t.update : t.save}
                 </button>
               </div>
@@ -495,6 +474,7 @@ function Categories() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -166,8 +166,7 @@ exports.getDailyHistory = async (req, res) => {
     console.error("Daily history error:", err);
     res.status(500).json({ error: "Server error in daily history: " + err.message });
   }
-};
-// 2. Daily History Function (ለ Table)
+};// 2. Daily History Function (ለ Table)
 exports.getDailyHistory = async (req, res) => {
   try {
     const { businessType } = req.query;
@@ -179,18 +178,14 @@ exports.getDailyHistory = async (req, res) => {
 
     if (businessType && businessType !== 'undefined' && businessType !== 'null') {
       if (businessType.includes('building')) {
-        filter.businessType = { $in: ['building', 'building_materials', 'buildingMaterials'] };
+        filter.businessType = { $in: ['building', 'business_building', 'building_materials', 'buildingMaterials'] };
       } else {
         filter.businessType = { $in: ['pharmacy', null, undefined, ''] };
       }
     }
 
+    // ከፊልተሩ ጋር ብቻ የሚጣጣሙትን ኦርደሮች ያመጣል
     let orders = await Order.find(filter).sort({ createdAt: -1 });
-
-    // ዳታ ካልተገኘ ያለ ፊልተር ያመጣል
-    if (orders.length === 0 && filter.user) {
-      orders = await Order.find({ user: req.user.id }).sort({ createdAt: -1 });
-    }
 
     const historyMap = {};
 
@@ -205,23 +200,25 @@ exports.getDailyHistory = async (req, res) => {
         };
       }
 
-      const grandTotal = order.grandTotal || order.subtotal || order.total || order.totalAmount || 0;
+      const grandTotal = Number(order.grandTotal || order.subtotal || order.total || order.totalAmount || 0);
       historyMap[dateKey].totalSales += grandTotal;
 
       let orderProfit = 0;
       if (order.items && Array.isArray(order.items)) {
         order.items.forEach((item) => {
           const sellPrice = Number(item.price || item.unitPrice || item.sellPrice || 0);
-          const costPrice = Number(item.costPrice || item.buyPrice || 0);
-          const qty = Number(item.quantity || 1);
+          const costPrice = Number(item.costPrice || item.buyPrice || item.boughtPrice || 0);
+          const qty = Number(item.cartQty || item.quantity || 1);
           orderProfit += (sellPrice - costPrice) * qty;
         });
 
         if (order.discountAmount) {
           orderProfit -= Number(order.discountAmount);
         }
-      } else if (order.netProfit) {
+      } else if (order.netProfit !== undefined) {
         orderProfit = Number(order.netProfit);
+      } else if (order.profit !== undefined) {
+        orderProfit = Number(order.profit);
       }
 
       historyMap[dateKey].totalProfit += orderProfit;
