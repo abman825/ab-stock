@@ -8,7 +8,8 @@ const userSchema = new mongoose.Schema({
   fullName: { type: String, default: '' },
   phone: { type: String, default: '' },
   role: { type: String, default: 'User' },
-
+loginAttempts: { type: Number, default: 0 },
+lockUntil: { type: Number },
   // የወርሃዊ ክፍያ መቆጣጠሪያዎች (Subscription Control)
   isActive: { 
     type: Boolean, 

@@ -15,7 +15,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'እባክዎን ኢሜይል ያስገቡ' });
+    if (!email) return res.status(400).json({ message: 'እባክዎ ኢሜይል ያስገቡ' });
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'በዚህ ኢሜይል የተመዘገበ ተጠቃሚ አልተገኘም' });
@@ -32,10 +32,10 @@ exports.forgotPassword = async (req, res) => {
       from: 'onboarding@resend.dev',
       to: user.email,
       subject: 'Password Reset Request',
-      html: `<a href="${resetUrl}">የይለፍ ቃል ቀይር</a>`
+      html: `<a href="${resetUrl}">የለውጥ ቃል ቀይር</a>`
     });
 
-    res.json({ message: 'የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተላክዋል' });
+    res.json({ message: 'የለውጥ ቃል ማስተካከያ ሊንክ ወደ ኢሜይልዎ ተልጓል' });
   } catch (err) {
     res.status(500).json({ message: 'ኢሜይል መላክ አልተቻለም', error: err.message });
   }
@@ -46,40 +46,75 @@ exports.register = async (req, res) => {
   try {
     const { username, email, password, fullName, phone } = req.body;
     if (!username || !email || !password) {
-      return res.status(400).json({ message: 'እባክዎን ሁሉንም አስፈላጊ መረጃዎች ያስገቡ!' });
+      return res.status(400).json({ message: 'እባክዎ ሁለቱንም አስፈላጊ መረጃዎች ያስገቡ!' });
     }
 
     let existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      return res.status(400).json({ message: 'Username ወይም Email ቀደም ብሎ ተመዝግቧል!' });
+      return res.status(400).json({ message: 'Username ወይም Email ቀድመው ተመዝግበዋል!' });
     }
 
     const newUser = new User({ username, email, password, fullName: fullName || '', phone: phone || '' });
     await newUser.save();
-    res.status(201).json({ message: 'ተጠቃሚው በተሳካ ሁኔታ ተመዝግቧል!' });
+    res.status(201).json({ message: 'ተጠቃሚው በሳካ ሁኔታ ተመዝግቧል!' });
   } catch (err) {
     res.status(500).json({ message: 'ምዝገባው አልተሳካም!', error: err.message });
   }
 };
 
-// 3. Login
+// 3. Login (የተስተካከለ - የቁጥጥር እና የቆይታ ጊዜ ሎጂክ ያለው)
 exports.login = async (req, res) => {
   try {
     const { username, email, password } = req.body;
     const loginInput = username || email;
 
     const user = await User.findOne({ $or: [{ username: loginInput }, { email: loginInput }] });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user) {
       return res.status(400).json({ message: 'የተሳሳተ Username/Email ወይም Password!' });
     }
+
+    // 1. አካውንቱ አሁን በሰዓት ገደብ (Lockout) ውስጥ መሆኑን ማረጋገጥ
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      const remainingSeconds = Math.ceil((user.lockUntil - Date.now()) / 1000);
+      return res.status(429).json({
+        message: "አካውንቱ ለጊዜው ተቆልፏል!",
+        remainingSeconds
+      });
+    }
+
+    // 2. ፓስዎርድ ትክክል መሆኑን ማረጋገጥ
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+
+      // ከ 5 ጊዜ በላይ ሲሳሳት መቆለፊያ መስጠት
+      if (user.loginAttempts >= 5) {
+        const baseTime = 60 * 1000; // 1 ደቂቃ
+        const multiplier = Math.pow(2, user.loginAttempts - 5); // ሙከራው ሲቀጥል ሰዓቱ በእጥፍ ይጨምራል (1m, 2m, 4m...)
+        user.lockUntil = Date.now() + (baseTime * multiplier);
+      }
+
+      await user.save();
+
+      const remainingSeconds = user.lockUntil ? Math.ceil((user.lockUntil - Date.now()) / 1000) : 0;
+      return res.status(400).json({
+        message: 'የተሳሳተ Username/Email ወይም Password!',
+        remainingSeconds: remainingSeconds > 0 ? remainingSeconds : undefined
+      });
+    }
+
+    // 3. ትክክለኛ ሲሆን የጥፋት ቆጣሪዎችን ዳግም ማስጀመር (Reset)
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
     const userData = user.toObject();
     delete userData.password;
 
-    res.json({ message: 'በተሳካ ሁኔታ ገብተዋል!', token, user: userData });
+    res.json({ message: 'በሳካ ሁኔታ ገብተዋል!', token, user: userData });
   } catch (err) {
-    res.status(500).json({ message: 'መግባት አልተቻለም!', error: err.message });
+    res.status(500).json({ message: 'ማገኘት አልተቻለም!', error: err.message });
   }
 };
 
@@ -104,7 +139,7 @@ exports.updateProfile = async (req, res) => {
       { new: true, runValidators: true }
     ).select('-password');
 
-    res.json({ message: 'ፕሮፋይልዎ በተሳካ ሁኔታ ተሻሽሏል', user: updatedUser });
+    res.json({ message: 'ፕሮፋይልዎ በሳካ ሁኔታ ተሻሽሏል', user: updatedUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -117,12 +152,12 @@ exports.changePassword = async (req, res) => {
     const user = await User.findById(req.user.id);
 
     if (!(await bcrypt.compare(currentPassword, user.password))) {
-      return res.status(400).json({ message: "የነበረው ፓስወርድ ትክክለኛ አይደለም!" });
+      return res.status(400).json({ message: "የነበረው ምስጢር ትክክለኛ አይደለም!" });
     }
 
     user.password = newPassword; 
     await user.save();
-    res.json({ message: "ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል!" });
+    res.json({ message: "ምስጢርዎ በሳካ ሁኔታ ተቀይሯል!" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -141,13 +176,13 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
 
     await user.save();
-    res.json({ message: 'ፓስወርድዎ በተሳካ ሁኔታ ተቀይሯል፤ አሁን መግባት ይችላሉ' });
+    res.json({ message: 'ምስጢርዎ በሳካ ሁኔታ ተቀይሯል፤ አሁን መግባት ይችላሉ' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// 8. EXPORT ALL DATA (Filter by Business Type)
+// 8. EXPORT ALL DATA
 exports.exportAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -181,17 +216,16 @@ exports.exportAllUserData = async (req, res) => {
       orders
     });
   } catch (err) {
-    res.status(500).json({ error: "መረጃዎችን ማውረድ አልተቻለም፦ " + err.message });
+    res.status(500).json({ error: "መረጃዎችን ማውረድ አልተቻለም፡ " + err.message });
   }
 };
-// 9. FULL IMPORT ALL DATA
+
 // 9. FULL IMPORT ALL DATA
 exports.importAllUserData = async (req, res) => {
   try {
     const userId = req.user.id;
     const { products, categories, customers, suppliers, orders, businessType } = req.body;
     
-    // Rumbeng nga agpadpada ti pormat iti Analytics Filter
     let currentBusinessType = businessType || 'pharmacy';
     if (currentBusinessType.includes('building')) {
       currentBusinessType = 'building_materials';
@@ -199,7 +233,6 @@ exports.importAllUserData = async (req, res) => {
       currentBusinessType = 'pharmacy';
     }
 
-    // 1. Categories Import
     if (categories && Array.isArray(categories) && categories.length > 0) {
       for (const cat of categories) {
         try {
@@ -224,7 +257,6 @@ exports.importAllUserData = async (req, res) => {
       }
     }
 
-    // 2. Products Import
     if (products && Array.isArray(products) && products.length > 0) {
       for (const item of products) {
         try {
@@ -246,7 +278,6 @@ exports.importAllUserData = async (req, res) => {
       }
     }
 
-    // 3. Customers Import
     if (customers && Array.isArray(customers) && customers.length > 0) {
       const preparedCustomers = customers.map(cust => {
         const { _id, createdAt, updatedAt, ...rest } = cust;
@@ -255,7 +286,6 @@ exports.importAllUserData = async (req, res) => {
       await Customer.insertMany(preparedCustomers, { ordered: false }).catch(() => {});
     }
 
-    // 4. Suppliers Import
     if (suppliers && Array.isArray(suppliers) && suppliers.length > 0) {
       const preparedSuppliers = suppliers.map(sup => {
         const { _id, createdAt, updatedAt, ...rest } = sup;
@@ -264,28 +294,26 @@ exports.importAllUserData = async (req, res) => {
       await Supplier.insertMany(preparedSuppliers, { ordered: false }).catch(() => {});
     }
 
-    // 5. Orders / Reports Import (PASTING BUSINESS TYPE PARAN REPORT)
     if (orders && Array.isArray(orders) && orders.length > 0) {
       const preparedOrders = orders.map(ord => {
         const { _id, ...rest } = ord;
         return {
           ...rest,
           user: userId,
-          businessType: currentBusinessType, // Isilpo nga adda a sadiay businessType ti kada order
+          businessType: currentBusinessType,
           createdAt: ord.createdAt ? new Date(ord.createdAt) : new Date(),
           updatedAt: ord.updatedAt ? new Date(ord.updatedAt) : new Date()
         };
       });
       
-      // Tapno masigurado a ma-update ken maikkat ti saan a gapu kadagiti lumain a duplicates
       for (const ord of preparedOrders) {
         await Order.create(ord).catch(err => console.log('Order import skip:', err.message));
       }
     }
 
-    res.json({ message: 'Nailugan a sibubukel dagiti ammos (Data imported successfully)!' });
+    res.json({ message: 'መረጃዎች በሙሉ በሳካ ሁኔታ ገብተዋል!' });
   } catch (err) {
     console.error("Import Error Detail:", err);
-    res.status(500).json({ error: "Saan a maipalaing ti ammos: " + err.message });
+    res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም: " + err.message });
   }
 };

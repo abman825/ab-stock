@@ -6,8 +6,8 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const translations = {
   am: {
     createAccount: "አካውንት ይፍጠሩ",
-    signIn: "ይግቡ (Login)",
-    resetPassword: "የይለፍ ቃል መቀየሪያ",
+    signIn: "ግባ (Login)",
+    resetPassword: "የለውጥ ቃል ማስተካከያ",
     yourEmail: "የኢሜይል አድራሻዎ",
     enterEmail: "ኢሜይልዎን ያስገቡ",
     username: "የተጠቃሚ ስም (Username)",
@@ -16,28 +16,28 @@ const translations = {
     fullName: "ሙሉ ስም",
     enterFullName: "ሙሉ ስምዎን ያስገቡ",
     emailAddress: "የኢሜይል አድራሻ",
-    password: "የይለፍ ቃል (Password)",
-    enterPassword: "የይለፍ ቃል ያስገቡ",
+    password: "የለውጥ ቃል (Password)",
+    enterPassword: "የለውጥ ቃል ያስገቡ",
     processing: "በማስኬድ ላይ...",
-    signUpBtn: "ተመዝገብ (Sign Up)",
+    signUpBtn: "መዝገብ (Sign Up)",
     signInBtn: "ግባ (Sign In)",
-    sendResetBtn: "የመቀየሪያ ሊንክ ላክ",
-    forgotPassword: "የይለፍ ቃል ረስተዋል?",
+    sendResetBtn: "የማስተካከያ ሊንክ ልክ",
+    forgotPassword: "የለውጥ ቃል ረስተዋል?",
     noAccount: "አካውንት የለዎትም?",
-    registerLink: "ተመዝገብ",
+    registerLink: "መዝገብ",
     hasAccount: "አካውንት አለዎት?",
-    loginLink: "ይግቡ",
+    loginLink: "ግባ",
     backTo: "ወደ",
     cantSendEmail: "ኢሜይል መላክ አልተቻለም",
-    resetLinkSent: "የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል! እባክዎን ኢሜይልዎን ያረጋግጡ።",
+    resetLinkSent: "የለውጥ ቃል ማስተካከያ ሊንክ ወደ ኢሜይልዎ ተልጓል! እባክዎ ኢሜይልዎን ያረጋግጡ።",
     unknownError: "ስህተት ተፈጥሯል",
-    registerSuccess: "ምዝገባው በተሳካ ሁኔታ ተጠናቋል! እባክዎን አሁን ይግቡ!"
+    registerSuccess: "ምዝገባው በሳካ ሁኔታ ተሳክቷል! እባክዎ አሁን ግባ!"
   },
   om: {
     createAccount: "Akkaawuntii Uumi",
     signIn: "Seeni (Sign In)",
     resetPassword: "Jijjiirraa Jecha Darbiisaa",
-    yourEmail: "Teessoo E-mail Keessան",
+    yourEmail: "Teessoo E-mail Keessanii",
     enterEmail: "E-mail keessan galchaa",
     username: "Maqaa Fayyadamaa (Username)",
     usernameOrEmail: "Maqaa Fayyadamaa ykn E-mail",
@@ -110,6 +110,19 @@ function Login({ onLoginSuccess, onForgotPassword }) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // የቆይታ ጊዜ (ሰከንድ) መቆጣጠሪያ ቆጣሪ (Countdown Timer)
+  const [lockSeconds, setLockSeconds] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (lockSeconds > 0) {
+      timer = setInterval(() => {
+        setLockSeconds((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [lockSeconds]);
+
   useEffect(() => {
     const handleLangChange = () => {
       setLang(localStorage.getItem('appLanguage') || 'am');
@@ -136,6 +149,8 @@ function Login({ onLoginSuccess, onForgotPassword }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (lockSeconds > 0) return; // መቆለፊያው ካላለፈ ማስገባት አይቻልም
+
     setError('');
     setMessage('');
     setLoading(true);
@@ -177,6 +192,10 @@ function Login({ onLoginSuccess, onForgotPassword }) {
       const data = await res.json();
 
       if (!res.ok) {
+        // ከ Backend የሚመጣውን የተቆለፈበትን ሰከንድ (remainingSeconds) እንይ
+        if (data.remainingSeconds) {
+          setLockSeconds(data.remainingSeconds);
+        }
         throw new Error(data.message || t.unknownError);
       }
 
@@ -232,6 +251,13 @@ function Login({ onLoginSuccess, onForgotPassword }) {
         {error && <div style={{ color: '#842029', backgroundColor: '#f8d7da', border: '1px solid #f5c2c7', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{error}</div>}
         {message && <div style={{ color: '#0f5132', backgroundColor: '#d1e7dd', border: '1px solid #badbcc', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{message}</div>}
 
+        {/* ቆጣሪው (Timer) ሲሰራ ማስጠንቀቂያ ማሳያ */}
+        {lockSeconds > 0 && (
+          <div style={{ color: '#664d03', backgroundColor: '#fff3cd', border: '1px solid #ffeeba', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' }}>
+            ⚠️ በጣም ብዙ የተሳሳቱ ሙከራዎች! እባክዎ <b>{lockSeconds}</b> ሰከንዶች ይጠብቁ።
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           
           {/* Forgot Password Mode: Email Only */}
@@ -245,6 +271,7 @@ function Login({ onLoginSuccess, onForgotPassword }) {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                disabled={lockSeconds > 0}
                 style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
               />
             </div>
@@ -260,6 +287,7 @@ function Login({ onLoginSuccess, onForgotPassword }) {
                   value={formData.username}
                   onChange={handleChange}
                   required
+                  disabled={lockSeconds > 0}
                   style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
                 />
               </div>
@@ -305,11 +333,13 @@ function Login({ onLoginSuccess, onForgotPassword }) {
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    disabled={lockSeconds > 0}
                     style={{ width: '100%', padding: '10px 35px 10px 10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={lockSeconds > 0}
                     style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-30%)', border: 'none', background: 'transparent', cursor: 'pointer' }}
                   >
                     {showPassword ? '🙈' : '👁️'}
@@ -322,20 +352,20 @@ function Login({ onLoginSuccess, onForgotPassword }) {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || lockSeconds > 0}
             style={{
               padding: '10px',
-              background: '#0b5ed7',
+              background: lockSeconds > 0 ? '#94a3b8' : '#0b5ed7',
               color: '#fff',
               border: 'none',
               borderRadius: '5px',
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: (loading || lockSeconds > 0) ? 'not-allowed' : 'pointer',
               fontWeight: 'bold',
               marginTop: '5px',
-              opacity: loading ? 0.7 : 1
+              opacity: (loading || lockSeconds > 0) ? 0.7 : 1
             }}
           >
-            {loading ? t.processing : (mode === 'register' ? t.signUpBtn : mode === 'login' ? t.signInBtn : t.sendResetBtn)}
+            {lockSeconds > 0 ? `እባክዎ ይጠብቁ (${lockSeconds}s)` : (loading ? t.processing : (mode === 'register' ? t.signUpBtn : mode === 'login' ? t.signInBtn : t.sendResetBtn))}
           </button>
         </form>
 
