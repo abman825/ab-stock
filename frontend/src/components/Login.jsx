@@ -192,9 +192,10 @@ function Login({ onLoginSuccess, onForgotPassword }) {
       const data = await res.json();
 
       if (!res.ok) {
-        // ከ Backend የሚመጣውን የተቆለፈበትን ሰከንድ (remainingSeconds) እንይ
-        if (data.remainingSeconds) {
-          setLockSeconds(data.remainingSeconds);
+        // ከሰርቨር የሚመጣውን remainingSeconds በመያዝ ቆጣሪውን ማስጀመር (ካለ 60 ሰከንድ በነባሪ)
+        const lockTime = data.remainingSeconds || (res.status === 429 ? 60 : 0);
+        if (lockTime > 0) {
+          setLockSeconds(lockTime);
         }
         throw new Error(data.message || t.unknownError);
       }
@@ -251,10 +252,10 @@ function Login({ onLoginSuccess, onForgotPassword }) {
         {error && <div style={{ color: '#842029', backgroundColor: '#f8d7da', border: '1px solid #f5c2c7', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{error}</div>}
         {message && <div style={{ color: '#0f5132', backgroundColor: '#d1e7dd', border: '1px solid #badbcc', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px' }}>{message}</div>}
 
-        {/* ቆጣሪው (Timer) ሲሰራ ማስጠንቀቂያ ማሳያ */}
+        {/* ቆጣሪው (Timer) ሲሰራ ማሳያ */}
         {lockSeconds > 0 && (
           <div style={{ color: '#664d03', backgroundColor: '#fff3cd', border: '1px solid #ffeeba', padding: '10px', borderRadius: '5px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' }}>
-            ⚠️ በጣም ብዙ የተሳሳቱ ሙከራዎች! እባክዎ <b>{lockSeconds}</b> ሰከንዶች ይጠብቁ።
+            ⚠️ በጣም ብዙ የተሳሳቱ ሙከራዎች! እባክዎ <b>{lockSeconds}</b> ሰከንዶች ይጠብቁ
           </div>
         )}
 
