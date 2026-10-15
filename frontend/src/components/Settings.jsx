@@ -7,10 +7,10 @@ const API_BASE_URL = `${BASE_URL}/api`;
 const translations = {
   am: {
     settingsTitle: "የአካውንት ማስተካከያ (Settings)",
-    settingsDesc: "የግል መረጃዎችን፣ የንግድ አይነቶችን፣ የመረጃ ጥንቃቄ እና የደህንነት ቅንብሮችን እዚህ ያስተካክሉ።",
+    settingsDesc: "የግል መረጃዎችን፣ የውሂብ ጠንቃቃ እና ደህንነት ጥንቃቄዎችን እዚህ ያስተካክሉ።",
     profileTab: "👤 የፕሮፋይል መረጃ",
-    businessTab: "🏢 የንግድ አይነት (Business Mode)",
-    backupTab: "📦 የመረጃ ጥንቃቄ (Data Backup)",
+    businessTab: "🏢 የንግድ ዓይነት (Business Mode)",
+    backupTab: "📦 የውሂብ ጠንቃቃ (Data Backup)",
     securityTab: "🔒 ምስጢር እና ደህንነት",
     languageTab: "🌐 ቋንቋ (Language)",
     langSelectTitle: "የመተግበሪያውን ቋንቋ ይምረጡ",
@@ -19,32 +19,32 @@ const translations = {
     fullName: "ሙሉ ስም (Full Name)",
     email: "ኢሜይል (Email Address)",
     phone: "ስልክ ቁጥር (Phone Number)",
-    role: "ድረሻ (Role)",
-    saveBtn: "ለውጦች ማስተካከያ",
+    role: "ደረጃ (Role)",
+    saveBtn: "ለለውጦች ማስተካከያ",
     savingBtn: "በማስተካከል ላይ...",
     passCurrent: "አሁን የሚጠቀሙበት ምስጢር",
     passNew: "አዲስ ምስጢር",
     passConfirm: "አዲሱን ምስጢር ማረጋገጫ",
     passBtn: "ምስጢር ቀይር",
     pharmacyTitle: "ፋርማሲ (Pharmacy / Medicine)",
-    pharmacyDesc: "የመድኃኒት ማለፊያ ቀን (Expiry Date)፣ የሲሮፕ/ታብሌት አይነት እና ልዩ የመድኃኒት መግለጫዎችን የሚያካተት ቅጽ።",
-    buildingTitle: "ሕንፃ መሣሪያ (Building Materials)",
-    buildingDesc: "የቁሳቁስ አይነት እና የማካፍ/መለኪያ Unit (በካሬ፣ በሜትር፣ በኪሎ፣ በቁጥር) የሚያካተት ቅጽ።",
-    backupTitle: "የመረጃ ባክአፕ እና ማደስ (Full Data Backup & Restore)",
-    backupDesc: "የምርቶችዎን፣ የደንበኞችዎን፣ የአቅራቢዎቻችንን እና የሽያጭ ታሪኮቻችንን ሙሉ በሙሉ በአንድ ፋይል አውርዶ ማስቀመጥ ወይም የነበረውን መመለስ።",
+    pharmacyDesc: "የመድኃኒት ማለፊያ ቀን (Expiry Date)፣ የሲሮፕ/ታብሌት ዓይነት እና ልዩ የመድኃኒት መግለጫዎችን የሚያካትት ቅጽ።",
+    buildingTitle: "ህንፃ መሣሪያ (Building Materials)",
+    buildingDesc: "የቁሳቁስ ዓይነት እና የማካፈል/መለኪያ Unit (በካሬ፣ በሜትር፣ በኪሎ፣ በቁጥር) የሚያካትት ቅጽ።",
+    backupTitle: "የውሂብ ባክአፕ እና ማደስ (Full Data Backup & Restore)",
+    backupDesc: "ምርቶችዎን፣ ደንበኞችዎን፣ አቅራቢዎችዎን እና ሽያጭ ታሪኮችዎን ሙሉ በሙሉ በአንድ ፋይል አውርዶ ማቀመጥ ወይም የነበረውን መመለሻ።",
     exportBtn: "📥 ሁሉንም መረጃዎች አውርድ (Export All)",
-    importBtn: "📤 መረጃዎችን ይመለሱ (Import Backup)",
+    importBtn: "📤 መረጃዎችን እመለስ (Import Backup)",
     importingBtn: "በማስገባት ላይ...",
     successProfile: "ፕሮፋይሉ በሳካ ሁኔታ ተስተካክሏል!",
-    successBusiness: "የንግድ አይነት በሳካ ሁኔታ ተቀባይቷል!",
-    successPass: "ምስጢሩ በሳካ ሁኔታ ተቀባይቷል!",
-    profileSubtitle: "የግል መረጃዎችን እና የመገናኛ አድራሻዎችን ይያዙ።",
-    businessSubtitle: "የሚሰሩበትን የንግድ ስንጥ ይምረጡ። በመምረጫው መሰረት እቅዶች መመዝገቢያ እና ዎች በማዕረጋቸው ተቀናብረዋል።",
-    securitySubtitle: "አካውንቱ ደህንነቱ የተጠበቀ ለማድረግ ጠንካራ ምስጢር ይጠቀሙ።",
-    emptyPassErr: "እባክዎ ሁለቱም የምስጢር ቦታዎች ይሙሉ!",
-    matchPassErr: "አዲስ ምስጢር እና ማረጋገጫው አልተሳሰሩም!",
-    lenPassErr: "አዲስ ምስጢር ቢያንስ 6 ቃላት/ቁጥሮች መሆን አለበት!",
-    failPassErr: "ምስጢር መቅየር አልተቻለም! አሁን የሚጠቀሙበትን ምስጢር ማረጋገጫ።"
+    successBusiness: "የንግድ ዓይነት በሳካ ሁኔታ ተመርጧል!",
+    successPass: "ምስጢሩ በሳካ ሁኔታ ተቀይሯል!",
+    profileSubtitle: "የግል መረጃዎችን እና የመገናኛ አድራሻዎችን ይለማሉ።",
+    businessSubtitle: "እባክዎ የሚሰሩበትን የንግድ አይነት ይምረጡ። አንዴ ከመረጡ በኋላ መልሰው መቀየር አይችሉም!",
+    securitySubtitle: "አካውንት ደህንነት የተጠበቀ ለማድረግ ጠንካራ ምስጢር ይጠቀሙ።",
+    emptyPassErr: "እባክዎ ሁለቱም የምስጢር ቦታዎች ይሙሉ።",
+    matchPassErr: "አዲስ ምስጢር እና ማረጋገጫው አልተሳሰረም!",
+    lenPassErr: "አዲስ ምስጢር ቢያንስ 6 ፊደላት/ቁጥሮች መሆን አለበት!",
+    failPassErr: "ምስጢር መክበር አልተቻለም! አሁን የሚጠቀሙበት ምስጢር ማረጋገጫ።"
   },
   om: {
     settingsTitle: "Qindaa'ina Akkaawuntii (Settings)",
@@ -70,17 +70,17 @@ const translations = {
     pharmacyTitle: "Faarmasii (Pharmacy / Medicine)",
     pharmacyDesc: "Guyyaa darbiinsa qorichaa, gosa sirooppii/taableetiifi ibsa qorichaa addaa kan qabate.",
     buildingTitle: "Meeshaa Ijaarsaa (Building Materials)",
-    buildingDesc: "Gosa meeshaa fi safartuu (Karee, Meetrii, Kiiloo, Lakkos) kan qabate.",
+    buildingDesc: "Gosa meeshaa fi safartuu kan qabate.",
     backupTitle: "Odeeffannoo Guutuu Olkaa'uu (Backup Data)",
     backupDesc: "Odeeffannoo oomishaa, maamiltootaa fi gurgurtaa guutuu gara kompiitara/bilbila keessaniitti buufadhaa.",
     exportBtn: "📥 Odeeffannoo Guutuu Buufadhu (Export All)",
     importBtn: "📤 Odeeffannoo Deebisi (Import Backup)",
     importingBtn: "Fe'amaa jira...",
     successProfile: "Piroofaayiliin milkaa'inaan haaromfameera!",
-    successBusiness: "Gosi daldalaa milkaa'inaan jijjiirameera!",
+    successBusiness: "Gosi daldalaa milkaa'inaan filatameera!",
     successPass: "Jechi darbii milkaa'inaan jijjiirameera!",
     profileSubtitle: "Odeeffannoo dhuunfaa fi teessoo keessan haaromsaa.",
-    businessSubtitle: "Gosa daldala keessani filadhaa. Filannoo keessan irratti hundaa'uun fuulotni ni jijjiiramu.",
+    businessSubtitle: "Gosa daldala keessani filadhaa. Erga filattanii booda jijjiiruun hin danda'amu!",
     securitySubtitle: "Akkaawuntii keessan eeguuf jecha darbii jabaa fayyadamaa.",
     emptyPassErr: "Maaloo iddoo jecha darbii hunda guutaa!",
     matchPassErr: "Jechi darbii haaraa fi mirkaneessan wal hin simne!",
@@ -118,10 +118,10 @@ const translations = {
     importBtn: "📤 Restore / Import Backup",
     importingBtn: "Importing...",
     successProfile: "Profile updated successfully!",
-    successBusiness: "Business mode updated successfully!",
+    successBusiness: "Business mode selected successfully!",
     successPass: "Password changed successfully!",
     profileSubtitle: "Update your personal details and contact information.",
-    businessSubtitle: "Select your business type. Pages and forms will dynamically adapt to your choice.",
+    businessSubtitle: "Select your business type. Once selected, you cannot change it later!",
     securitySubtitle: "Use a strong password to keep your account safe.",
     emptyPassErr: "Please fill in all password fields!",
     matchPassErr: "New password and confirmation do not match!",
@@ -131,21 +131,22 @@ const translations = {
 };
 
 function Settings() {
-  // Accordion state: openSection walla null so alla ko udditii
   const [openSection, setOpenSection] = useState(null);
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-
   const [language, setLanguage] = useState(() => {
     return localStorage.getItem('appLanguage') || 'am';
   });
 
   const t = translations[language] || translations.am;
+
+  // ተጠቃሚው ቀድሞ የንግድ ዓይነት መምረጡን የሚያረጋግጥ State
+  const [hasChosenBusinessType, setHasChosenBusinessType] = useState(() => {
+    return !!localStorage.getItem('businessTypeChosen');
+  });
 
   const [businessType, setBusinessType] = useState(() => {
     const raw = localStorage.getItem('businessType') || 'pharmacy';
@@ -212,6 +213,8 @@ function Settings() {
             
             setBusinessType(normalizedType);
             localStorage.setItem('businessType', normalizedType);
+            localStorage.setItem('businessTypeChosen', 'true');
+            setHasChosenBusinessType(true);
           }
         }
       } catch (err) {
@@ -238,7 +241,7 @@ function Settings() {
       downloadAnchor.click();
       downloadAnchor.remove();
 
-      setMessage({ type: 'success', text: `የ${businessType === 'pharmacy' ? 'ፋርማሲ' : 'ሕንፃ መሣሪያ'} ሙሉ መረጃ በሳካ ሁኔታ ወርዷል!` });
+      setMessage({ type: 'success', text: 'መረጃዎች በሙሉ በሳካ ሁኔታ ወርደዋል!' });
     } catch (err) {
       setMessage({ type: 'error', text: 'መረጃዎችን ማውረድ አልተቻለም!' });
     } finally {
@@ -267,7 +270,7 @@ function Settings() {
 
         setMessage({ type: 'success', text: 'መረጃዎች በሳካ ሁኔታ ወደ ሰርቨር ተመልሰዋል!' });
       } catch (err) {
-        setMessage({ type: 'error', text: 'የፋይል መረጃውን ማስተጓጎል አልተቻለም! እባክዎ ትክክለኛ የ JSON ፋይል ይምረጡ።' });
+        setMessage({ type: 'error', text: 'የፋይል መረጃውን ማስተካከል አልተቻለም! እባክዎ ትክክለኛ የ JSON ፋይል ይምረጡ።' });
       } finally {
         setImportLoading(false);
       }
@@ -301,10 +304,13 @@ function Settings() {
     }
   };
 
+  // የንግድ ዓይነት መምረጫ እና ማስቀመጫ
   const handleSaveBusinessType = async (type) => {
     const normalizedType = type.toLowerCase().includes('building') ? 'building_materials' : 'pharmacy';
     setBusinessType(normalizedType);
     localStorage.setItem('businessType', normalizedType);
+    localStorage.setItem('businessTypeChosen', 'true'); // መመረጡን መመዝገብ
+    setHasChosenBusinessType(true); // መምረጫው ክፍል እንዲጠፋ ማድረግ
     window.dispatchEvent(new Event('businessTypeChanged'));
 
     try {
@@ -376,7 +382,7 @@ function Settings() {
         .accordion-body { padding: 20px; border-top: 1px solid #e9ecef; background: #ffffff; }
         .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .mode-card { border: 2px solid #e9ecef; border-radius: 10px; padding: 15px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 15px; }
-        .mode-card.active { border-color: #0d6efd; background-color: #f0f7ff; }
+        .mode-card:hover { border-color: #0d6efd; background-color: #f0f7ff; }
         .lang-card { border: 2px solid #e9ecef; border-radius: 10px; padding: 12px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; }
         .lang-card.active { border-color: #198754; background-color: #f0fff4; }
         @media (max-width: 768px) {
@@ -495,51 +501,53 @@ function Settings() {
           )}
         </div>
 
-        {/* 2. Business Mode Accordion */}
-        <div className="accordion-item">
-          <button className="accordion-header" onClick={() => toggleSection('businessMode')}>
-            <span>{t.businessTab}</span>
-            <span>{openSection === 'businessMode' ? '▲' : '▼'}</span>
-          </button>
-          {openSection === 'businessMode' && (
-            <div className="accordion-body">
-              <p style={{ fontSize: '13px', color: '#6c757d', marginBottom: '20px' }}>
-                {t.businessSubtitle}
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div
-                  className={`mode-card ${businessType === 'pharmacy' ? 'active' : ''}`}
-                  onClick={() => handleSaveBusinessType('pharmacy')}
-                >
-                  <span style={{ fontSize: '24px' }}>💊</span>
-                  <div>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#212529' }}>
-                      {t.pharmacyTitle}
-                    </h4>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
-                      {t.pharmacyDesc}
-                    </p>
+        {/* 2. Business Mode Accordion (የንግድ ዓይነት ካልተመረጠ ብቻ የሚታይ ክፍል) */}
+        {!hasChosenBusinessType && (
+          <div className="accordion-item" style={{ border: '2px solid #0d6efd' }}>
+            <button className="accordion-header" onClick={() => toggleSection('businessMode')} style={{ backgroundColor: '#e7f1ff' }}>
+              <span style={{ color: '#0d6efd' }}>{t.businessTab} (አስፈላጊ)</span>
+              <span>{openSection === 'businessMode' ? '▲' : '▼'}</span>
+            </button>
+            {openSection === 'businessMode' && (
+              <div className="accordion-body">
+                <p style={{ fontSize: '13px', color: '#dc3545', fontWeight: '600', marginBottom: '20px' }}>
+                  {t.businessSubtitle}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div
+                    className="mode-card"
+                    onClick={() => handleSaveBusinessType('pharmacy')}
+                  >
+                    <span style={{ fontSize: '28px' }}>💊</span>
+                    <div>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#212529' }}>
+                        {t.pharmacyTitle}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
+                        {t.pharmacyDesc}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div
-                  className={`mode-card ${businessType === 'building_materials' ? 'active' : ''}`}
-                  onClick={() => handleSaveBusinessType('building_materials')}
-                >
-                  <span style={{ fontSize: '24px' }}>🏗️</span>
-                  <div>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#212529' }}>
-                      {t.buildingTitle}
-                    </h4>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
-                      {t.buildingDesc}
-                    </p>
+                  <div
+                    className="mode-card"
+                    onClick={() => handleSaveBusinessType('building_materials')}
+                  >
+                    <span style={{ fontSize: '28px' }}>🏗️</span>
+                    <div>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#212529' }}>
+                        {t.buildingTitle}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
+                        {t.buildingDesc}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* 3. Backup Accordion */}
         <div className="accordion-item">
@@ -555,9 +563,9 @@ function Settings() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div style={{ background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                   <div>
-                    <h4 style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#212529' }}>1. የመረጃ ባክአፕ አውርድ (Export Data)</h4>
+                    <h4 style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#212529' }}>1. የውሂብ ባክአፕ አውርድ (Export Data)</h4>
                     <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
-                      የ{businessType === 'pharmacy' ? 'ፋርማሲ' : 'ሕንፃ መሣሪያ'} መረጃዎችን ይውረዱ።
+                      የመረጃ ፋይልዎን ያውርዱ
                     </p>
                   </div>
                   <button
@@ -580,9 +588,9 @@ function Settings() {
 
                 <div style={{ background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                   <div>
-                    <h4 style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#212529' }}>2. የወረደ መረጃ ይመልሱ (Import / Restore)</h4>
+                    <h4 style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#212529' }}>2. የወረደ ውሂብ እመለስ (Import / Restore)</h4>
                     <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
-                      የ JSON ባክአፕ ፋይል በመምረጥ ይጫኑ።
+                      የ JSON ባክአፕ ፋይል በመምረጥ ይጫኑ
                     </p>
                   </div>
                   <label style={{
@@ -695,7 +703,7 @@ function Settings() {
                   type="submit"
                   disabled={loading}
                   style={{
-                    backgroundColor: '#198754',
+                    backgroundColor: '#0d6efd',
                     color: '#fff',
                     border: 'none',
                     padding: '10px 20px',
