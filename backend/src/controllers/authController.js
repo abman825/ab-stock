@@ -129,17 +129,23 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// 5. Update Profile
+// 5. Update Profile (businessType ን ከብዲ ተቀብሎ እንዲመዘግብ የተደረገ)
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, phone, email, username } = req.body;
+    const { fullName, phone, email, username, businessType } = req.body;
+    
+    const updateFields = { fullName, phone, email, username };
+    if (businessType) {
+      updateFields.businessType = businessType;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      { fullName, phone, email, username },
+      updateFields,
       { new: true, runValidators: true }
     ).select('-password');
 
-    res.json({ message: 'ፕሮፋይልዎ በሳካ ሁኔታ ተሻሽሏል', user: updatedUser });
+    res.json({ message: 'ፕሮፋይሉ በሳካ ሁኔታ ተስተካክሏል', user: updatedUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -315,16 +321,5 @@ exports.importAllUserData = async (req, res) => {
   } catch (err) {
     console.error("Import Error Detail:", err);
     res.status(500).json({ error: "መረጃዎችን ማስገባት አልተቻለም: " + err.message });
-  }
-};
-exports.getProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'ተጠቃሚው አልተገኘም' });
-    
-    // user._id, businessType እና ሌሎች መረጃዎች መላካቸውን ማረጋገጥ
-    res.json(user); 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 };

@@ -205,8 +205,15 @@ function Login({ onLoginSuccess, onForgotPassword }) {
         setMode('login');
         setFormData({ username: '', email: '', password: '', fullName: '', phone: '' });
       } else {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // ሎጊን ሲደረግ businessType ን localStorage ላይ በአግባቡ መያዝ
+const loggedUser = res.data ? res.data.user : data.user;
+const userToken = res.data ? res.data.token : data.token;
+
+localStorage.setItem('token', userToken);
+localStorage.setItem('user', JSON.stringify(loggedUser));
+if (loggedUser && loggedUser.businessType) {
+  localStorage.setItem('businessType', loggedUser.businessType);
+}
         onLoginSuccess(data.user);
       }
     } catch (err) {
