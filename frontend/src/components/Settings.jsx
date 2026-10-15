@@ -143,10 +143,8 @@ function Settings() {
 
   const t = translations[language] || translations.am;
 
-  // ተጠቃሚው ቀድሞ የንግድ ዓይነት መምረጡን የሚያረጋግጥ State
-  const [hasChosenBusinessType, setHasChosenBusinessType] = useState(() => {
-    return !!localStorage.getItem('businessTypeChosen');
-  });
+  // ገጹ ለመጀመሪያ ጊዜ ሲከፈት መረበሽ እንዳይፈጠር በነባሪነት true እናደርገዋለን
+  const [hasChosenBusinessType, setHasChosenBusinessType] = useState(true);
 
   const [businessType, setBusinessType] = useState(() => {
     const raw = localStorage.getItem('businessType') || 'pharmacy';
@@ -206,7 +204,8 @@ function Settings() {
             role: userData.role || 'User'
           });
 
-          if (userData.businessType) {
+          // በዳታቤዝ ውስጥ የንግድ ዓይነት ከተመዘገበ መረጡን ያረጋግጣል
+          if (userData.businessType && userData.businessType.trim() !== '') {
             const normalizedType = userData.businessType.toLowerCase().includes('building') 
               ? 'building_materials' 
               : 'pharmacy';
@@ -214,7 +213,10 @@ function Settings() {
             setBusinessType(normalizedType);
             localStorage.setItem('businessType', normalizedType);
             localStorage.setItem('businessTypeChosen', 'true');
-            setHasChosenBusinessType(true);
+            setHasChosenBusinessType(true); // በዳታቤዝ ስላለ መምረጫውን ይደብቀዋል!
+          } else {
+            // በዳታቤዝ ውስጥ ካልተመዘገበ ብቻ መምረጫውን ያሳያል
+            setHasChosenBusinessType(false);
           }
         }
       } catch (err) {
@@ -304,16 +306,17 @@ function Settings() {
     }
   };
 
-  // የንግድ ዓይነት መምረጫ እና ማስቀመጫ
+  // የንግድ ዓይነት መምረጫ እና በዳታቤዝ ውስጥ መመዝገቢያ
   const handleSaveBusinessType = async (type) => {
     const normalizedType = type.toLowerCase().includes('building') ? 'building_materials' : 'pharmacy';
     setBusinessType(normalizedType);
     localStorage.setItem('businessType', normalizedType);
-    localStorage.setItem('businessTypeChosen', 'true'); // መመረጡን መመዝገብ
-    setHasChosenBusinessType(true); // መምረጫው ክፍል እንዲጠፋ ማድረግ
+    localStorage.setItem('businessTypeChosen', 'true');
+    setHasChosenBusinessType(true); // መምረጫው ወዲያው እንዲጠፋ ያደርጋል
     window.dispatchEvent(new Event('businessTypeChanged'));
 
     try {
+      // መረጃውን ወደ ዳታቤዝ ይልካል (በቀጣይ Logout አድርጎ Login ቢያደርግም እንዲያስታውሰው)
       await axios.put(
         `${API_BASE_URL}/auth/update-profile`,
         { businessType: normalizedType },
@@ -501,7 +504,7 @@ function Settings() {
           )}
         </div>
 
-        {/* 2. Business Mode Accordion (የንግድ ዓይነት ካልተመረጠ ብቻ የሚታይ ክፍል) */}
+        {/* 2. Business Mode Accordion (በዳታቤዝ ያልተመዘገበ ከሆነ ብቻ የሚታይ) */}
         {!hasChosenBusinessType && (
           <div className="accordion-item" style={{ border: '2px solid #0d6efd' }}>
             <button className="accordion-header" onClick={() => toggleSection('businessMode')} style={{ backgroundColor: '#e7f1ff' }}>

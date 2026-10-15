@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, default: 'User' },
 loginAttempts: { type: Number, default: 0 },
 lockUntil: { type: Number },
+businessType: { type: String, default: '' },
   // የወርሃዊ ክፍያ መቆጣጠሪያዎች (Subscription Control)
   isActive: { 
     type: Boolean, 
