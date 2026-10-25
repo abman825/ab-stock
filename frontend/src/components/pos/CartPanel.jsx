@@ -24,12 +24,13 @@ function CartPanel({
   setSelectedCustomer,
   paidAmount,
   setPaidAmount,
-  // ቅድመ ክፍያው የተከፈለበትን መንገድ (Cash, Bank, Telebirr) መያዣ Props
+  // ቅድመ ክፍያው የተከፈለበትን መንገድ (Cash, Bank, Telebirr) ማዕቀፍ Props
   creditPaymentType = 'cash',
   setCreditPaymentType
 }) {
   const remainingAmount = Math.max(0, grandTotal - (Number(paidAmount) || 0));
-  const isCredit = paymentMethod.toLowerCase() === 'credit';
+  // አሁን ክፍያው ብድር መሆኑን ለማረጋገጥ 'credit' የሚለውን ቃል ወይም በትርጉም የመጣውን 'ብድር' ቃል እንፈትሻለን
+  const isCredit = paymentMethod.toLowerCase() === 'credit' || paymentMethod === (t.credit || 'ብድር');
 
   return (
     <div style={{ 
@@ -44,7 +45,7 @@ function CartPanel({
     }}>
       {/* ርዕስ */}
       <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#495057', textAlign: 'center', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px' }}>
-        {t.currentCart || 'የአሁኑ ቅርጫት'}
+        {t.currentCart || 'የአሁን ቅርጫት'}
       </h4>
 
       {cart.length === 0 ? (
@@ -52,7 +53,7 @@ function CartPanel({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           
-          {/* የተመረጡ ዕቃዎች ዝርዝር */}
+          {/* የተመረጡ እቃዎች ዝርዝር */}
           <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
             {cart.map((item) => {
               const itemId = item._id || item.id;
@@ -85,7 +86,7 @@ function CartPanel({
                     <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{itemTotal.toFixed(2)} {t.birr || 'ብር'}</span>
                   </div>
 
-                  {/* ቀናት (የተሸጠበት ቀን እና የሚያልፍበት ቀን) */}
+                  {/* ቀኖች (የተሸጠበት ቀን እና የሚሻሻሉበት ቀን) */}
                   <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.soldAt || 'የተሸጠበት ቀን'}</label>
@@ -99,7 +100,7 @@ function CartPanel({
                     
                     {!isBuildingMode && (
                       <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.expDate || 'የሚያልፍበት ቀን'}</label>
+                        <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>{t.expDate || 'የሚሻሻልበት ቀን'}</label>
                         <div style={{ fontSize: '10px', padding: '4px', background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '4px', color: '#6c757d' }}>
                           {itemExpDate ? new Date(itemExpDate).toLocaleDateString() : (t.na || 'N/A')}
                         </div>
@@ -111,7 +112,7 @@ function CartPanel({
             })}
           </div>
 
-          {/* የታችኛው ሂሳብ እና የክፍያ ክፍሎች */}
+          {/* የታችኛውን ሂሳብ እና የክፍያ አማራጮች */}
           <div style={{ borderTop: '2px dashed #dee2e6', paddingTop: '10px', marginTop: 'auto' }}>
             
             {/* ቅናሽ (Discount) */}
@@ -150,7 +151,7 @@ function CartPanel({
             {/* አጠቃላይ እና የመጨረሻ ዋጋ */}
             <div style={{ marginTop: '8px', fontSize: '11px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
-                <span>{t.subtotal || 'ምንም ሳይቀነስ'}:</span>
+                <span>{t.subtotal || 'ምንም ሳያካትት'}:</span>
                 <span>{subtotal.toFixed(2)} {t.birr || 'ብር'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6c757d', marginBottom: '2px' }}>
@@ -163,109 +164,124 @@ function CartPanel({
               </div>
             </div>
 
-            {/* የክፍያ መንገድ (4 ቁልፎች፦ Cash, Bank, Telebirr, Credit) */}
+            {/* የክፍያ መንገድ (4 ክፍሎች፦ Cash, Bank, Telebirr, Credit/ብድር) */}
             <div style={{ marginTop: '10px' }}>
               <label style={{ fontSize: '10px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>{t.paymentMethod || 'የክፍያ መንገድ'}</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '4px' }}>
-                {['Cash', 'Bank', 'Telebirr', 'Credit'].map((method) => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => {
-                      setPaymentMethod(method);
-                      if (method === 'Credit') {
-                        setPaidAmount('');
-                      } else {
-                        setPaidAmount(grandTotal);
-                      }
-                    }}
-                    style={{
-                      padding: '6px 2px',
-                      fontSize: '10px',
-                      border: paymentMethod === method ? '2px solid #28a745' : '1px solid #ced4da',
-                      background: paymentMethod === method ? '#e8f5e9' : '#fff',
-                      color: paymentMethod === method ? '#28a745' : '#333',
-                      fontWeight: 'bold',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      textAlign: 'center'
-                    }}
-                  >
-                    {method === 'Cash' ? (t.cash || 'ካሽ') : method === 'Bank' ? (t.bank || 'ባንክ') : method === 'Telebirr' ? (t.telebirr || 'ቴሌብር') : 'ብድር'}
-                  </button>
-                ))}
+                {[
+                  { key: 'Cash', label: t.cash || 'ካሽ' },
+                  { key: 'Bank', label: t.bank || 'ባንክ' },
+                  { key: 'Telebirr', label: t.telebirr || 'ቴሌብር' },
+                  { key: 'Credit', label: t.credit || 'ብድር' }
+                ].map((item) => {
+                  const isSelected = paymentMethod === item.key || paymentMethod === item.label;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod(item.key);
+                        if (item.key === 'Credit') {
+                          setPaidAmount('');
+                        } else {
+                          setPaidAmount(grandTotal);
+                        }
+                      }}
+                      style={{
+                        padding: '6px 2px',
+                        fontSize: '10px',
+                        border: isSelected ? '2px solid #28a745' : '1px solid #ced4da',
+                        background: isSelected ? '#e8f5e9' : '#fff',
+                        color: isSelected ? '#28a745' : '#333',
+                        fontWeight: 'bold',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* የብድር ዝርዝሮች (ደንበኛ መምረጫ፣ ክፍያ እና የክፍያ መንገድ መምረጫ) */}
-            {isCredit && (
-              <div style={{ marginTop: '10px', background: '#fff3cd', padding: '8px', borderRadius: '6px', border: '1px solid #ffeeba' }}>
-                
-                {/* 1. ደንበኛ መምረጫ */}
-                <div style={{ marginBottom: '6px' }}>
-                  <label style={{ fontSize: '10px', color: '#856404', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>ደንበኛ ይምረጡ *</label>
-                  <select
-                    value={selectedCustomer}
-                    onChange={(e) => setSelectedCustomer(e.target.value)}
-                    style={{ width: '100%', padding: '4px', fontSize: '11px', border: '1px solid #ced4da', borderRadius: '4px', background: '#fff' }}
-                  >
-                    <option value="">-- ደንበኛ ይምረጡ --</option>
-                    {customers.map((c) => (
-                      <option key={c._id || c.id} value={c._id || c.id}>{c.name} ({c.phone})</option>
-                    ))}
-                  </select>
-                </div>
+            {/* የብድር ዝርዝሮች (ደንበኛ መምረጫ፣ ክፍያ እና ሶስቱ የክፍያ መንገዶች ማካተት) */}
+            {/* የብድር ዝርዝሮች (ደንበኛ መምረጫ፣ ክፍያ እና ሶስቱ የክፍያ መንገዶች ማካተት) */}
+{isCredit && (
+  <div style={{ marginTop: '10px', background: '#fff3cd', padding: '8px', borderRadius: '6px', border: '1px solid #ffeeba' }}>
+    
+    {/* 1. ደንበኛ መምረጫ */}
+    <div style={{ marginBottom: '6px' }}>
+      <label style={{ fontSize: '10px', color: '#856404', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>
+        {t.selectCustomer || 'ደንበኛ ይምረጡ'} *
+      </label>
+      <select
+        value={selectedCustomer}
+        onChange={(e) => setSelectedCustomer(e.target.value)}
+        style={{ width: '100%', padding: '4px', fontSize: '11px', border: '1px solid #ced4da', borderRadius: '4px', background: '#fff' }}
+      >
+        <option value="">-- {t.selectCustomer || 'ደንበኛ ይምረጡ'} --</option>
+        {customers.map((c) => (
+          <option key={c._id || c.id} value={c._id || c.id}>{c.name} ({c.phone})</option>
+        ))}
+      </select>
+    </div>
 
-                {/* 2. አሁን የተከፈለው ገንዘብ */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404' }}>አሁን የከፈለዉ፦</label>
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                    style={{ width: '80px', padding: '3px 5px', fontSize: '11px', border: '1px solid #ccc', borderRadius: '3px', background: '#fff' }}
-                  />
-                </div>
+    {/* 2. አሁን የተከፈለው ገንዘብ */}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404' }}>
+        {t.paidAmount || 'አሁን የተከፈለው:'}
+      </label>
+      <input
+        type="number"
+        placeholder="0.00"
+        value={paidAmount}
+        onChange={(e) => setPaidAmount(e.target.value)}
+        style={{ width: '80px', padding: '3px 5px', fontSize: '11px', border: '1px solid #ccc', borderRadius: '3px', background: '#fff' }}
+      />
+    </div>
 
-                {/* 3. ቅድመ ክፍያው የተከፈለበት መንገድ (ካሽ/ባንክ/ቴሌብር) - ሁልጊዜ ይታያል */}
-                <div style={{ marginBottom: '6px', borderTop: '1px dashed #ffe8a1', paddingTop: '4px' }}>
-                  <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404', display: 'block', marginBottom: '2px' }}>የከፈለበት መንገድ፦</label>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    {[
-                      { id: 'cash', label: t.cash || 'ካሽ' },
-                      { id: 'bank', label: t.bank || 'ባንክ' },
-                      { id: 'telebirr', label: t.telebirr || 'ቴሌብር' }
-                    ].map((pay) => (
-                      <button
-                        key={pay.id}
-                        type="button"
-                        onClick={() => setCreditPaymentType && setCreditPaymentType(pay.id)}
-                        style={{
-                          flex: 1,
-                          padding: '3px 2px',
-                          fontSize: '9px',
-                          borderRadius: '3px',
-                          border: creditPaymentType === pay.id ? '2px solid #28a745' : '1px solid #ccc',
-                          background: creditPaymentType === pay.id ? '#e8f5e9' : '#fff',
-                          color: creditPaymentType === pay.id ? '#28a745' : '#333',
-                          cursor: 'pointer',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        {pay.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+    {/* 3. ቅድመ ክፍያው የተከፈለበት መንገድ (Cash / Bank / Telebirr) */}
+    <div style={{ marginBottom: '6px', borderTop: '1px dashed #ffe8a1', paddingTop: '4px' }}>
+      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#856404', display: 'block', marginBottom: '2px' }}>
+        {t.paymentMethod || 'የተከፈለበት መንገድ:'}
+      </label>
+      <div style={{ display: 'flex', gap: '4px' }}>
+        {[
+          { id: 'cash', label: t.cash || 'ካሽ' },
+          { id: 'bank', label: t.bank || 'ባንክ' },
+          { id: 'telebirr', label: t.telebirr || 'ቴሌብር' }
+        ].map((pay) => (
+          <button
+            key={pay.id}
+            type="button"
+            onClick={() => setCreditPaymentType && setCreditPaymentType(pay.id)}
+            style={{
+              flex: 1,
+              padding: '3px 2px',
+              fontSize: '9px',
+              borderRadius: '3px',
+              border: creditPaymentType === pay.id ? '2px solid #28a745' : '1px solid #ccc',
+              background: creditPaymentType === pay.id ? '#e8f5e9' : '#fff',
+              color: creditPaymentType === pay.id ? '#28a745' : '#333',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            {pay.label}
+          </button>
+        ))}
+      </div>
+    </div>
 
-                {/* 4. በብድር የቀረው ዕዳ */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#dc3545', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #ffd8a8' }}>
-                  <span>በዕዳ የቀረው፦</span>
-                  <span>{remainingAmount.toFixed(2)} {t.birr || 'ብር'}</span>
-                </div>
-              </div>
-            )}
+    {/* 4. በብድር የቀረ ዕዳ */}
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#dc3545', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #ffd8a8' }}>
+      <span>{t.remainingDebt || 'በዕዳ የቀረው:'}</span>
+      <span>{remainingAmount.toFixed(2)} {t.birr || 'ብር'}</span>
+    </div>
+  </div>
+)}
 
             {/* ሽያጭ ጨርስ ቁልፍ */}
             <button
